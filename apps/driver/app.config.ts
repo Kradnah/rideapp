@@ -17,7 +17,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: 'rideapp Conductor',
   slug: 'rideapp-driver',
   scheme: 'rideapp-driver',
-  version: '0.1.0',
+  version: '0.3.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
