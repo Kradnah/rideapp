@@ -10,6 +10,8 @@ const MESSAGES: Record<string, string> = {
   ACCOUNT_DISABLED: 'Tu cuenta no está activa. Escríbenos para revisarla.',
   NETWORK_ERROR: 'No hay conexión con el servidor. Revisa tu internet.',
   VALIDATION_FAILED: 'Revisa los datos e inténtalo de nuevo.',
+  INVALID_CODE: 'Código incorrecto o caducado.',
+  SERVICE_UNAVAILABLE: 'El envío de correos todavía no está disponible. Inténtalo más adelante.',
 };
 
 /** Mensaje para el usuario a partir de un error del API (nunca detalles técnicos). */

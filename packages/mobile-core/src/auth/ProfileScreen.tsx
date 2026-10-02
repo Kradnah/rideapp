@@ -9,10 +9,11 @@ import { FormError, FormScreen } from './FormScreen';
 export interface ProfileScreenProps {
   onBack?: () => void;
   onOpenPolicy: () => void;
+  onVerifyEmail: () => void;
 }
 
 /** Perfil (9.6): editar nombre y teléfono, política y cerrar sesión. */
-export function ProfileScreen({ onBack, onOpenPolicy }: ProfileScreenProps) {
+export function ProfileScreen({ onBack, onOpenPolicy, onVerifyEmail }: ProfileScreenProps) {
   const p = usePalette();
   const { api, signOut, signOutAll } = useSession();
   const [me, setMe] = useState<Me | null>(null);
@@ -104,6 +105,23 @@ export function ProfileScreen({ onBack, onOpenPolicy }: ProfileScreenProps) {
         </>
       }
     >
+      {me?.email && !me.emailVerified ? (
+        <View
+          style={{
+            borderWidth: 1,
+            borderColor: p.pending,
+            borderRadius: 10,
+            padding: spacing.md,
+            gap: spacing.sm,
+          }}
+        >
+          <Text style={{ color: p.text, fontSize: 14, lineHeight: 20 }}>
+            Tu email todavía no está verificado. Verificarlo protege tu cuenta y te permite
+            recuperarla si olvidas la contraseña.
+          </Text>
+          <Button label="Verificar email" variant="secondary" onPress={onVerifyEmail} />
+        </View>
+      ) : null}
       <TextField
         label="Nombre completo"
         value={fullName}

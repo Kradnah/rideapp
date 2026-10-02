@@ -9,9 +9,10 @@ import { FormError, FormScreen } from './FormScreen';
 export interface LoginScreenProps {
   onBack?: () => void;
   onRegister: () => void;
+  onForgot: () => void;
 }
 
-export function LoginScreen({ onBack, onRegister }: LoginScreenProps) {
+export function LoginScreen({ onBack, onRegister, onForgot }: LoginScreenProps) {
   const { api, signIn } = useSession();
   const passwordRef = useRef<TextInput>(null);
   const [email, setEmail] = useState('');
@@ -67,6 +68,7 @@ export function LoginScreen({ onBack, onRegister }: LoginScreenProps) {
       />
       <FormError message={error} />
       <Button label="Entrar" onPress={submit} loading={loading} />
+      <Button label="¿Olvidaste tu contraseña?" variant="ghost" onPress={onForgot} />
     </FormScreen>
   );
 }

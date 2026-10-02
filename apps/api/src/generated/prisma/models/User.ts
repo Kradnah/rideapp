@@ -234,6 +234,7 @@ export type UserWhereInput = {
   refreshTokens?: Prisma.RefreshTokenListRelationFilter
   consents?: Prisma.ConsentListRelationFilter
   adminTotp?: Prisma.XOR<Prisma.AdminTotpNullableScalarRelationFilter, Prisma.AdminTotpWhereInput> | null
+  emailCodes?: Prisma.EmailCodeListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -252,6 +253,7 @@ export type UserOrderByWithRelationInput = {
   refreshTokens?: Prisma.RefreshTokenOrderByRelationAggregateInput
   consents?: Prisma.ConsentOrderByRelationAggregateInput
   adminTotp?: Prisma.AdminTotpOrderByWithRelationInput
+  emailCodes?: Prisma.EmailCodeOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -273,6 +275,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   refreshTokens?: Prisma.RefreshTokenListRelationFilter
   consents?: Prisma.ConsentListRelationFilter
   adminTotp?: Prisma.XOR<Prisma.AdminTotpNullableScalarRelationFilter, Prisma.AdminTotpWhereInput> | null
+  emailCodes?: Prisma.EmailCodeListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -325,6 +328,7 @@ export type UserCreateInput = {
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
+  emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -343,6 +347,7 @@ export type UserUncheckedCreateInput = {
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
+  emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -361,6 +366,7 @@ export type UserUpdateInput = {
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -379,6 +385,7 @@ export type UserUncheckedUpdateInput = {
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -540,6 +547,20 @@ export type UserUpdateOneRequiredWithoutAdminTotpNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAdminTotpInput, Prisma.UserUpdateWithoutAdminTotpInput>, Prisma.UserUncheckedUpdateWithoutAdminTotpInput>
 }
 
+export type UserCreateNestedOneWithoutEmailCodesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutEmailCodesInput, Prisma.UserUncheckedCreateWithoutEmailCodesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutEmailCodesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutEmailCodesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutEmailCodesInput, Prisma.UserUncheckedCreateWithoutEmailCodesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutEmailCodesInput
+  upsert?: Prisma.UserUpsertWithoutEmailCodesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutEmailCodesInput, Prisma.UserUpdateWithoutEmailCodesInput>, Prisma.UserUncheckedUpdateWithoutEmailCodesInput>
+}
+
 export type UserCreateNestedOneWithoutConsentsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutConsentsInput, Prisma.UserUncheckedCreateWithoutConsentsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutConsentsInput
@@ -569,6 +590,7 @@ export type UserCreateWithoutIdentitiesInput = {
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
+  emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutIdentitiesInput = {
@@ -586,6 +608,7 @@ export type UserUncheckedCreateWithoutIdentitiesInput = {
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
+  emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutIdentitiesInput = {
@@ -619,6 +642,7 @@ export type UserUpdateWithoutIdentitiesInput = {
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutIdentitiesInput = {
@@ -636,6 +660,7 @@ export type UserUncheckedUpdateWithoutIdentitiesInput = {
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutRefreshTokensInput = {
@@ -653,6 +678,7 @@ export type UserCreateWithoutRefreshTokensInput = {
   identities?: Prisma.AuthIdentityCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
+  emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutRefreshTokensInput = {
@@ -670,6 +696,7 @@ export type UserUncheckedCreateWithoutRefreshTokensInput = {
   identities?: Prisma.AuthIdentityUncheckedCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
+  emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutRefreshTokensInput = {
@@ -703,6 +730,7 @@ export type UserUpdateWithoutRefreshTokensInput = {
   identities?: Prisma.AuthIdentityUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRefreshTokensInput = {
@@ -720,6 +748,7 @@ export type UserUncheckedUpdateWithoutRefreshTokensInput = {
   identities?: Prisma.AuthIdentityUncheckedUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAdminTotpInput = {
@@ -737,6 +766,7 @@ export type UserCreateWithoutAdminTotpInput = {
   identities?: Prisma.AuthIdentityCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
+  emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAdminTotpInput = {
@@ -754,6 +784,7 @@ export type UserUncheckedCreateWithoutAdminTotpInput = {
   identities?: Prisma.AuthIdentityUncheckedCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
+  emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAdminTotpInput = {
@@ -787,6 +818,7 @@ export type UserUpdateWithoutAdminTotpInput = {
   identities?: Prisma.AuthIdentityUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAdminTotpInput = {
@@ -804,6 +836,95 @@ export type UserUncheckedUpdateWithoutAdminTotpInput = {
   identities?: Prisma.AuthIdentityUncheckedUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutEmailCodesInput = {
+  id?: string
+  email?: string | null
+  emailVerified?: boolean
+  passwordHash?: string | null
+  fullName: string
+  phone?: string | null
+  role: $Enums.UserRole
+  status?: $Enums.UserStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  identities?: Prisma.AuthIdentityCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutEmailCodesInput = {
+  id?: string
+  email?: string | null
+  emailVerified?: boolean
+  passwordHash?: string | null
+  fullName: string
+  phone?: string | null
+  role: $Enums.UserRole
+  status?: $Enums.UserStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  identities?: Prisma.AuthIdentityUncheckedCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutEmailCodesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutEmailCodesInput, Prisma.UserUncheckedCreateWithoutEmailCodesInput>
+}
+
+export type UserUpsertWithoutEmailCodesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutEmailCodesInput, Prisma.UserUncheckedUpdateWithoutEmailCodesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutEmailCodesInput, Prisma.UserUncheckedCreateWithoutEmailCodesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutEmailCodesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutEmailCodesInput, Prisma.UserUncheckedUpdateWithoutEmailCodesInput>
+}
+
+export type UserUpdateWithoutEmailCodesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identities?: Prisma.AuthIdentityUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutEmailCodesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identities?: Prisma.AuthIdentityUncheckedUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutConsentsInput = {
@@ -821,6 +942,7 @@ export type UserCreateWithoutConsentsInput = {
   identities?: Prisma.AuthIdentityCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
+  emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutConsentsInput = {
@@ -838,6 +960,7 @@ export type UserUncheckedCreateWithoutConsentsInput = {
   identities?: Prisma.AuthIdentityUncheckedCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
+  emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutConsentsInput = {
@@ -871,6 +994,7 @@ export type UserUpdateWithoutConsentsInput = {
   identities?: Prisma.AuthIdentityUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutConsentsInput = {
@@ -888,6 +1012,7 @@ export type UserUncheckedUpdateWithoutConsentsInput = {
   identities?: Prisma.AuthIdentityUncheckedUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -899,12 +1024,14 @@ export type UserCountOutputType = {
   identities: number
   refreshTokens: number
   consents: number
+  emailCodes: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   identities?: boolean | UserCountOutputTypeCountIdentitiesArgs
   refreshTokens?: boolean | UserCountOutputTypeCountRefreshTokensArgs
   consents?: boolean | UserCountOutputTypeCountConsentsArgs
+  emailCodes?: boolean | UserCountOutputTypeCountEmailCodesArgs
 }
 
 /**
@@ -938,6 +1065,13 @@ export type UserCountOutputTypeCountConsentsArgs<ExtArgs extends runtime.Types.E
   where?: Prisma.ConsentWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountEmailCodesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.EmailCodeWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -955,6 +1089,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   refreshTokens?: boolean | Prisma.User$refreshTokensArgs<ExtArgs>
   consents?: boolean | Prisma.User$consentsArgs<ExtArgs>
   adminTotp?: boolean | Prisma.User$adminTotpArgs<ExtArgs>
+  emailCodes?: boolean | Prisma.User$emailCodesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1006,6 +1141,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   refreshTokens?: boolean | Prisma.User$refreshTokensArgs<ExtArgs>
   consents?: boolean | Prisma.User$consentsArgs<ExtArgs>
   adminTotp?: boolean | Prisma.User$adminTotpArgs<ExtArgs>
+  emailCodes?: boolean | Prisma.User$emailCodesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1018,6 +1154,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     refreshTokens: Prisma.$RefreshTokenPayload<ExtArgs>[]
     consents: Prisma.$ConsentPayload<ExtArgs>[]
     adminTotp: Prisma.$AdminTotpPayload<ExtArgs> | null
+    emailCodes: Prisma.$EmailCodePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1435,6 +1572,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   refreshTokens<T extends Prisma.User$refreshTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$refreshTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RefreshTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   consents<T extends Prisma.User$consentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$consentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ConsentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   adminTotp<T extends Prisma.User$adminTotpArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$adminTotpArgs<ExtArgs>>): Prisma.Prisma__AdminTotpClient<runtime.Types.Result.GetResult<Prisma.$AdminTotpPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  emailCodes<T extends Prisma.User$emailCodesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$emailCodesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailCodePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1956,6 +2094,30 @@ export type User$adminTotpArgs<ExtArgs extends runtime.Types.Extensions.Internal
    */
   include?: Prisma.AdminTotpInclude<ExtArgs> | null
   where?: Prisma.AdminTotpWhereInput
+}
+
+/**
+ * User.emailCodes
+ */
+export type User$emailCodesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the EmailCode
+   */
+  select?: Prisma.EmailCodeSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the EmailCode
+   */
+  omit?: Prisma.EmailCodeOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.EmailCodeInclude<ExtArgs> | null
+  where?: Prisma.EmailCodeWhereInput
+  orderBy?: Prisma.EmailCodeOrderByWithRelationInput | Prisma.EmailCodeOrderByWithRelationInput[]
+  cursor?: Prisma.EmailCodeWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.EmailCodeScalarFieldEnum | Prisma.EmailCodeScalarFieldEnum[]
 }
 
 /**

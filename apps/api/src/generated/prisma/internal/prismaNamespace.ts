@@ -401,6 +401,7 @@ export const ModelName = {
   AuthIdentity: 'AuthIdentity',
   RefreshToken: 'RefreshToken',
   AdminTotp: 'AdminTotp',
+  EmailCode: 'EmailCode',
   Consent: 'Consent',
   AuditLog: 'AuditLog'
 } as const
@@ -418,7 +419,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "authIdentity" | "refreshToken" | "adminTotp" | "consent" | "auditLog"
+    modelProps: "user" | "authIdentity" | "refreshToken" | "adminTotp" | "emailCode" | "consent" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -718,6 +719,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    EmailCode: {
+      payload: Prisma.$EmailCodePayload<ExtArgs>
+      fields: Prisma.EmailCodeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EmailCodeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCodePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EmailCodeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCodePayload>
+        }
+        findFirst: {
+          args: Prisma.EmailCodeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCodePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EmailCodeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCodePayload>
+        }
+        findMany: {
+          args: Prisma.EmailCodeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCodePayload>[]
+        }
+        create: {
+          args: Prisma.EmailCodeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCodePayload>
+        }
+        createMany: {
+          args: Prisma.EmailCodeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.EmailCodeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCodePayload>[]
+        }
+        delete: {
+          args: Prisma.EmailCodeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCodePayload>
+        }
+        update: {
+          args: Prisma.EmailCodeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCodePayload>
+        }
+        deleteMany: {
+          args: Prisma.EmailCodeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EmailCodeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.EmailCodeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCodePayload>[]
+        }
+        upsert: {
+          args: Prisma.EmailCodeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailCodePayload>
+        }
+        aggregate: {
+          args: Prisma.EmailCodeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEmailCode>
+        }
+        groupBy: {
+          args: Prisma.EmailCodeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EmailCodeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EmailCodeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EmailCodeCountAggregateOutputType> | number
+        }
+      }
+    }
     Consent: {
       payload: Prisma.$ConsentPayload<ExtArgs>
       fields: Prisma.ConsentFieldRefs
@@ -962,6 +1037,20 @@ export const AdminTotpScalarFieldEnum = {
 export type AdminTotpScalarFieldEnum = (typeof AdminTotpScalarFieldEnum)[keyof typeof AdminTotpScalarFieldEnum]
 
 
+export const EmailCodeScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  purpose: 'purpose',
+  codeHmac: 'codeHmac',
+  attempts: 'attempts',
+  expiresAt: 'expiresAt',
+  usedAt: 'usedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type EmailCodeScalarFieldEnum = (typeof EmailCodeScalarFieldEnum)[keyof typeof EmailCodeScalarFieldEnum]
+
+
 export const ConsentScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1137,6 +1226,20 @@ export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 
  * Reference to a field of type 'BigInt[]'
  */
 export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
+    
+
+
+/**
+ * Reference to a field of type 'EmailCodePurpose'
+ */
+export type EnumEmailCodePurposeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailCodePurpose'>
+    
+
+
+/**
+ * Reference to a field of type 'EmailCodePurpose[]'
+ */
+export type ListEnumEmailCodePurposeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailCodePurpose[]'>
     
 
 
@@ -1322,6 +1425,7 @@ export type GlobalOmitConfig = {
   authIdentity?: Prisma.AuthIdentityOmit
   refreshToken?: Prisma.RefreshTokenOmit
   adminTotp?: Prisma.AdminTotpOmit
+  emailCode?: Prisma.EmailCodeOmit
   consent?: Prisma.ConsentOmit
   auditLog?: Prisma.AuditLogOmit
 }

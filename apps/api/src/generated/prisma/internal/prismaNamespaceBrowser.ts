@@ -55,6 +55,7 @@ export const ModelName = {
   AuthIdentity: 'AuthIdentity',
   RefreshToken: 'RefreshToken',
   AdminTotp: 'AdminTotp',
+  EmailCode: 'EmailCode',
   Consent: 'Consent',
   AuditLog: 'AuditLog'
 } as const
@@ -130,6 +131,20 @@ export const AdminTotpScalarFieldEnum = {
 } as const
 
 export type AdminTotpScalarFieldEnum = (typeof AdminTotpScalarFieldEnum)[keyof typeof AdminTotpScalarFieldEnum]
+
+
+export const EmailCodeScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  purpose: 'purpose',
+  codeHmac: 'codeHmac',
+  attempts: 'attempts',
+  expiresAt: 'expiresAt',
+  usedAt: 'usedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type EmailCodeScalarFieldEnum = (typeof EmailCodeScalarFieldEnum)[keyof typeof EmailCodeScalarFieldEnum]
 
 
 export const ConsentScalarFieldEnum = {

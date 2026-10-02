@@ -27,6 +27,14 @@ export const UserStatus = {
 export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus]
 
 
+export const EmailCodePurpose = {
+  VERIFY_EMAIL: 'VERIFY_EMAIL',
+  RESET_PASSWORD: 'RESET_PASSWORD'
+} as const
+
+export type EmailCodePurpose = (typeof EmailCodePurpose)[keyof typeof EmailCodePurpose]
+
+
 export const AuthProvider = {
   PASSWORD: 'PASSWORD',
   GOOGLE: 'GOOGLE',

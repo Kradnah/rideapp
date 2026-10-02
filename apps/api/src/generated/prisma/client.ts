@@ -64,6 +64,12 @@ export type RefreshToken = Prisma.RefreshTokenModel
  */
 export type AdminTotp = Prisma.AdminTotpModel
 /**
+ * Model EmailCode
+ * Códigos de 6 dígitos enviados por correo (8.2, paso 6; 14.2). Se guarda el HMAC, nunca el código;
+ * máximo 5 intentos y un solo uso.
+ */
+export type EmailCode = Prisma.EmailCodeModel
+/**
  * Model Consent
  * Prueba de la autorización de tratamiento de datos (Ley 1581, sección 15).
  */

@@ -28,13 +28,16 @@ import {
   QuoteRequest,
   QuoteResponse,
   RefreshRequest,
+  ForgotPasswordRequest,
   RegisterRequest,
+  ResetPasswordRequest,
   ReverseGeocodeQuery,
   ReverseGeocodeResponse,
   SocketEvent,
   TokenPair,
   TripDriverLocationV1,
   UpdateMeRequest,
+  VerifyEmailRequest,
 } from '@rideapp/contracts';
 import {
   DEMO_DRIVER_ROUTE,
@@ -46,6 +49,9 @@ import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import { Server } from 'socket.io';
 import type { z } from 'zod';
 import { RouteWalker } from './simulator.js';
+
+/** En el mock, el código que llega "por correo" es siempre este. */
+export const MOCK_EMAIL_CODE = '123456';
 
 /** Viaje fijo cuya ubicación de conductor emite el simulador a todos los sockets. */
 export const DEMO_TRIP_ID = '00000000-0000-4000-8000-000000000001';
@@ -220,6 +226,34 @@ export function buildMockServer(options: MockServerOptions = {}) {
 
       api.post('/auth/logout-all', (req, reply) => {
         requireUser(req);
+        void reply.status(204).send();
+      });
+
+      api.post('/auth/email/verification', (req, reply) => {
+        requireUser(req);
+        void reply.status(204).send();
+      });
+
+      api.post('/auth/email/verify', (req, reply) => {
+        const user = requireUser(req);
+        const { code } = parse(VerifyEmailRequest, req.body);
+        if (code !== MOCK_EMAIL_CODE) throw new HttpError(400, 'INVALID_CODE', 'Código incorrecto');
+        user.emailVerified = true;
+        void reply.status(204).send();
+      });
+
+      api.post('/auth/password/forgot', (req, reply) => {
+        parse(ForgotPasswordRequest, req.body);
+        void reply.status(202).send({});
+      });
+
+      api.post('/auth/password/reset', (req, reply) => {
+        const body = parse(ResetPasswordRequest, req.body);
+        const user = findByEmail(body.email);
+        if (!user || body.code !== MOCK_EMAIL_CODE) {
+          throw new HttpError(400, 'INVALID_CODE', 'Código incorrecto o caducado');
+        }
+        user.password = body.password;
         void reply.status(204).send();
       });
 

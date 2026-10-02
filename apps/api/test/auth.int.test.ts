@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { configureApp, createAdapter } from '../src/app.factory.js';
 import { AppModule } from '../src/app.module.js';
 import { FieldCrypto } from '../src/common/crypto/field-crypto.js';
+import { MAILER, type Mailer, type MailMessage } from '../src/infra/mail/mailer.js';
 import { PrismaService } from '../src/infra/prisma/prisma.service.js';
 import { buildTotp, createAdmin } from '../src/modules/admin/admin-provisioning.js';
 import { PasswordService } from '../src/modules/auth/password.service.js';
@@ -43,6 +44,25 @@ const fakeGoogle: GoogleTokenVerifier = {
 const googleToken = (sub: string, email: string, verified = true) =>
   `google|${sub}|${email}|${verified}|${randomUUID()}`;
 
+/** Buzón en memoria: captura los correos en vez de enviarlos. `enabled` se puede apagar en un test. */
+const outbox: MailMessage[] = [];
+const fakeMailer: Mailer & { enabled: boolean } = {
+  enabled: true,
+  async send(message) {
+    outbox.push(message);
+  },
+};
+
+/** Espera el último correo enviado a `to` (algunos se envían en segundo plano) y saca el código. */
+async function lastCodeFor(to: string): Promise<string> {
+  for (let i = 0; i < 50; i++) {
+    const mail = [...outbox].reverse().find((m) => m.to === to && /\b\d{6}\b/.test(m.text));
+    if (mail) return mail.text.match(/\b(\d{6})\b/)![1]!;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  throw new Error(`No llegó ningún código a ${to}`);
+}
+
 let pg: StartedPostgreSqlContainer;
 let redis: StartedRedisContainer;
 let app: NestFastifyApplication;
@@ -63,6 +83,8 @@ beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(env)] })
     .overrideProvider(GOOGLE_VERIFIER)
     .useValue(fakeGoogle)
+    .overrideProvider(MAILER)
+    .useValue(fakeMailer)
     .compile();
   app = moduleRef.createNestApplication<NestFastifyApplication>(createAdapter(env), {
     bufferLogs: true,
@@ -626,5 +648,160 @@ describe('login del panel con TOTP', () => {
       Buffer.from(refreshed.accessToken.split('.')[1]!, 'base64url').toString(),
     );
     expect(claims.amr).toEqual(['google']);
+  });
+});
+
+// ---------- Correo: verificación y recuperación ----------
+
+describe('verificación de email', () => {
+  it('el registro envía un código y verificarlo marca el email como verificado', async () => {
+    const { email, tokens } = await register();
+    const code = await lastCodeFor(email);
+
+    const wrong = await call('POST', '/auth/email/verify', {
+      token: tokens.accessToken,
+      body: { code: code === '000000' ? '111111' : '000000' },
+    });
+    expect(wrong.statusCode).toBe(400);
+    expect(wrong.json()).toMatchObject({ code: 'INVALID_CODE' });
+
+    const ok = await call('POST', '/auth/email/verify', {
+      token: tokens.accessToken,
+      body: { code },
+    });
+    expect(ok.statusCode).toBe(204);
+    const me = Me.parse((await call('GET', '/me', { token: tokens.accessToken })).json());
+    expect(me.emailVerified).toBe(true);
+  });
+
+  it('tras 5 intentos fallidos ni el código correcto sirve', async () => {
+    const { email, tokens } = await register();
+    const code = await lastCodeFor(email);
+    const bad = code === '000000' ? '111111' : '000000';
+    for (let i = 0; i < 5; i++) {
+      await call('POST', '/auth/email/verify', { token: tokens.accessToken, body: { code: bad } });
+    }
+    const late = await call('POST', '/auth/email/verify', {
+      token: tokens.accessToken,
+      body: { code },
+    });
+    expect(late.statusCode).toBe(400);
+  });
+
+  it('no deja pedir otro código antes de un minuto', async () => {
+    const { email, tokens } = await register();
+    await lastCodeFor(email);
+    const again = await call('POST', '/auth/email/verification', { token: tokens.accessToken });
+    expect(again.statusCode).toBe(429);
+  });
+
+  it('sin correo configurado responde SERVICE_UNAVAILABLE en lugar de fallar en silencio', async () => {
+    fakeMailer.enabled = false;
+    try {
+      const { tokens } = await register();
+      const res = await call('POST', '/auth/email/verification', { token: tokens.accessToken });
+      expect(res.statusCode).toBe(503);
+      expect(res.json()).toMatchObject({ code: 'SERVICE_UNAVAILABLE' });
+    } finally {
+      fakeMailer.enabled = true;
+    }
+  });
+});
+
+describe('recuperación de contraseña', () => {
+  const NEW_PASSWORD = 'tortuga-verde-flandes';
+
+  it('misma respuesta exista o no el email', async () => {
+    const before = outbox.length;
+    const unknown = await call('POST', '/auth/password/forgot', {
+      body: { email: `nadie-${randomUUID()}@example.com` },
+    });
+    expect(unknown.statusCode).toBe(202);
+    expect(unknown.json()).toEqual({});
+    expect(outbox.length).toBe(before);
+
+    const { email } = await register();
+    await lastCodeFor(email); // correo de verificación del registro
+    const known = await call('POST', '/auth/password/forgot', { body: { email } });
+    expect(known.statusCode).toBe(202);
+    expect(known.body).toBe(unknown.body);
+  });
+
+  it('el código cambia la contraseña, cierra las sesiones y es de un solo uso', async () => {
+    const { email, tokens } = await register();
+    const outboxBefore = outbox.length;
+    await call('POST', '/auth/password/forgot', { body: { email } });
+    let code = '';
+    for (let i = 0; i < 50 && !code; i++) {
+      const mail = outbox
+        .slice(outboxBefore)
+        .find((m) => m.to === email && /restablecer/i.test(m.subject));
+      code = mail?.text.match(/\b(\d{6})\b/)?.[1] ?? '';
+      if (!code) await new Promise((r) => setTimeout(r, 50));
+    }
+    expect(code).toMatch(/^\d{6}$/);
+
+    const wrong = await call('POST', '/auth/password/reset', {
+      body: { email, code: code === '000000' ? '111111' : '000000', password: NEW_PASSWORD },
+    });
+    expect(wrong.json()).toMatchObject({ code: 'INVALID_CODE' });
+
+    const ok = await call('POST', '/auth/password/reset', {
+      body: { email, code, password: NEW_PASSWORD },
+    });
+    expect(ok.statusCode, ok.body).toBe(204);
+
+    // Las sesiones abiertas se cierran y la contraseña vieja deja de valer.
+    expect((await call('GET', '/me', { token: tokens.accessToken })).statusCode).toBe(401);
+    expect(
+      (await call('POST', '/auth/login', { body: { email, password: PASSWORD } })).statusCode,
+    ).toBe(401);
+    expect(
+      (await call('POST', '/auth/login', { body: { email, password: NEW_PASSWORD } })).statusCode,
+    ).toBe(200);
+
+    const reuse = await call('POST', '/auth/password/reset', {
+      body: { email, code, password: 'otra-frase-distinta-9' },
+    });
+    expect(reuse.statusCode).toBe(400);
+    expect(
+      outbox.some((m) => m.to === email && /contraseña de rideapp cambió/.test(m.subject)),
+    ).toBe(true);
+  });
+
+  it('un email desconocido en el reset da el mismo error que un código malo', async () => {
+    const res = await call('POST', '/auth/password/reset', {
+      body: { email: `nadie-${randomUUID()}@example.com`, code: '123456', password: NEW_PASSWORD },
+    });
+    expect(res.json()).toMatchObject({ code: 'INVALID_CODE' });
+  });
+
+  it('los administradores no recuperan la contraseña por correo', async () => {
+    const email = `adm-${randomUUID()}@example.com`;
+    await createAdmin(
+      { prisma, crypto: app.get(FieldCrypto), passwords: new PasswordService() },
+      { email, fullName: 'Admin', password: 'panel-girardot-seguro-2026' },
+    );
+    const before = outbox.length;
+    expect((await call('POST', '/auth/password/forgot', { body: { email } })).statusCode).toBe(202);
+    await new Promise((r) => setTimeout(r, 200));
+    expect(outbox.slice(before).some((m) => m.to === email)).toBe(false);
+  });
+});
+
+describe('aviso al vincular Google', () => {
+  it('envía un correo de seguridad al vincular una cuenta existente', async () => {
+    const { email } = await register();
+    await prisma.user.update({ where: { email }, data: { emailVerified: true } });
+    const res = await call('POST', '/auth/google', {
+      body: { idToken: googleToken(randomUUID(), email) },
+    });
+    expect(res.statusCode).toBe(200);
+    let found = false;
+    for (let i = 0; i < 50 && !found; i++) {
+      found = outbox.some((m) => m.to === email && /Google/.test(m.subject));
+      if (!found) await new Promise((r) => setTimeout(r, 50));
+    }
+    expect(found).toBe(true);
   });
 });

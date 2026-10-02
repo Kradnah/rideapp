@@ -28,6 +28,11 @@ enum UserStatus {
   DELETED
 }
 
+enum EmailCodePurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
 enum AuthProvider {
   PASSWORD
   GOOGLE
@@ -53,6 +58,7 @@ model User {
   refreshTokens RefreshToken[]
   consents      Consent[]
   adminTotp     AdminTotp?
+  emailCodes    EmailCode[]
 
   @@map("users")
 }
@@ -110,6 +116,24 @@ model AdminTotp {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("admin_totp")
+}
+
+/// Códigos de 6 dígitos enviados por correo (8.2, paso 6; 14.2). Se guarda el HMAC, nunca el código;
+/// máximo 5 intentos y un solo uso.
+model EmailCode {
+  id        String           @id @default(uuid(7)) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  purpose   EmailCodePurpose
+  codeHmac  String           @map("code_hmac")
+  attempts  Int              @default(0)
+  expiresAt DateTime         @map("expires_at") @db.Timestamptz(3)
+  usedAt    DateTime?        @map("used_at") @db.Timestamptz(3)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, createdAt])
+  @@map("email_codes")
 }
 
 /// Prueba de la autorización de tratamiento de datos (Ley 1581, sección 15).

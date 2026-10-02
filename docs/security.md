@@ -54,6 +54,15 @@ Clave JWT de producción: generada en el VPS con openssl y guardada solo en Dokp
 | Caducidad                  | 30 min de inactividad y 8 h como máximo                                                                                          |
 | `/admin/*`                 | `@AdminOnly()`: rol ADMIN **y** `amr` con `totp`                                                                                 |
 
+## Correo: verificación y recuperación (Fase 1b)
+
+- Códigos de 6 dígitos de un solo uso, guardados como **HMAC** con clave derivada del servidor; máximo 5 intentos; 24 h (verificación) y 30 min (recuperación).
+- Emisión limitada: 1 por minuto y 5 por hora por usuario; recuperación además 5 por hora por email.
+- `/auth/password/forgot` responde **siempre** 202 con el mismo cuerpo, exista o no la cuenta; los admins no recuperan por correo (CLI).
+- Restablecer la contraseña cierra **todas** las sesiones y envía aviso; vincular Google envía aviso.
+- Plantillas con el nombre del usuario escapado (sin HTML inyectable); sin datos sensibles más allá del código.
+- `MAIL_TRANSPORT=log` prohibido en producción (los códigos acabarían en los logs). Hoy producción usa `disabled` hasta tener el SMTP del dominio.
+
 ## Pendiente o a vigilar
 
 - **Postgres en producción:** el API usa el rol `rideapp_app` (sin superusuario, dueño del esquema `public`). PostGIS no es una extensión _trusted_: si una migración futura necesita otra extensión, la crea antes el superusuario `rideapp`.

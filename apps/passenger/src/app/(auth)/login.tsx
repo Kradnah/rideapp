@@ -3,6 +3,10 @@ import { router } from 'expo-router';
 
 export default function LoginRoute() {
   return (
-    <LoginScreen onBack={() => router.back()} onRegister={() => router.replace('/register')} />
+    <LoginScreen
+      onBack={() => router.back()}
+      onRegister={() => router.replace('/register')}
+      onForgot={() => router.push('/forgot')}
+    />
   );
 }

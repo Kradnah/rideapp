@@ -19,6 +19,7 @@ const CODE_BY_STATUS: Record<number, ErrorCode> = {
   415: 'VALIDATION_FAILED',
   426: 'UPGRADE_REQUIRED',
   429: 'RATE_LIMITED',
+  503: 'SERVICE_UNAVAILABLE',
 };
 
 const GENERIC_MESSAGE: Partial<Record<ErrorCode, string>> = {

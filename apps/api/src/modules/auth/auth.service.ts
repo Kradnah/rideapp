@@ -15,6 +15,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service.js';
 import { RedisService } from '../../infra/redis/redis.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { UsersService } from '../users/users.service.js';
+import { AccountEmailService } from './account-email.service.js';
 import { GOOGLE_VERIFIER, type GoogleTokenVerifier } from './google-verifier.js';
 import { PasswordService } from './password.service.js';
 import { SessionService } from './session.service.js';
@@ -40,6 +41,7 @@ export class AuthService {
     private readonly tokens: TokenService,
     private readonly audit: AuditService,
     @Inject(GOOGLE_VERIFIER) private readonly google: GoogleTokenVerifier,
+    private readonly accountEmail: AccountEmailService,
   ) {}
 
   async register(body: RegisterRequest, ctx: RequestContext): Promise<TokenPair> {
@@ -86,6 +88,7 @@ export class AuthService {
       ip: ctx.ip,
       meta: { method: 'password', role: user.role },
     });
+    this.accountEmail.sendVerificationInBackground(user);
     return this.issue(user, ['pwd'], ctx);
   }
 
@@ -227,7 +230,7 @@ export class AuthService {
       ip: ctx.ip,
       meta: { method: 'google' },
     });
-    // TODO(1b): avisar por correo "se vinculó Google a tu cuenta" cuando event === 'linked'.
+    if (event === 'linked') this.accountEmail.notifyGoogleLinked(user);
     return this.issue(user, ['google'], ctx);
   }
 

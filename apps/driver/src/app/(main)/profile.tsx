@@ -1,8 +1,17 @@
 import { ProfileScreen } from '@rideapp/mobile-core';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 
 export default function ProfileRoute() {
+  // Al volver (p. ej. tras verificar el email) se vuelve a montar y recarga los datos.
+  const [visit, setVisit] = useState(0);
+  useFocusEffect(useCallback(() => setVisit((v) => v + 1), []));
   return (
-    <ProfileScreen onBack={() => router.back()} onOpenPolicy={() => router.push('/privacy')} />
+    <ProfileScreen
+      key={visit}
+      onBack={() => router.back()}
+      onOpenPolicy={() => router.push('/privacy')}
+      onVerifyEmail={() => router.push('/verify-email')}
+    />
   );
 }

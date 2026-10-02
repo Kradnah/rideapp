@@ -11,11 +11,13 @@ import {
   QuoteResponse,
   ReverseGeocodeResponse,
   TokenPair,
+  type ForgotPasswordRequest,
   type GoogleLoginRequest,
   type LatLng,
   type LoginRequest,
   type QuoteRequest,
   type RegisterRequest,
+  type ResetPasswordRequest,
   type UpdateMeRequest,
 } from '@rideapp/contracts';
 import { HttpClient, type HttpClientOptions } from './http.js';
@@ -47,6 +49,12 @@ export function createApiClient(options: HttpClientOptions) {
         }),
       logout: () => http.request('POST', '/auth/logout'),
       logoutAll: () => http.request('POST', '/auth/logout-all'),
+      requestEmailVerification: () => http.request('POST', '/auth/email/verification'),
+      verifyEmail: (code: string) => http.request('POST', '/auth/email/verify', { body: { code } }),
+      forgotPassword: (body: ForgotPasswordRequest) =>
+        http.request('POST', '/auth/password/forgot', { body, auth: false }),
+      resetPassword: (body: ResetPasswordRequest) =>
+        http.request('POST', '/auth/password/reset', { body, auth: false }),
     },
 
     me: {

@@ -6,6 +6,7 @@ import { AuthGuard } from './common/auth/auth.guard.js';
 import { loggerOptions } from './common/logging/logger.options.js';
 import { ConfigModule } from './config/config.module.js';
 import type { Env } from './config/env.js';
+import { MailModule } from './infra/mail/mail.module.js';
 import { PrismaModule } from './infra/prisma/prisma.module.js';
 import { RedisModule } from './infra/redis/redis.module.js';
 import { RedisService } from './infra/redis/redis.service.js';
@@ -27,6 +28,7 @@ export class AppModule {
         LoggerModule.forRoot(loggerOptions(env)),
         PrismaModule,
         RedisModule,
+        MailModule,
         ThrottlerModule.forRootAsync({
           inject: [RedisService],
           useFactory: (redis: RedisService) => ({

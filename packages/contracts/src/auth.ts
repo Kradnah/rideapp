@@ -76,11 +76,18 @@ export const AccessTokenClaims = z.object({
 export type AccessTokenClaims = z.infer<typeof AccessTokenClaims>;
 export type TokenPair = z.infer<typeof TokenPair>;
 
+/** Código de un solo uso enviado por correo (verificación de email y recuperación de contraseña). */
+export const EmailCode = z.string().regex(/^\d{6}$/);
+
+export const VerifyEmailRequest = z.strictObject({ code: EmailCode });
+export type VerifyEmailRequest = z.infer<typeof VerifyEmailRequest>;
+
 export const ForgotPasswordRequest = z.strictObject({ email: Email });
 export type ForgotPasswordRequest = z.infer<typeof ForgotPasswordRequest>;
 
 export const ResetPasswordRequest = z.strictObject({
-  token: z.string().min(1).max(512),
+  email: Email,
+  code: EmailCode,
   password: Password,
 });
 export type ResetPasswordRequest = z.infer<typeof ResetPasswordRequest>;

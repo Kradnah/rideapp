@@ -79,6 +79,20 @@ export const EnvSchema = z
       .regex(/^[\w-]+\.apps\.googleusercontent\.com$/, 'Client ID de Google no válido')
       .optional(),
 
+    /**
+     * Correo saliente (verificación de email, recuperación de contraseña).
+     * smtp: envía de verdad · log: lo escribe en el log (solo desarrollo) · disabled: no envía.
+     */
+    MAIL_TRANSPORT: z.enum(['smtp', 'log', 'disabled']).default('disabled'),
+    SMTP_HOST: z.string().min(1).optional(),
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+    /** true para TLS implícito (puerto 465); false para STARTTLS (587). */
+    SMTP_SECURE: booleanString.default(false),
+    SMTP_USER: z.string().min(1).optional(),
+    SMTP_PASSWORD: z.string().min(1).optional(),
+    /** Remitente, p. ej. "rideapp <no-reply@tudominio.com>". */
+    MAIL_FROM: z.string().min(3).optional(),
+
     MAPS_PROVIDER: z.enum(['fake', 'google']).default('fake'),
     GOOGLE_MAPS_SERVER_KEY: z.string().min(1).optional(),
   })
@@ -88,6 +102,21 @@ export const EnvSchema = z
         code: 'custom',
         path: ['GOOGLE_MAPS_SERVER_KEY'],
         message: 'Obligatoria con MAPS_PROVIDER=google',
+      });
+    }
+    if (env.MAIL_TRANSPORT === 'smtp' && (!env.SMTP_HOST || !env.MAIL_FROM)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['SMTP_HOST'],
+        message: 'MAIL_TRANSPORT=smtp necesita SMTP_HOST y MAIL_FROM',
+      });
+    }
+    if (env.NODE_ENV === 'production' && env.MAIL_TRANSPORT === 'log') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['MAIL_TRANSPORT'],
+        message:
+          'En producción no se permite MAIL_TRANSPORT=log (los códigos acabarían en los logs)',
       });
     }
     if (env.NODE_ENV === 'production' && env.CORS_ORIGINS.some((o) => !o.startsWith('https://'))) {
