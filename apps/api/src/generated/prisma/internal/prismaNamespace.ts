@@ -411,6 +411,7 @@ export const ModelName = {
   FareRule: 'FareRule',
   FareQuote: 'FareQuote',
   Trip: 'Trip',
+  TripRoutePoint: 'TripRoutePoint',
   TripEvent: 'TripEvent'
 } as const
 
@@ -427,7 +428,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "authIdentity" | "refreshToken" | "adminTotp" | "emailCode" | "consent" | "auditLog" | "driverProfile" | "vehicle" | "driverDocument" | "serviceArea" | "fareRule" | "fareQuote" | "trip" | "tripEvent"
+    modelProps: "user" | "authIdentity" | "refreshToken" | "adminTotp" | "emailCode" | "consent" | "auditLog" | "driverProfile" | "vehicle" | "driverDocument" | "serviceArea" | "fareRule" | "fareQuote" | "trip" | "tripRoutePoint" | "tripEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1451,6 +1452,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    TripRoutePoint: {
+      payload: Prisma.$TripRoutePointPayload<ExtArgs>
+      fields: Prisma.TripRoutePointFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TripRoutePointFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TripRoutePointPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TripRoutePointFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TripRoutePointPayload>
+        }
+        findFirst: {
+          args: Prisma.TripRoutePointFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TripRoutePointPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TripRoutePointFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TripRoutePointPayload>
+        }
+        findMany: {
+          args: Prisma.TripRoutePointFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TripRoutePointPayload>[]
+        }
+        create: {
+          args: Prisma.TripRoutePointCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TripRoutePointPayload>
+        }
+        createMany: {
+          args: Prisma.TripRoutePointCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TripRoutePointCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TripRoutePointPayload>[]
+        }
+        delete: {
+          args: Prisma.TripRoutePointDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TripRoutePointPayload>
+        }
+        update: {
+          args: Prisma.TripRoutePointUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TripRoutePointPayload>
+        }
+        deleteMany: {
+          args: Prisma.TripRoutePointDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TripRoutePointUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TripRoutePointUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TripRoutePointPayload>[]
+        }
+        upsert: {
+          args: Prisma.TripRoutePointUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TripRoutePointPayload>
+        }
+        aggregate: {
+          args: Prisma.TripRoutePointAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTripRoutePoint>
+        }
+        groupBy: {
+          args: Prisma.TripRoutePointGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TripRoutePointGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TripRoutePointCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TripRoutePointCountAggregateOutputType> | number
+        }
+      }
+    }
     TripEvent: {
       payload: Prisma.$TripEventPayload<ExtArgs>
       fields: Prisma.TripEventFieldRefs
@@ -1796,6 +1871,17 @@ export const TripScalarFieldEnum = {
 } as const
 
 export type TripScalarFieldEnum = (typeof TripScalarFieldEnum)[keyof typeof TripScalarFieldEnum]
+
+
+export const TripRoutePointScalarFieldEnum = {
+  id: 'id',
+  tripId: 'tripId',
+  at: 'at',
+  lat: 'lat',
+  lng: 'lng'
+} as const
+
+export type TripRoutePointScalarFieldEnum = (typeof TripRoutePointScalarFieldEnum)[keyof typeof TripRoutePointScalarFieldEnum]
 
 
 export const TripEventScalarFieldEnum = {
@@ -2282,6 +2368,7 @@ export type GlobalOmitConfig = {
   fareRule?: Prisma.FareRuleOmit
   fareQuote?: Prisma.FareQuoteOmit
   trip?: Prisma.TripOmit
+  tripRoutePoint?: Prisma.TripRoutePointOmit
   tripEvent?: Prisma.TripEventOmit
 }
 

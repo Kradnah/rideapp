@@ -101,7 +101,11 @@ async function startApp(
     .useValue(deps.throttlerStorage)
     // Sin Redis real no hay adaptador de Socket.IO: los sockets se prueban en drivers.int.test.ts.
     .overrideProvider(RealtimeGateway)
-    .useValue({ emitToUser: () => undefined, registerRoomResolver: () => undefined })
+    .useValue({
+      emitToUser: () => undefined,
+      registerRoomResolver: () => undefined,
+      registerTripLocationListener: () => undefined,
+    })
     // Sin Redis tampoco hay colas de BullMQ.
     .overrideProvider(QueueService)
     .useValue({ handle: () => undefined, every: () => undefined })

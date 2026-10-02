@@ -7,6 +7,7 @@ import {
   haversineMeters,
   isInServiceAreaBounds,
   type LatLng,
+  LOCATION_INTERVAL_SECONDS,
   type NearbyDriver,
   VehicleCategory,
 } from '@rideapp/contracts';
@@ -15,7 +16,7 @@ import { RedisService } from '../../infra/redis/redis.service.js';
 /** Sin ubicación durante este tiempo, el conductor deja de estar en línea (8.0, claves en Redis). */
 export const PRESENCE_TTL_SECONDS = 60;
 /** Cada cuánto envía su posición un conductor libre (8.5, paso 1: 10–15 s). */
-export const AVAILABLE_INTERVAL_SECONDS = 12;
+export const AVAILABLE_INTERVAL_SECONDS = LOCATION_INTERVAL_SECONDS.available;
 const MAX_ACCURACY_METERS = 100;
 /** ~200 km/h: más rápido que eso entre dos lecturas es GPS falso o un salto (8.5, paso 2). */
 const MAX_PLAUSIBLE_SPEED_MPS = 200 / 3.6;
@@ -36,10 +37,11 @@ const GEO_KEYS = VehicleCategory.options.map(geoKey);
  * "fuera de línea" simultáneo no deja un fantasma en la capa GEO.
  * KEYS: estado, geo STANDARD, geo MOTO, zset de en línea.
  * ARGV: id, lat, lng, heading, speed, fixTs, now, ttl, inArea.
+ * Devuelve false si no está en línea, o el id de su viaje en curso ('' si está libre).
  */
 const UPDATE_LOCATION_LUA = `
 local avail = redis.call('HGET', KEYS[1], 'availability')
-if not avail then return 0 end
+if not avail then return false end
 redis.call('HSET', KEYS[1], 'lat', ARGV[2], 'lng', ARGV[3], 'heading', ARGV[4], 'speed', ARGV[5], 'fixTs', ARGV[6], 'lastSeen', ARGV[7])
 redis.call('EXPIRE', KEYS[1], ARGV[8])
 redis.call('ZADD', KEYS[4], ARGV[7], ARGV[1])
@@ -50,7 +52,8 @@ if avail == 'AVAILABLE' and ARGV[9] == '1' then
 else
   redis.call('ZREM', geo, ARGV[1])
 end
-return 1
+if avail == 'BUSY' then return redis.call('HGET', KEYS[1], 'tripId') or '' end
+return ''
 `;
 
 /** Quita a un conductor solo si sigue inactivo (no pisa una actualización recién llegada). */
@@ -122,7 +125,7 @@ return 1
 `;
 
 type LuaRedis = {
-  rideappUpdateLocation(...args: (string | number)[]): Promise<number>;
+  rideappUpdateLocation(...args: (string | number)[]): Promise<string | null>;
   rideappSweepOne(...args: (string | number)[]): Promise<number>;
   rideappReserveOffer(...args: (string | number)[]): Promise<number>;
   rideappDeleteIfEquals(...args: (string | number)[]): Promise<number>;
@@ -138,7 +141,17 @@ export interface DriverCandidate {
   distanceMeters: number;
 }
 
-export type LocationResult = { ok: true } | { ok: false; code: DriverLocationRejection };
+/** `tripId`: el viaje en curso del conductor, si lo tiene (su posición se reenvía a esa sala). */
+export type LocationResult =
+  { ok: true; tripId: string | null } | { ok: false; code: DriverLocationRejection };
+
+/** Última posición conocida de un conductor en línea. */
+export interface DriverPosition {
+  position: LatLng;
+  heading: number | null;
+  /** Hora del GPS (ms). */
+  fixTs: number;
+}
 
 /**
  * Ubicación y disponibilidad en vivo de los conductores (8.5). Solo vive en Redis, con TTL:
@@ -260,7 +273,9 @@ export class LocationService {
       PRESENCE_TTL_SECONDS,
       isInServiceAreaBounds(loc) ? '1' : '0',
     );
-    return updated === 1 ? { ok: true } : { ok: false, code: 'OFFLINE' };
+    return updated === null
+      ? { ok: false, code: 'OFFLINE' }
+      : { ok: true, tripId: updated || null };
   }
 
   /**
@@ -384,6 +399,27 @@ export class LocationService {
   /** Viaje en curso del conductor (espejo en Redis de `trips`; la verdad está en Postgres). */
   currentTrip(driverId: string): Promise<string | null> {
     return this.redis.client.get(tripKey(driverId));
+  }
+
+  /** Última posición del conductor, solo si sigue en línea y es reciente (≤ 60 s). */
+  async position(driverId: string, now = Date.now()): Promise<DriverPosition | null> {
+    const [lat, lng, heading, fixTs, lastSeen] = await this.redis.client.hmget(
+      stateKey(driverId),
+      'lat',
+      'lng',
+      'heading',
+      'fixTs',
+      'lastSeen',
+    );
+    if (!lat || !lng || !fixTs || Number(lastSeen) < now - PRESENCE_TTL_SECONDS * 1000) {
+      return null;
+    }
+    const h = Number.parseFloat(heading ?? '');
+    return {
+      position: { lat: Number(lat), lng: Number(lng) },
+      heading: Number.isFinite(h) ? h : null,
+      fixTs: Number(fixTs),
+    };
   }
 
   async vehicleOf(driverId: string): Promise<string | null> {

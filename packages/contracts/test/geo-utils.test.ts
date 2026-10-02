@@ -5,6 +5,8 @@ import {
   encodePolyline,
   haversineMeters,
   isInServiceAreaBounds,
+  remainingPath,
+  routeProgress,
 } from '../src/index.js';
 
 describe('polilíneas', () => {
@@ -44,5 +46,37 @@ describe('fixtures', () => {
   it('la búsqueda ignora tildes y mayúsculas', () => {
     expect(searchFixturePlaces('PENALISA')[0]?.placeId).toBe('fake-penalisa');
     expect(searchFixturePlaces('ferreo')[0]?.placeId).toBe('fake-puente-ferreo');
+  });
+});
+
+describe('routeProgress', () => {
+  // Una "L": 1 km hacia el norte y luego ~1 km hacia el este.
+  const start = { lat: 4.3, lng: -74.8 };
+  const corner = { lat: 4.3 + 1000 / 111_195, lng: -74.8 };
+  const end = { lat: corner.lat, lng: -74.8 + 1000 / (111_195 * Math.cos((4.3 * Math.PI) / 180)) };
+  const route = [start, corner, end];
+
+  it('al inicio falta toda la ruta y al final nada', () => {
+    const atStart = routeProgress(route, start);
+    expect(atStart.totalMeters).toBeCloseTo(2000, -1);
+    expect(atStart.remainingMeters).toBeCloseTo(2000, -1);
+    expect(atStart.offRouteMeters).toBeLessThan(1);
+    expect(routeProgress(route, end).remainingMeters).toBeLessThan(1);
+  });
+
+  it('proyecta sobre el tramo más cercano y mide el desvío', () => {
+    // A mitad del primer tramo, 100 m al oeste de la ruta.
+    const p = { lat: (start.lat + corner.lat) / 2, lng: -74.8 - 100 / 111_000 };
+    const progress = routeProgress(route, p);
+    expect(progress.segmentIndex).toBe(0);
+    expect(progress.remainingMeters).toBeCloseTo(1500, -1);
+    expect(progress.offRouteMeters).toBeCloseTo(100, -1);
+    expect(remainingPath(route, progress)).toEqual([progress.projected, corner, end]);
+  });
+
+  it('una ruta de un solo punto no falla', () => {
+    const progress = routeProgress([start], corner);
+    expect(progress.totalMeters).toBe(0);
+    expect(progress.offRouteMeters).toBeCloseTo(1000, -1);
   });
 });

@@ -7,3 +7,4 @@ export * from './pricing.js';
 export * from './trips.js';
 export * from './events.js';
 export * from './polyline.js';
+export * from './route-progress.js';

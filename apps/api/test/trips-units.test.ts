@@ -2,6 +2,7 @@ import { approximateArea, GIRARDOT_CENTER, TripStatus } from '@rideapp/contracts
 import { describe, expect, it } from 'vitest';
 import { GoogleMapsProvider } from '../src/modules/geo/google-maps.provider.js';
 import { MapsQuotaExceededError, MapsUnavailableError } from '../src/modules/geo/maps-provider.js';
+import { estimateEta } from '../src/modules/trips/live-trip.service.js';
 import {
   canTransition,
   isTerminal,
@@ -34,6 +35,31 @@ describe('máquina de estados del viaje', () => {
       true,
     );
     expect(isTerminal('SEARCHING')).toBe(false);
+  });
+});
+
+describe('ETA del viaje en vivo', () => {
+  const target = GIRARDOT_CENTER;
+  const start = { lat: 4.3125, lng: -74.8036 };
+  const route = { points: [start, target], durationSeconds: 300 };
+
+  it('proporcional a lo que falta de la ruta, sin pedir otra', () => {
+    expect(estimateEta({ target, route }, start)).toEqual({ seconds: 300, needsRoute: false });
+    const half = { lat: (start.lat + target.lat) / 2, lng: target.lng };
+    expect(estimateEta({ target, route }, half)).toEqual({ seconds: 150, needsRoute: false });
+    expect(estimateEta({ target, route }, target).seconds).toBe(0);
+  });
+
+  it('desviado más de 200 m, o sin ruta todavía: estimación en línea recta y ruta nueva', () => {
+    const detour = { lat: (start.lat + target.lat) / 2, lng: target.lng + 0.003 };
+    const off = estimateEta({ target, route }, detour);
+    expect(off.needsRoute).toBe(true);
+    expect(off.seconds).toBeGreaterThan(150);
+    const noRoute = estimateEta({ target, route: null }, start);
+    expect(noRoute.needsRoute).toBe(true);
+    // ~1 km × 1,3 a 25 km/h.
+    expect(noRoute.seconds).toBeGreaterThan(150);
+    expect(noRoute.seconds).toBeLessThan(220);
   });
 });
 

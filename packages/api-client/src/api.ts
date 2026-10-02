@@ -4,6 +4,7 @@ import {
   AdminTripList,
   DriverOfferResponse,
   Trip,
+  TripDriverLocationResponse,
   type AdminTripListQuery,
   type CreateTripRequest,
   AdminDriverDetail,
@@ -228,8 +229,27 @@ export function createApiClient(options: HttpClientOptions) {
           body: reason ? { reason } : {},
           schema: Trip,
         }),
+      /** Última posición del conductor asignado (solo el pasajero, con el viaje activo). */
+      driverLocation: (id: string) =>
+        http.request('GET', `/trips/${encodeURIComponent(id)}/driver-location`, {
+          schema: TripDriverLocationResponse,
+        }),
       accept: (id: string) =>
         http.request('POST', `/trips/${encodeURIComponent(id)}/accept`, { schema: Trip }),
+      arrived: (id: string) =>
+        http.request('POST', `/trips/${encodeURIComponent(id)}/arrived`, { schema: Trip }),
+      /** Iniciar con el PIN que dicta el pasajero (8.8, paso 4). */
+      start: (id: string, pin: string) =>
+        http.request('POST', `/trips/${encodeURIComponent(id)}/start`, {
+          body: { pin },
+          schema: Trip,
+        }),
+      /** Finalizar. Con la misma `idempotencyKey`, un reintento no repite la acción. */
+      complete: (id: string, idempotencyKey: string) =>
+        http.request('POST', `/trips/${encodeURIComponent(id)}/complete`, {
+          schema: Trip,
+          idempotencyKey,
+        }),
       reject: (id: string) => http.request('POST', `/trips/${encodeURIComponent(id)}/reject`),
     },
   };

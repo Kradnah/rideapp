@@ -9,6 +9,7 @@ import {
   type DriverDocument as DriverDocumentDto,
   type DriverDocumentType,
   type DriverOnboardingRequest,
+  LOCATION_INTERVAL_SECONDS,
   MAX_VEHICLES_PER_DRIVER,
   REQUIRED_DRIVER_DOCUMENTS,
   type RevealableDriverField,
@@ -300,12 +301,14 @@ export class DriversService {
     }
     const current = await this.location.getAvailability(userId);
     if (current === 'BUSY') {
-      return { availability: 'BUSY', locationIntervalSeconds: AVAILABLE_INTERVAL_SECONDS };
+      return { availability: 'BUSY', locationIntervalSeconds: LOCATION_INTERVAL_SECONDS.inTrip };
     }
     await this.location.goOnline(userId, { category: vehicle.category, vehicleId: vehicle.id });
     // Si tenía un viaje asignado (volvió tras cerrar la app), sigue ocupado.
-    const availability = (await this.location.currentTrip(userId)) ? 'BUSY' : 'AVAILABLE';
-    return { availability, locationIntervalSeconds: AVAILABLE_INTERVAL_SECONDS };
+    if (await this.location.currentTrip(userId)) {
+      return { availability: 'BUSY', locationIntervalSeconds: LOCATION_INTERVAL_SECONDS.inTrip };
+    }
+    return { availability: 'AVAILABLE', locationIntervalSeconds: AVAILABLE_INTERVAL_SECONDS };
   }
 
   async goOffline(userId: string): Promise<DriverAvailabilityResponse> {

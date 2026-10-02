@@ -6,7 +6,9 @@ import {
   type DriverOfferResponse,
   QuoteRequest,
   type QuoteResponse,
+  StartTripRequest,
   type Trip,
+  type TripDriverLocationResponse,
 } from '@rideapp/contracts';
 import { z } from 'zod';
 import { type AuthUser, CurrentUser, Roles } from '../../common/auth/auth.decorators.js';
@@ -19,6 +21,7 @@ import { TripsService } from './trips.service.js';
 class QuoteDto extends createZodDto(QuoteRequest) {}
 class CreateTripDto extends createZodDto(CreateTripRequest) {}
 class CancelDto extends createZodDto(CancelTripRequest) {}
+class StartDto extends createZodDto(StartTripRequest) {}
 class IdParam extends createZodDto(z.object({ id: z.uuid() })) {}
 
 /** Cotizar, pedir y seguir un viaje (8.7–8.9). */
@@ -60,6 +63,16 @@ export class TripsController {
     return this.trips.get(user, id);
   }
 
+  /** Última posición del conductor asignado, para pintarla al abrir la pantalla (solo pasajero). */
+  @Roles('PASSENGER')
+  @Get(':id/driver-location')
+  async driverLocation(
+    @CurrentUser() user: AuthUser,
+    @Param() { id }: IdParam,
+  ): Promise<TripDriverLocationResponse> {
+    return { location: await this.trips.driverLocation(user, id) };
+  }
+
   @Roles('PASSENGER', 'DRIVER')
   @Post(':id/cancel')
   @HttpCode(200)
@@ -76,6 +89,35 @@ export class TripsController {
   @HttpCode(200)
   accept(@CurrentUser() user: AuthUser, @Param() { id }: IdParam): Promise<Trip> {
     return this.trips.accept(user.id, id);
+  }
+
+  @Roles('DRIVER')
+  @Post(':id/arrived')
+  @HttpCode(200)
+  arrived(@CurrentUser() user: AuthUser, @Param() { id }: IdParam): Promise<Trip> {
+    return this.trips.arrived(user.id, id);
+  }
+
+  @Roles('DRIVER')
+  @Post(':id/start')
+  @HttpCode(200)
+  start(
+    @CurrentUser() user: AuthUser,
+    @Param() { id }: IdParam,
+    @Body() body: StartDto,
+  ): Promise<Trip> {
+    return this.trips.start(user.id, id, body.pin);
+  }
+
+  @Roles('DRIVER')
+  @Post(':id/complete')
+  @HttpCode(200)
+  complete(
+    @CurrentUser() user: AuthUser,
+    @Param() { id }: IdParam,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+  ): Promise<Trip> {
+    return this.trips.complete(user.id, id, this.idempotency.parseKey(idempotencyKey));
   }
 
   @Roles('DRIVER')

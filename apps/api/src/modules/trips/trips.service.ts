@@ -1,4 +1,4 @@
-import { randomInt } from 'node:crypto';
+import { randomInt, timingSafeEqual } from 'node:crypto';
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import {
   ACTIVE_TRIP_STATUSES,
@@ -7,7 +7,9 @@ import {
   type AdminTripListQuery,
   type CancelledBy,
   type CreateTripRequest,
+  haversineMeters,
   type Trip as TripDto,
+  type TripDriverLocation,
   type TripStatus,
   type UserRole,
 } from '@rideapp/contracts';
@@ -16,10 +18,12 @@ import { IdempotencyService } from '../../common/idempotency/idempotency.service
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infra/prisma/prisma.service.js';
 import { MAINTENANCE_QUEUE, QueueService } from '../../infra/queue/queue.service.js';
+import { RedisService } from '../../infra/redis/redis.service.js';
 import { colombiaDay } from '../geo/geo.service.js';
 import { LocationService } from '../location/location.service.js';
 import { PricingService } from '../pricing/pricing.service.js';
 import { RealtimeGateway, tripRoom } from '../realtime/realtime.gateway.js';
+import { LiveTripService } from './live-trip.service.js';
 import { MATCHING_TIMINGS, MatchingService, type MatchingTimings } from './matching.service.js';
 import { DRIVER_BUSY_STATUSES } from './trip-state.machine.js';
 import { isUniqueViolation, TripTransitions } from './trip-transitions.js';
@@ -33,6 +37,16 @@ const PASSENGER_CANCELLABLE: readonly TripStatus[] = [
   'DRIVER_ARRIVED',
 ];
 const DRIVER_CANCELLABLE: readonly TripStatus[] = ['DRIVER_ASSIGNED', 'DRIVER_ARRIVED'];
+const isBusy = (status: TripStatus) =>
+  (DRIVER_BUSY_STATUSES as readonly TripStatus[]).includes(status);
+
+/** "Llegué" solo cerca de la recogida, para no avisar al pasajero en falso. */
+export const ARRIVE_RADIUS_METERS = 300;
+/** Iniciar solo a menos de ~150 m del origen (8.8, paso 4). */
+export const START_RADIUS_METERS = 150;
+/** Intentos de PIN por viaje: 4 dígitos no aguantan un ataque de fuerza bruta. */
+export const MAX_PIN_ATTEMPTS = 5;
+const pinAttemptsKey = (tripId: string) => `trip:${tripId}:pin-attempts`;
 
 const tripInclude = {
   passenger: { select: { fullName: true } },
@@ -66,6 +80,9 @@ export function toTripDto(trip: TripWithParties, viewer: 'PASSENGER' | 'DRIVER')
     pin: viewer === 'PASSENGER' ? trip.pin : null,
     requestedAt: trip.requestedAt.toISOString(),
     acceptedAt: trip.acceptedAt?.toISOString() ?? null,
+    arrivedAt: trip.arrivedAt?.toISOString() ?? null,
+    startedAt: trip.startedAt?.toISOString() ?? null,
+    completedAt: trip.completedAt?.toISOString() ?? null,
     cancelledAt: trip.cancelledAt?.toISOString() ?? null,
     cancelledBy: trip.cancelledBy,
     cancelReason: trip.cancelReason,
@@ -103,6 +120,8 @@ export class TripsService implements OnModuleInit {
     private readonly realtime: RealtimeGateway,
     private readonly idempotency: IdempotencyService,
     private readonly queues: QueueService,
+    private readonly live: LiveTripService,
+    private readonly redis: RedisService,
     @Inject(MATCHING_TIMINGS) private readonly timings: MatchingTimings,
   ) {}
 
@@ -243,8 +262,122 @@ export class TripsService implements OnModuleInit {
 
   /** El conductor acepta la oferta (8.9, paso 7). */
   async accept(driverId: string, tripId: string): Promise<TripDto> {
-    await this.matching.accept(driverId, tripId);
+    const trip = await this.matching.accept(driverId, tripId);
+    await this.live.onAssigned(trip);
     return this.get({ id: driverId, role: 'DRIVER' }, tripId);
+  }
+
+  /** "Llegué" (10.3, paso 4): el conductor está en el punto de recogida. */
+  async arrived(driverId: string, tripId: string): Promise<TripDto> {
+    const trip = await this.assertDriverOf(driverId, tripId);
+    if (trip.status !== 'DRIVER_ASSIGNED') {
+      throw new ApiException(409, 'CONFLICT', 'El viaje ya no está esperando tu llegada.');
+    }
+    await this.assertNearPickup(driverId, trip, ARRIVE_RADIUS_METERS);
+    const result = await this.transitions.transition({
+      tripId,
+      from: ['DRIVER_ASSIGNED'],
+      to: 'DRIVER_ARRIVED',
+      actor: 'DRIVER',
+      actorId: driverId,
+      data: { arrivedAt: new Date() },
+    });
+    if (!result.ok) {
+      throw new ApiException(409, 'CONFLICT', 'El viaje ya no está esperando tu llegada.');
+    }
+    await this.live.onArrived(tripId);
+    this.transitions.publish(result.trip, result.from);
+    return this.get({ id: driverId, role: 'DRIVER' }, tripId);
+  }
+
+  /**
+   * Iniciar (8.8, paso 4): solo cerca del origen y con el PIN que dicta el pasajero. Los intentos
+   * fallidos se cuentan por viaje.
+   */
+  async start(driverId: string, tripId: string, pin: string): Promise<TripDto> {
+    const trip = await this.assertDriverOf(driverId, tripId);
+    if (trip.status !== 'DRIVER_ARRIVED') {
+      throw new ApiException(409, 'CONFLICT', 'Marca primero que llegaste a la recogida.');
+    }
+    await this.assertNearPickup(driverId, trip, START_RADIUS_METERS);
+
+    const attempts = await this.redis.client
+      .multi()
+      .incr(pinAttemptsKey(tripId))
+      .expire(pinAttemptsKey(tripId), 6 * 3600, 'NX')
+      .exec();
+    if (Number(attempts?.[0]?.[1] ?? 0) > MAX_PIN_ATTEMPTS) {
+      throw new ApiException(
+        429,
+        'RATE_LIMITED',
+        'Demasiados intentos con el PIN. Si no coincide, cancela el viaje.',
+      );
+    }
+    if (!timingSafeEqual(Buffer.from(pin), Buffer.from(trip.pin))) {
+      throw new ApiException(
+        422,
+        'INVALID_PIN',
+        'El PIN no coincide. Pídeselo de nuevo al pasajero.',
+      );
+    }
+
+    const result = await this.transitions.transition({
+      tripId,
+      from: ['DRIVER_ARRIVED'],
+      to: 'IN_PROGRESS',
+      actor: 'DRIVER',
+      actorId: driverId,
+      data: { startedAt: new Date() },
+    });
+    if (!result.ok) throw new ApiException(409, 'CONFLICT', 'Este viaje ya no se puede iniciar.');
+    await this.redis.client.del(pinAttemptsKey(tripId));
+    await this.live.onStarted(result.trip);
+    this.transitions.publish(result.trip, result.from);
+    return this.get({ id: driverId, role: 'DRIVER' }, tripId);
+  }
+
+  /**
+   * Finalizar (8.8): precio cerrado, el final es el cotizado (8.7, paso 4). Con `Idempotency-Key`,
+   * un reintento por mala conexión devuelve el mismo viaje en vez de un 409.
+   */
+  complete(driverId: string, tripId: string, idempotencyKey: string | undefined): Promise<TripDto> {
+    const viewer: Viewer = { id: driverId, role: 'DRIVER' };
+    return this.idempotency.run(
+      'trips.complete',
+      driverId,
+      idempotencyKey,
+      async () => {
+        const trip = await this.assertDriverOf(driverId, tripId);
+        const result = await this.transitions.transition({
+          tripId,
+          from: ['IN_PROGRESS'],
+          to: 'COMPLETED',
+          actor: 'DRIVER',
+          actorId: driverId,
+          data: { completedAt: new Date(), finalAmountCents: trip.amountCents },
+        });
+        if (!result.ok) throw new ApiException(409, 'CONFLICT', 'Este viaje no está en curso.');
+        await this.afterEnd(tripId, result.from, driverId);
+        this.transitions.publish(result.trip, result.from);
+        return { result: await this.get(viewer, tripId), ref: tripId };
+      },
+      (ref) => this.get(viewer, ref),
+    );
+  }
+
+  /**
+   * GET /trips/:id/driver-location: última posición del conductor, solo para el pasajero y solo
+   * mientras el viaje está activo con conductor (14.4).
+   */
+  async driverLocation(viewer: Viewer, tripId: string): Promise<TripDriverLocation | null> {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+      select: { passengerId: true, driverId: true, status: true },
+    });
+    if (!trip || this.participantRole(trip, viewer) !== 'PASSENGER') {
+      throw new ApiException(404, 'NOT_FOUND', 'Viaje no encontrado');
+    }
+    return isBusy(trip.status) ? this.live.live(tripId) : null;
   }
 
   // -------------------------------------------------------------------------------------
@@ -310,6 +443,8 @@ export class TripsService implements OnModuleInit {
             }
           : null,
       offersDeclined: trip.offersDeclined,
+      trace: await this.live.trace(trip.id),
+      live: isBusy(trip.status) ? await this.live.live(trip.id) : null,
       events: trip.events.map((e) => ({
         fromStatus: e.fromStatus,
         toStatus: e.toStatus,
@@ -360,12 +495,47 @@ export class TripsService implements OnModuleInit {
     return stale.length;
   }
 
-  /** Limpieza tras cancelar: retirar la oferta en curso o liberar al conductor asignado. */
+  /**
+   * Limpieza al terminar (cancelado o completado): retirar la oferta en curso o liberar al
+   * conductor asignado, y borrar el estado en vivo del viaje.
+   */
   private async afterEnd(tripId: string, from: TripStatus, driverId: string | null): Promise<void> {
     if (from === 'REQUESTED' || from === 'SEARCHING') {
       await this.matching.stopSearch(tripId, 'CANCELLED');
     }
     if (driverId) await this.location.markFree(driverId, tripId);
+    await this.live.stop(tripId);
+  }
+
+  /** El viaje existe y este conductor es el asignado; si no, 404 (sin pistas de IDOR). */
+  private async assertDriverOf(driverId: string, tripId: string) {
+    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip || trip.driverId !== driverId) {
+      throw new ApiException(404, 'NOT_FOUND', 'Viaje no encontrado');
+    }
+    return trip;
+  }
+
+  /** Según la última ubicación del conductor en Redis (8.8, paso 4). */
+  private async assertNearPickup(
+    driverId: string,
+    trip: { originLat: number; originLng: number },
+    radiusMeters: number,
+  ): Promise<void> {
+    const current = await this.location.position(driverId);
+    if (!current) {
+      throw new ApiException(
+        409,
+        'NOT_AT_PICKUP',
+        'No tenemos tu ubicación. Revisa el GPS y la conexión.',
+      );
+    }
+    const meters = haversineMeters(current.position, { lat: trip.originLat, lng: trip.originLng });
+    if (meters > radiusMeters) {
+      throw new ApiException(409, 'NOT_AT_PICKUP', 'Todavía estás lejos del punto de recogida.', {
+        distanceMeters: Math.round(meters),
+      });
+    }
   }
 
   private participantRole(

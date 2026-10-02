@@ -95,6 +95,12 @@ export type FareQuote = Prisma.FareQuoteModel
  */
 export type Trip = Prisma.TripModel
 /**
+ * Model TripRoutePoint
+ * Traza muestreada del conductor durante el viaje (8.5, paso 2: ~1 punto cada 10 s, en lote).
+ * Es un dato personal sensible: solo la ven los participantes y el admin (15.1).
+ */
+export type TripRoutePoint = Prisma.TripRoutePointModel
+/**
  * Model TripEvent
  * Línea de tiempo del viaje: una fila por transición (8.8, paso 2).
  */

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { LatLng } from './common.js';
 import { CancelledBy, DriverAvailability, TripStatus } from './enums.js';
-import { DriverOffer } from './trips.js';
+import { DriverOffer, TripDriverLocation } from './trips.js';
 
 /**
  * Eventos Socket.IO (8.10). Nombres con dominio y versión (5.5):
@@ -20,13 +20,7 @@ export const DriverLocationV1 = z.strictObject({
 });
 export type DriverLocationV1 = z.infer<typeof DriverLocationV1>;
 
-export const TripDriverLocationV1 = z.object({
-  tripId: z.uuid(),
-  position: LatLng,
-  heading: z.number().min(0).max(360).nullable(),
-  etaSeconds: z.number().int().nonnegative().nullable(),
-  ts: z.number().int().positive(),
-});
+export const TripDriverLocationV1 = TripDriverLocation;
 export type TripDriverLocationV1 = z.infer<typeof TripDriverLocationV1>;
 
 /** Oferta a un solo conductor (8.9, paso 5): sin direcciones exactas ni datos del pasajero. */

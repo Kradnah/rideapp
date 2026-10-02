@@ -409,6 +409,7 @@ model Trip {
   vehicle   Vehicle?       @relation(fields: [vehicleId], references: [id])
   quote     FareQuote      @relation(fields: [quoteId], references: [id])
   events    TripEvent[]
+  route     TripRoutePoint[]
 
   @@index([passengerId, requestedAt(sort: Desc)])
   @@index([driverId, requestedAt(sort: Desc)])
@@ -417,6 +418,23 @@ model Trip {
   @@index([origin], type: Gist)
   @@index([destination], type: Gist)
   @@map("trips")
+}
+
+/// Traza muestreada del conductor durante el viaje (8.5, paso 2: ~1 punto cada 10 s, en lote).
+/// Es un dato personal sensible: solo la ven los participantes y el admin (15.1).
+model TripRoutePoint {
+  id     BigInt                                 @id @default(autoincrement())
+  tripId String                                 @map("trip_id") @db.Uuid
+  at     DateTime                               @db.Timestamptz(3)
+  lat    Float
+  lng    Float
+  /// Generada a partir de lat/lng (GENERATED ALWAYS ... STORED, en la migración).
+  point  Unsupported("geography(Point, 4326)")? @default(dbgenerated("(st_setsrid(st_makepoint(lng, lat), 4326))::geography"))
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, at])
+  @@map("trip_route_points")
 }
 
 /// Línea de tiempo del viaje: una fila por transición (8.8, paso 2).

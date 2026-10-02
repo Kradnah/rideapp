@@ -65,6 +65,7 @@ export const ModelName = {
   FareRule: 'FareRule',
   FareQuote: 'FareQuote',
   Trip: 'Trip',
+  TripRoutePoint: 'TripRoutePoint',
   TripEvent: 'TripEvent'
 } as const
 
@@ -316,6 +317,17 @@ export const TripScalarFieldEnum = {
 } as const
 
 export type TripScalarFieldEnum = (typeof TripScalarFieldEnum)[keyof typeof TripScalarFieldEnum]
+
+
+export const TripRoutePointScalarFieldEnum = {
+  id: 'id',
+  tripId: 'tripId',
+  at: 'at',
+  lat: 'lat',
+  lng: 'lng'
+} as const
+
+export type TripRoutePointScalarFieldEnum = (typeof TripRoutePointScalarFieldEnum)[keyof typeof TripRoutePointScalarFieldEnum]
 
 
 export const TripEventScalarFieldEnum = {

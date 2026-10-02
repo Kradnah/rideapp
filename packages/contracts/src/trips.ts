@@ -21,6 +21,12 @@ export const CancelTripRequest = z.strictObject({
 });
 export type CancelTripRequest = z.infer<typeof CancelTripRequest>;
 
+/** POST /trips/:id/start: el conductor inicia con el PIN que le dicta el pasajero (8.8, paso 4). */
+export const StartTripRequest = z.strictObject({
+  pin: z.string().regex(/^\d{4}$/),
+});
+export type StartTripRequest = z.infer<typeof StartTripRequest>;
+
 /** Lo que ve el pasajero de su conductor una vez asignado (9.4, paso 2). */
 export const TripDriverInfo = z.object({
   fullName: z.string(),
@@ -64,6 +70,9 @@ export const Trip = z.object({
     .nullable(),
   requestedAt: z.iso.datetime(),
   acceptedAt: z.iso.datetime().nullable(),
+  arrivedAt: z.iso.datetime().nullable(),
+  startedAt: z.iso.datetime().nullable(),
+  completedAt: z.iso.datetime().nullable(),
   cancelledAt: z.iso.datetime().nullable(),
   cancelledBy: CancelledBy.nullable(),
   cancelReason: z.string().nullable(),
@@ -75,6 +84,24 @@ export type Trip = z.infer<typeof Trip>;
 /** GET /trips/active: para retomar el viaje al abrir la app o reconectar (8.8, paso 3). */
 export const ActiveTripResponse = z.object({ trip: Trip.nullable() });
 export type ActiveTripResponse = z.infer<typeof ActiveTripResponse>;
+
+/**
+ * GET /trips/:id/driver-location: la última posición del conductor asignado, para pintarla al
+ * abrir la pantalla sin esperar al siguiente `trip.driverLocation.v1`. Solo para el pasajero y
+ * solo mientras el viaje está activo (14.4). Misma forma que el evento.
+ */
+export const TripDriverLocation = z.object({
+  tripId: z.uuid(),
+  position: LatLng,
+  heading: z.number().min(0).max(360).nullable(),
+  /** Segundos estimados hasta la recogida (o hasta el destino, en viaje); null si ya llegó. */
+  etaSeconds: z.number().int().nonnegative().nullable(),
+  ts: z.number().int().positive(),
+});
+export type TripDriverLocation = z.infer<typeof TripDriverLocation>;
+
+export const TripDriverLocationResponse = z.object({ location: TripDriverLocation.nullable() });
+export type TripDriverLocationResponse = z.infer<typeof TripDriverLocationResponse>;
 
 /**
  * Oferta pendiente del conductor (GET /drivers/me/offer), por si la app perdió el evento
@@ -150,5 +177,9 @@ export const AdminTripDetail = Trip.omit({ driver: true, passenger: true, pin: t
   /** Conductores que rechazaron la oferta o la dejaron caducar. */
   offersDeclined: z.number().int().nonnegative(),
   events: z.array(AdminTripEvent),
+  /** Traza muestreada del conductor durante el viaje (`trip_route_points`, ~1 punto / 10 s). */
+  trace: z.array(LatLng),
+  /** Posición en vivo del conductor mientras el viaje está activo (11.1: viaje en vivo). */
+  live: TripDriverLocation.nullable(),
 });
 export type AdminTripDetail = z.infer<typeof AdminTripDetail>;

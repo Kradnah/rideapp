@@ -9,6 +9,7 @@ import {
   type ClientToServerEvents,
   ClientToServerSchemas,
   type DriverLocationRejection,
+  type DriverLocationV1,
   type ServerToClientEvents,
   SocketEvent,
   type UserRole,
@@ -44,6 +45,13 @@ export const tripRoom = (tripId: string) => `trip:${tripId}`;
 /** Salas a las que debe unirse un socket al conectar (p. ej. la de su viaje activo), 8.10, paso 2. */
 export type RoomResolver = (user: { id: string; role: UserRole }) => Promise<string[]>;
 
+/** Recibe cada posición aceptada de un conductor que está en un viaje (8.5, paso 2). */
+export type TripLocationListener = (
+  driverId: string,
+  tripId: string,
+  location: DriverLocationV1,
+) => Promise<void>;
+
 /**
  * Gateway Socket.IO (8.10), montado sobre el mismo servidor HTTP del API:
  * - el access token llega en `auth` del handshake, nunca en la URL;
@@ -57,6 +65,7 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
   private io: AppServer | null = null;
   private revalidateTimer: NodeJS.Timeout | null = null;
   private readonly resolvers: RoomResolver[] = [];
+  private readonly tripLocationListeners: TripLocationListener[] = [];
 
   constructor(
     private readonly adapterHost: HttpAdapterHost,
@@ -128,6 +137,11 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
     this.resolvers.push(resolver);
   }
 
+  /** Lo usa trips para reenviar la posición del conductor a la sala de su viaje. */
+  registerTripLocationListener(listener: TripLocationListener): void {
+    this.tripLocationListeners.push(listener);
+  }
+
   private async authenticate(socket: AppSocket): Promise<boolean> {
     const token: unknown = socket.handshake.auth['token'];
     if (typeof token !== 'string' || token.length > 4096) return false;
@@ -157,14 +171,29 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
       const parsed = ClientToServerSchemas[SocketEvent.DriverLocation].safeParse(payload);
       if (!parsed.success) return reply({ ok: false, code: 'VALIDATION_FAILED' });
 
-      this.location.updateLocation(userId, parsed.data, now).then(reply, (err: unknown) => {
-        this.logger.error({ err }, 'No se pudo guardar la ubicación');
-        reply({ ok: false, code: 'OFFLINE' });
-      });
+      this.location.updateLocation(userId, parsed.data, now).then(
+        (result) => {
+          if (!result.ok) return reply(result);
+          reply({ ok: true });
+          if (result.tripId) this.notifyTripLocation(userId, result.tripId, parsed.data);
+        },
+        (err: unknown) => {
+          this.logger.error({ err }, 'No se pudo guardar la ubicación');
+          reply({ ok: false, code: 'OFFLINE' });
+        },
+      );
     });
 
     if (role === 'DRIVER') {
       socket.on('disconnect', () => void this.onDriverDisconnect(userId));
+    }
+  }
+
+  private notifyTripLocation(driverId: string, tripId: string, loc: DriverLocationV1): void {
+    for (const listener of this.tripLocationListeners) {
+      listener(driverId, tripId, loc).catch((err: unknown) =>
+        this.logger.warn({ err, tripId }, 'No se pudo procesar la ubicación del viaje'),
+      );
     }
   }
 

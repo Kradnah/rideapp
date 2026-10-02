@@ -121,6 +121,9 @@ export const DriverAccount = z.object({
 });
 export type DriverAccount = z.infer<typeof DriverAccount>;
 
+/** Cada cuánto envía su ubicación el conductor (8.5, paso 1): libre 10–15 s, en viaje 4–5 s. */
+export const LOCATION_INTERVAL_SECONDS = { available: 12, inTrip: 5 } as const;
+
 export const DriverAvailabilityResponse = z.object({
   availability: DriverAvailability,
   /** Cada cuántos segundos debe enviar su ubicación la app (10.2, paso 3). */
