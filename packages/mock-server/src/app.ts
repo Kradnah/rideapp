@@ -13,6 +13,7 @@ import {
   AutocompleteResponse,
   ClientToServerSchemas,
   computeFare,
+  CURRENT_POLICY_VERSION,
   DEFAULT_CURRENCY,
   encodePolyline,
   GoogleLoginRequest,
@@ -171,6 +172,9 @@ export function buildMockServer(options: MockServerOptions = {}) {
 
       api.post('/auth/register', (req, reply) => {
         const body = parse(RegisterRequest, req.body);
+        if (body.consent.policyVersion !== CURRENT_POLICY_VERSION) {
+          throw new HttpError(409, 'CONSENT_REQUIRED', 'Acepta la política vigente');
+        }
         if (findByEmail(body.email)) throw new HttpError(409, 'CONFLICT', 'No se pudo registrar');
         const user = createUser(body.email, body.fullName, body.role, body.password);
         void reply.status(201);
@@ -190,9 +194,13 @@ export function buildMockServer(options: MockServerOptions = {}) {
       api.post('/auth/google', (req) => {
         const body = parse(GoogleLoginRequest, req.body);
         const email = `google-${body.idToken.slice(0, 16)}@example.com`.toLowerCase();
-        const user =
-          findByEmail(email) ?? createUser(email, 'Usuario Google', body.role ?? 'PASSENGER', null);
-        return issueTokens(user);
+        const existing = findByEmail(email);
+        if (existing) return issueTokens(existing);
+        // Igual que el API real: crear la cuenta exige la autorización de la Ley 1581.
+        if (body.consent?.policyVersion !== CURRENT_POLICY_VERSION) {
+          throw new HttpError(409, 'CONSENT_REQUIRED', 'Acepta la política para crear tu cuenta');
+        }
+        return issueTokens(createUser(email, 'Usuario Google', body.role ?? 'PASSENGER', null));
       });
 
       api.post('/auth/refresh', (req) => {

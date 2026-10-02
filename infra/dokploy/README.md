@@ -17,5 +17,5 @@ Dominios (Let's Encrypt): `rideapp-api.julian-lizcano.com` → API · `rideapp-a
 
 - **La API de Dokploy limita las peticiones por clave.** Tras unas decenas de llamadas seguidas responde `401 Unauthorized` (no 429) y se recupera al rato. No es un problema de permisos: espaciar las llamadas o esperar.
 - `environment.one` no devuelve `appName` de los servicios; hay que pedir `postgres.one` / `redis.one`. Dokploy añade un sufijo aleatorio al `appName`.
-- El usuario `rideapp` de Postgres lo crea Dokploy como superusuario (13.5 C1). Pendiente para la Fase 6: rol de aplicación sin superusuario.
+- El usuario `rideapp` de Postgres lo crea Dokploy como superusuario (13.5 C1). Desde el 2026-10-02 el API usa **`rideapp_app`** (sin superusuario; dueño del esquema `public`). `rideapp` queda solo para administración. Consecuencia: una migración futura que necesite `CREATE EXTENSION` debe ejecutarla antes un superusuario.
 - Las contraseñas de Postgres y Redis se generaron en el VPS y solo viven en Dokploy.

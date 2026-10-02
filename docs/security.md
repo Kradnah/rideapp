@@ -20,7 +20,8 @@ Checklist completa en la sección 14 del plan. Aquí se registran las decisiones
 
 ## Pendiente o a vigilar
 
-- **PostGIS en Dokploy:** no es una extensión _trusted_. Antes del primer `migrate deploy`, un superusuario debe ejecutar `CREATE EXTENSION postgis; CREATE EXTENSION citext;` en `rideapp`. Lo ideal es que la app use después un rol sin superusuario (en Dokploy el `POSTGRES_USER` es superusuario).
+- **Postgres en producción:** el API usa el rol `rideapp_app` (sin superusuario, dueño del esquema `public`). PostGIS no es una extensión _trusted_: si una migración futura necesita otra extensión, la crea antes el superusuario `rideapp`.
+- **Swap de 4 GB** en el VPS con `vm.swappiness=10` (13.7), activo desde el 2026-10-02.
 - `TRUST_PROXY=true` en Dokploy (detrás de Traefik); si no, todas las peticiones parecen venir de la IP de Traefik y el rate limiting las agrupa.
 - Límites estrictos en `/auth/*` (Fase 1).
 

@@ -1,4 +1,5 @@
 import type { AddressInfo } from 'node:net';
+import { CURRENT_POLICY_VERSION } from '@rideapp/contracts';
 import { buildMockServer, DEMO_TRIP_ID } from '@rideapp/mock-server/app';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ApiClientError, createApiClient, createRealtime, HttpClient } from '../src/index.js';
@@ -44,6 +45,7 @@ describe('contra el mock-server', () => {
       password: 'una-clave-larga',
       fullName: 'Cliente Demo',
       role: 'PASSENGER',
+      consent: { acceptTerms: true, policyVersion: CURRENT_POLICY_VERSION },
     });
     session.token = pair.accessToken;
 
@@ -73,6 +75,7 @@ describe('contra el mock-server', () => {
       password: 'una-clave-larga',
       fullName: 'Refresh',
       role: 'DRIVER',
+      consent: { acceptTerms: true, policyVersion: CURRENT_POLICY_VERSION },
     });
     const session = { token: 'token-caducado', refresh: pair.refreshToken };
     const api2 = client(session);
@@ -87,6 +90,7 @@ describe('contra el mock-server', () => {
       password: 'una-clave-larga',
       fullName: 'Socket',
       role: 'PASSENGER',
+      consent: { acceptTerms: true, policyVersion: CURRENT_POLICY_VERSION },
     });
     const socket = createRealtime({ url: origin, getAccessToken: () => accessToken });
     await new Promise<void>((resolve) => socket.on('connect', resolve));

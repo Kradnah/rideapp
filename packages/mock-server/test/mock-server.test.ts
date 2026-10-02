@@ -1,5 +1,6 @@
 import type { AddressInfo } from 'node:net';
 import {
+  CURRENT_POLICY_VERSION,
   ApiError,
   AutocompleteResponse,
   Me,
@@ -34,6 +35,7 @@ async function register() {
       password: 'una-clave-larga',
       fullName: 'Ana',
       role: 'PASSENGER',
+      consent: { acceptTerms: true, policyVersion: CURRENT_POLICY_VERSION },
     },
   });
   expect(res.statusCode).toBe(201);
@@ -60,6 +62,7 @@ describe('auth', () => {
         password: 'una-clave-larga',
         fullName: 'X',
         role: 'ADMIN',
+        consent: { acceptTerms: true, policyVersion: CURRENT_POLICY_VERSION },
       },
     });
     expect(res.statusCode).toBe(400);

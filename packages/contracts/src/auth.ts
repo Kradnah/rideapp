@@ -13,11 +13,25 @@ export const FullName = z.string().trim().min(2).max(100);
 /** Teléfono en formato E.164 (+57...). */
 export const Phone = z.string().regex(/^\+[1-9]\d{7,14}$/);
 
+/**
+ * Versión vigente de la Política de Tratamiento de la Información (Ley 1581, sección 15).
+ * Al cambiar la política, se sube esta fecha y el servidor exige volver a aceptar.
+ */
+export const CURRENT_POLICY_VERSION = '2026-10-01';
+
+/** Autorización previa, expresa e informada: casilla no premarcada + versión que se mostró. */
+export const Consent = z.strictObject({
+  acceptTerms: z.literal(true),
+  policyVersion: z.string().min(1).max(32),
+});
+export type Consent = z.infer<typeof Consent>;
+
 export const RegisterRequest = z.strictObject({
   email: Email,
   password: Password,
   fullName: FullName,
   role: SelfAssignableRole,
+  consent: Consent,
 });
 export type RegisterRequest = z.infer<typeof RegisterRequest>;
 
@@ -31,6 +45,8 @@ export type LoginRequest = z.infer<typeof LoginRequest>;
 export const GoogleLoginRequest = z.strictObject({
   idToken: z.string().min(1).max(4096),
   role: SelfAssignableRole.optional(),
+  /** Obligatorio si es la primera vez (se crea la cuenta); si falta, el API responde CONSENT_REQUIRED. */
+  consent: Consent.optional(),
 });
 export type GoogleLoginRequest = z.infer<typeof GoogleLoginRequest>;
 
@@ -45,6 +61,19 @@ export const TokenPair = z.object({
   expiresIn: z.number().int().positive(),
   refreshToken: z.string(),
 });
+
+/** Contenido del access token (8.2, paso 2). Sin email ni nombre. */
+export const AccessTokenClaims = z.object({
+  sub: z.uuid(),
+  role: UserRole,
+  /** Sesión = familia de refresh tokens: revocarla invalida la sesión. */
+  sid: z.uuid(),
+  /** Métodos de autenticación: el admin necesita ['pwd', 'totp'] (8.14). */
+  amr: z.array(z.enum(['pwd', 'google', 'apple', 'totp'])),
+  iat: z.number().int(),
+  exp: z.number().int(),
+});
+export type AccessTokenClaims = z.infer<typeof AccessTokenClaims>;
 export type TokenPair = z.infer<typeof TokenPair>;
 
 export const ForgotPasswordRequest = z.strictObject({ email: Email });

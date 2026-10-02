@@ -1,4 +1,5 @@
 import { createApiClient } from '@rideapp/api-client';
+import { CURRENT_POLICY_VERSION } from '@rideapp/contracts';
 import { config } from './config';
 
 // Fase 0: el token vive solo en memoria. En la Fase 1 lo sustituye el SessionProvider de
@@ -18,7 +19,11 @@ export const api = createApiClient({
 export async function ensureDemoSession(): Promise<boolean> {
   if (accessToken) return true;
   if (!config.demoSession) return false;
-  const pair = await api.auth.google({ idToken: 'demo-passenger-device', role: 'PASSENGER' });
+  const pair = await api.auth.google({
+    idToken: 'demo-passenger-device',
+    role: 'PASSENGER',
+    consent: { acceptTerms: true, policyVersion: CURRENT_POLICY_VERSION },
+  });
   accessToken = pair.accessToken;
   return true;
 }

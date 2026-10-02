@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ApiError,
   computeFare,
+  CURRENT_POLICY_VERSION,
   DriverLocationV1,
   GIRARDOT_CENTER,
   isInServiceAreaBounds,
@@ -37,6 +38,7 @@ describe('RegisterRequest', () => {
     password: 'una-clave-larga',
     fullName: 'Ana Pérez',
     role: 'PASSENGER',
+    consent: { acceptTerms: true, policyVersion: CURRENT_POLICY_VERSION },
   };
 
   it('normaliza el email', () => {
@@ -50,6 +52,15 @@ describe('RegisterRequest', () => {
   });
   it('rechaza campos desconocidos', () => {
     expect(RegisterRequest.safeParse({ ...base, isAdmin: true }).success).toBe(false);
+  });
+  it('exige aceptar los términos de forma expresa', () => {
+    expect(RegisterRequest.safeParse({ ...base, consent: undefined }).success).toBe(false);
+    expect(
+      RegisterRequest.safeParse({
+        ...base,
+        consent: { acceptTerms: false, policyVersion: CURRENT_POLICY_VERSION },
+      }).success,
+    ).toBe(false);
   });
 });
 
