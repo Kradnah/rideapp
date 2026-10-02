@@ -35,6 +35,8 @@ describe('App con sesión', () => {
           ? json({
               users: { passengers: 12, drivers: 3, admins: 1 },
               drivers: { pendingReview: 2, online: 1 },
+              trips: { today: 7, active: 2 },
+              maps: { provider: 'fake', callsToday: { route: 4 } },
             })
           : json({ status: 'ok', checks: {} }),
       ),
@@ -42,6 +44,8 @@ describe('App con sesión', () => {
     renderAt('/');
     expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeTruthy();
     expect(await screen.findByText('12')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Viajes de hoy\s*7/ })).toBeTruthy();
+    expect(screen.getByText(/rutas 4/)).toBeTruthy();
     expect(await screen.findByText('API operativa')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeTruthy();
   });
@@ -227,5 +231,117 @@ describe('App sin sesión', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.getByText('Credenciales o código incorrectos.')).toBeTruthy();
+  });
+});
+
+const TRIP_ID = '0199a000-0000-7000-8000-0000000000f1';
+
+const tripDetail = {
+  id: TRIP_ID,
+  status: 'CANCELLED',
+  category: 'STANDARD',
+  paymentMethod: 'CASH',
+  origin: { lat: 4.3035, lng: -74.8036 },
+  destination: { lat: 4.2955, lng: -74.788 },
+  originAddress: 'Parque Bolívar',
+  destinationAddress: '<img src=x onerror=alert(1)>',
+  amount: { amountCents: 1_230_000, currency: 'COP' },
+  distanceMeters: 2450,
+  durationSeconds: 412,
+  polyline: '_p~iF~ps|U',
+  requestedAt: '2026-10-02T15:00:00.000Z',
+  acceptedAt: '2026-10-02T15:00:20.000Z',
+  cancelledAt: '2026-10-02T15:03:00.000Z',
+  cancelledBy: 'PASSENGER',
+  cancelReason: 'Me demoré',
+  passenger: { id: '0199a000-0000-7000-8000-0000000000b1', fullName: 'Pía Pasajera' },
+  driver: {
+    id: DRIVER_ID,
+    fullName: 'Carlos Conductor',
+    vehicle: {
+      plate: 'ABC123',
+      brand: 'Chevrolet',
+      model: 'Spark',
+      color: 'Blanco',
+      category: 'STANDARD',
+    },
+  },
+  offersDeclined: 1,
+  events: [
+    { fromStatus: null, toStatus: 'REQUESTED', actor: 'PASSENGER', at: '2026-10-02T15:00:00.000Z' },
+    {
+      fromStatus: 'REQUESTED',
+      toStatus: 'SEARCHING',
+      actor: 'SYSTEM',
+      at: '2026-10-02T15:00:00.100Z',
+    },
+    {
+      fromStatus: 'SEARCHING',
+      toStatus: 'DRIVER_ASSIGNED',
+      actor: 'DRIVER',
+      at: '2026-10-02T15:00:20.000Z',
+    },
+    {
+      fromStatus: 'DRIVER_ASSIGNED',
+      toStatus: 'CANCELLED',
+      actor: 'PASSENGER',
+      at: '2026-10-02T15:03:00.000Z',
+    },
+  ],
+};
+
+describe('Viajes', () => {
+  it('lista los viajes en curso con precio en pesos y enlaza al detalle', async () => {
+    const fetchMock = vi.fn(async (url: string) =>
+      String(url).includes('/admin/trips')
+        ? json({
+            items: [
+              {
+                id: TRIP_ID,
+                status: 'SEARCHING',
+                category: 'MOTO',
+                passengerName: 'Pía Pasajera',
+                driverName: null,
+                originAddress: 'Parque Bolívar',
+                destinationAddress: 'Unicentro',
+                amount: { amountCents: 1_230_000, currency: 'COP' },
+                requestedAt: '2026-10-02T15:00:00.000Z',
+              },
+            ],
+            nextCursor: null,
+          })
+        : json({ status: 'ok', checks: {} }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    renderAt('/trips');
+    expect(await screen.findByText('Pía Pasajera')).toBeTruthy();
+    expect(screen.getByText('Buscando conductor')).toBeTruthy();
+    expect(screen.getByText(/12\.300/)).toBeTruthy();
+    expect(fetchMock.mock.calls.some(([u]) => String(u).includes('status=ACTIVE'))).toBe(true);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Cancelados' }));
+    await vi.waitFor(() =>
+      expect(fetchMock.mock.calls.some(([u]) => String(u).includes('status=CANCELLED'))).toBe(true),
+    );
+  });
+
+  it('el detalle muestra la línea de tiempo y escapa el texto del usuario', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        String(url).includes(`/admin/trips/${TRIP_ID}`)
+          ? json(tripDetail)
+          : json({ status: 'ok', checks: {} }),
+      ),
+    );
+    const { container } = renderAt(`/trips/${TRIP_ID}`);
+    expect(await screen.findByText('Línea de tiempo')).toBeTruthy();
+    expect(screen.getByText(/Cancelado por pasajero/)).toBeTruthy();
+    expect(screen.getByText('Me demoré')).toBeTruthy();
+    expect(screen.getByText('Conductor en camino')).toBeTruthy();
+    expect(screen.getByText(/1 conductor rechazó/)).toBeTruthy();
+    // El destino se muestra como texto, nunca como HTML (14.6).
+    expect(screen.getByText('<img src=x onerror=alert(1)>')).toBeTruthy();
+    expect(container.querySelector('img[src="x"]')).toBeNull();
   });
 });

@@ -6,13 +6,15 @@ import { DriverDetail } from './pages/DriverDetail';
 import { Drivers } from './pages/Drivers';
 import { Login } from './pages/Login';
 import { Placeholder } from './pages/Placeholder';
+import { TripDetail } from './pages/TripDetail';
+import { Trips } from './pages/Trips';
 
 /** Menú del panel (11.1, paso 3). */
 const NAV = [
   { to: '/', label: 'Dashboard' },
   { to: '/drivers', label: 'Conductores' },
   { to: '/users', label: 'Usuarios', phase: 'Fase 5' },
-  { to: '/trips', label: 'Viajes', phase: 'Fase 3' },
+  { to: '/trips', label: 'Viajes' },
   { to: '/fares', label: 'Tarifas', phase: 'Fase 5' },
   { to: '/audit', label: 'Auditoría', phase: 'Fase 5' },
 ] as const;
@@ -52,6 +54,8 @@ export function App() {
         <Route index element={<Dashboard />} />
         <Route path="drivers" element={<Drivers />} />
         <Route path="drivers/:id" element={<DriverDetail />} />
+        <Route path="trips" element={<Trips />} />
+        <Route path="trips/:id" element={<TripDetail />} />
         {NAV.filter((i) => 'phase' in i).map((item) => (
           <Route
             key={item.to}

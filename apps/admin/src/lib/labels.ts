@@ -3,6 +3,10 @@ import type {
   DriverAvailability,
   DriverDocumentType,
   DriverStatus,
+  Money,
+  PaymentMethod,
+  TripEventActor,
+  TripStatus,
   VehicleCategory,
 } from '@rideapp/contracts';
 
@@ -29,6 +33,49 @@ export const AVAILABILITY_LABEL: Record<DriverAvailability, string> = {
   AVAILABLE: 'En línea',
   BUSY: 'En viaje',
 };
+
+export const TRIP_STATUS_LABEL: Record<TripStatus, string> = {
+  REQUESTED: 'Solicitado',
+  SEARCHING: 'Buscando conductor',
+  NO_DRIVERS: 'Sin conductores',
+  DRIVER_ASSIGNED: 'Conductor en camino',
+  DRIVER_ARRIVED: 'Conductor en el punto',
+  IN_PROGRESS: 'En viaje',
+  COMPLETED: 'Completado',
+  CANCELLED: 'Cancelado',
+};
+
+export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
+  CASH: 'Efectivo',
+  FAKE_CARD: 'Tarjeta (demo)',
+};
+
+export const ACTOR_LABEL: Record<TripEventActor, string> = {
+  PASSENGER: 'Pasajero',
+  DRIVER: 'Conductor',
+  SYSTEM: 'Sistema',
+  ADMIN: 'Administrador',
+};
+
+const cop = new Intl.NumberFormat('es-CO', {
+  style: 'currency',
+  currency: 'COP',
+  maximumFractionDigits: 0,
+});
+
+/** Importes en centavos (8.7) → "$ 12.300". */
+export function formatMoney({ amountCents, currency }: Money): string {
+  if (currency !== 'COP') return `${(amountCents / 100).toFixed(2)} ${currency}`;
+  return cop.format(amountCents / 100);
+}
+
+export function formatDistance(meters: number): string {
+  return meters < 1000 ? `${meters} m` : `${(meters / 1000).toFixed(1).replace('.', ',')} km`;
+}
+
+export function formatDuration(seconds: number): string {
+  return `${Math.max(1, Math.round(seconds / 60))} min`;
+}
 
 const dateTime = new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
 
