@@ -57,8 +57,13 @@ async function doRefresh(): Promise<string | null> {
 }
 
 /** Mismo origen (`/api`): Traefik o el proxy de Vite lo enrutan al API. */
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
+/** URL absoluta (en el mismo origen) de una ruta del API, p. ej. un documento firmado. */
+export const apiUrl = (path: string) => `${API_BASE}${path}`;
+
 export const api = createApiClient({
-  baseUrl: import.meta.env.VITE_API_URL || '/api',
+  baseUrl: API_BASE,
   credentials: 'include',
   getAccessToken: () => accessToken,
   refreshSession: refreshAdminSession,

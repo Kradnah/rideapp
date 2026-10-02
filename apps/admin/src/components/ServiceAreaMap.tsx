@@ -1,3 +1,4 @@
+import type { AdminLiveDriver } from '@rideapp/contracts';
 import { GIRARDOT_CENTER, SERVICE_AREA_BOUNDS } from '@rideapp/contracts';
 import { APIProvider, Map, useMap } from '@vis.gl/react-google-maps';
 import { useEffect } from 'react';
@@ -23,7 +24,36 @@ function ServiceAreaRectangle() {
   return null;
 }
 
-export function ServiceAreaMap() {
+/**
+ * Conductores en línea como círculos (11.1, paso 4). Se usan círculos y no marcadores:
+ * `google.maps.Marker` está obsoleto y `AdvancedMarker` exige un Map ID de Cloud Console.
+ */
+function DriverDots({ drivers }: { drivers: AdminLiveDriver[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!map) return;
+    const dots = drivers.flatMap((d) =>
+      d.position
+        ? [
+            new google.maps.Circle({
+              map,
+              center: d.position,
+              radius: 70,
+              strokeColor: '#ffffff',
+              strokeWeight: 2,
+              fillColor: d.category === 'MOTO' ? '#a16207' : '#0f766e',
+              fillOpacity: 0.95,
+              clickable: false,
+            }),
+          ]
+        : [],
+    );
+    return () => dots.forEach((c) => c.setMap(null));
+  }, [map, drivers]);
+  return null;
+}
+
+export function ServiceAreaMap({ drivers = [] }: { drivers?: AdminLiveDriver[] }) {
   if (!MAPS_KEY) {
     return (
       <div className="map map--empty">
@@ -46,6 +76,7 @@ export function ServiceAreaMap() {
           clickableIcons={false}
         >
           <ServiceAreaRectangle />
+          <DriverDots drivers={drivers} />
         </Map>
       </APIProvider>
     </div>

@@ -60,8 +60,142 @@ describe('App con sesión', () => {
       'fetch',
       vi.fn(async () => json({}, 503)),
     );
+    renderAt('/users');
+    expect(screen.getByText(/Fase 5/)).toBeTruthy();
+  });
+});
+
+const DRIVER_ID = '0199a000-0000-7000-8000-000000000001';
+const DOC_ID = '0199a000-0000-7000-8000-0000000000d1';
+
+const detail = {
+  userId: DRIVER_ID,
+  fullName: 'Carlos Conductor',
+  email: 'carlos@example.com',
+  emailVerified: true,
+  phoneMasked: '+57 *** *** 4567',
+  licenseMasked: '****3456',
+  status: 'PENDING',
+  submitted: true,
+  statusReason: null,
+  submittedAt: '2026-10-02T10:00:00.000Z',
+  reviewedAt: null,
+  createdAt: '2026-10-01T10:00:00.000Z',
+  vehicles: [
+    {
+      id: '0199a000-0000-7000-8000-0000000000a1',
+      plate: 'ABC123',
+      brand: 'Chevrolet',
+      model: 'Spark',
+      color: 'Blanco',
+      year: 2018,
+      category: 'STANDARD',
+      active: true,
+      createdAt: '2026-10-01T10:00:00.000Z',
+    },
+  ],
+  documents: [
+    {
+      id: DOC_ID,
+      type: 'DRIVER_LICENSE',
+      mime: 'image/jpeg',
+      sizeBytes: 120_000,
+      status: 'PENDING',
+      createdAt: '2026-10-01T10:00:00.000Z',
+    },
+  ],
+  missing: { profile: false, vehicle: false, documents: [] },
+  availability: 'OFFLINE',
+};
+
+describe('Conductores', () => {
+  it('la cola de revisión lista las solicitudes y enlaza al detalle', async () => {
+    const fetchMock = vi.fn(async (url: string) =>
+      String(url).includes('/admin/drivers')
+        ? json({
+            items: [
+              {
+                userId: DRIVER_ID,
+                fullName: 'Carlos Conductor',
+                email: 'carlos@example.com',
+                status: 'PENDING',
+                submittedAt: '2026-10-02T10:00:00.000Z',
+                createdAt: '2026-10-01T10:00:00.000Z',
+                vehicle: { plate: 'ABC123', category: 'STANDARD' },
+                documentCount: 3,
+              },
+            ],
+            nextCursor: null,
+          })
+        : json({ status: 'ok', checks: {} }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
     renderAt('/drivers');
-    expect(screen.getByText(/Fase 2/)).toBeTruthy();
+    const link = await screen.findByRole('link', { name: 'Carlos Conductor' });
+    expect(link.getAttribute('href')).toBe(`/drivers/${DRIVER_ID}`);
+    expect(screen.getByText('ABC123')).toBeTruthy();
+    expect(screen.getByText('3 / 3')).toBeTruthy();
+    expect(
+      String(fetchMock.mock.calls.find(([u]) => String(u).includes('/admin/drivers'))![0]),
+    ).toContain('status=PENDING');
+  });
+
+  it('detalle: datos enmascarados, revelar y aprobar', async () => {
+    const calls: { url: string; method: string; body?: string }[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const method = init?.method ?? 'GET';
+        calls.push({ url: String(url), method, body: init?.body as string | undefined });
+        if (String(url).endsWith('/reveal')) return json({ value: '1070123456' });
+        if (String(url).endsWith('/approve')) return new Response(null, { status: 204 });
+        if (String(url).includes(`/admin/drivers/${DRIVER_ID}`)) return json(detail);
+        return json({ status: 'ok', checks: {} });
+      }),
+    );
+    renderAt(`/drivers/${DRIVER_ID}`);
+    expect(await screen.findByRole('heading', { name: 'Carlos Conductor' })).toBeTruthy();
+    expect(screen.getByText('****3456')).toBeTruthy();
+    expect(screen.queryByText('1070123456')).toBeNull();
+
+    // El segundo "Mostrar" es el de la licencia (el primero, el teléfono).
+    fireEvent.click(screen.getAllByRole('button', { name: 'Mostrar' })[1]!);
+    expect(await screen.findByText('1070123456')).toBeTruthy();
+    expect(calls.find((c) => c.url.endsWith('/reveal'))?.body).toBe(
+      JSON.stringify({ field: 'licenseNumber' }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aprobar' }));
+    await vi.waitFor(() =>
+      expect(calls.some((c) => c.url.endsWith('/approve') && c.method === 'POST')).toBe(true),
+    );
+  });
+
+  it('rechazar exige un motivo', async () => {
+    const calls: { url: string; body?: string }[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        calls.push({ url: String(url), body: init?.body as string | undefined });
+        if (String(url).endsWith('/reject')) return new Response(null, { status: 204 });
+        if (String(url).includes(`/admin/drivers/${DRIVER_ID}`)) return json(detail);
+        return json({ status: 'ok', checks: {} });
+      }),
+    );
+    renderAt(`/drivers/${DRIVER_ID}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Rechazar…' }));
+    const submit = screen.getByRole('button', { name: 'Rechazar' }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText(/Motivo/), {
+      target: { value: 'La foto de la licencia no se lee' },
+    });
+    expect(submit.disabled).toBe(false);
+    fireEvent.click(submit);
+    await vi.waitFor(() =>
+      expect(calls.find((c) => c.url.endsWith('/reject'))?.body).toBe(
+        JSON.stringify({ reason: 'La foto de la licencia no se lee' }),
+      ),
+    );
   });
 });
 
