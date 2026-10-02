@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { ServiceAreaMap } from '../components/ServiceAreaMap';
 import { api } from '../lib/api';
-import { AVAILABILITY_LABEL, CATEGORY_LABEL } from '../lib/labels';
+import { AVAILABILITY_LABEL, CATEGORY_LABEL, formatMoney } from '../lib/labels';
 
 const time = new Intl.DateTimeFormat('es-CO', { timeStyle: 'medium' });
 
@@ -30,6 +30,7 @@ export function Dashboard() {
   const drivers = overview.data?.drivers;
   const trips = overview.data?.trips;
   const maps = overview.data?.maps;
+  const payments = overview.data?.payments;
   const online = live.data?.drivers ?? [];
   const n = (v: number | undefined) => (v === undefined ? '—' : v.toLocaleString('es-CO'));
 
@@ -73,6 +74,19 @@ export function Dashboard() {
           <span className="kpi__value">{n(drivers?.pendingReview)}</span>
         </Link>
       </section>
+
+      {payments && (
+        <section className="kpis" aria-label="Pagos">
+          <article className="kpi">
+            <span className="kpi__label">Cobrado hoy</span>
+            <span className="kpi__value">{formatMoney(payments.capturedToday)}</span>
+          </article>
+          <article className="kpi">
+            <span className="kpi__label">Efectivo sin confirmar</span>
+            <span className="kpi__value">{n(payments.pendingCash)}</span>
+          </article>
+        </section>
+      )}
 
       {maps && (
         <p className="muted">

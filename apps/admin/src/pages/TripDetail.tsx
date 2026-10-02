@@ -13,6 +13,7 @@ import {
   formatDuration,
   formatMoney,
   PAYMENT_LABEL,
+  PAYMENT_STATUS_LABEL,
   TRIP_STATUS_LABEL,
 } from '../lib/labels';
 
@@ -46,6 +47,56 @@ function Timeline({ trip }: { trip: AdminTripDetail }) {
             ? '1 conductor rechazó la oferta o la dejó caducar.'
             : `${trip.offersDeclined} conductores rechazaron la oferta o la dejaron caducar.`}
         </p>
+      )}
+    </section>
+  );
+}
+
+/** Pago y calificaciones (Fase 5). Los comentarios son texto del usuario: React los escapa. */
+function Closing({ trip }: { trip: AdminTripDetail }) {
+  if (!trip.payment && trip.ratings.length === 0) return null;
+  return (
+    <section className="card">
+      <h2>Cierre</h2>
+      <dl className="facts">
+        {trip.payment && (
+          <>
+            <dt>Pago</dt>
+            <dd>
+              {formatMoney(trip.payment.amount)} · {PAYMENT_LABEL[trip.payment.method]} ·{' '}
+              <span
+                className={`badge badge--${trip.payment.status === 'CAPTURED' ? 'approved' : 'pending'}`}
+              >
+                {PAYMENT_STATUS_LABEL[trip.payment.status]}
+              </span>
+            </dd>
+            {trip.payment.paidAt && (
+              <>
+                <dt>Cobrado</dt>
+                <dd>{formatDate(trip.payment.paidAt)}</dd>
+              </>
+            )}
+          </>
+        )}
+      </dl>
+      {trip.ratings.length > 0 && (
+        <ul className="list">
+          {trip.ratings.map((r) => (
+            <li key={r.by} className="list__item">
+              <div>
+                <strong>
+                  {r.by === 'PASSENGER'
+                    ? 'El pasajero calificó al conductor'
+                    : 'El conductor calificó al pasajero'}
+                  : {'★'.repeat(r.score)}
+                  {'☆'.repeat(5 - r.score)}
+                </strong>
+                {r.comment && <p className="quote">{r.comment}</p>}
+                <span className="cell-sub">{formatDate(r.at)}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   );
@@ -164,6 +215,7 @@ export function TripDetail() {
               )}
             </dl>
           </section>
+          <Closing trip={trip} />
           <Timeline trip={trip} />
         </div>
 

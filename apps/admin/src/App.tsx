@@ -1,22 +1,26 @@
 import { NavLink, Outlet, Route, Routes } from 'react-router';
 import { ApiStatus } from './components/ApiStatus';
 import { useAdminSession } from './lib/session-context';
+import { Audit } from './pages/Audit';
 import { Dashboard } from './pages/Dashboard';
 import { DriverDetail } from './pages/DriverDetail';
 import { Drivers } from './pages/Drivers';
+import { Fares } from './pages/Fares';
 import { Login } from './pages/Login';
-import { Placeholder } from './pages/Placeholder';
+import { NotFound } from './pages/NotFound';
 import { TripDetail } from './pages/TripDetail';
 import { Trips } from './pages/Trips';
+import { UserDetail } from './pages/UserDetail';
+import { Users } from './pages/Users';
 
 /** Menú del panel (11.1, paso 3). */
 const NAV = [
   { to: '/', label: 'Dashboard' },
   { to: '/drivers', label: 'Conductores' },
-  { to: '/users', label: 'Usuarios', phase: 'Fase 5' },
+  { to: '/users', label: 'Usuarios' },
   { to: '/trips', label: 'Viajes' },
-  { to: '/fares', label: 'Tarifas', phase: 'Fase 5' },
-  { to: '/audit', label: 'Auditoría', phase: 'Fase 5' },
+  { to: '/fares', label: 'Tarifas' },
+  { to: '/audit', label: 'Auditoría' },
 ] as const;
 
 function Layout() {
@@ -56,14 +60,11 @@ export function App() {
         <Route path="drivers/:id" element={<DriverDetail />} />
         <Route path="trips" element={<Trips />} />
         <Route path="trips/:id" element={<TripDetail />} />
-        {NAV.filter((i) => 'phase' in i).map((item) => (
-          <Route
-            key={item.to}
-            path={item.to.slice(1)}
-            element={<Placeholder title={item.label} phase={'phase' in item ? item.phase : ''} />}
-          />
-        ))}
-        <Route path="*" element={<Placeholder title="Página no encontrada" phase="—" />} />
+        <Route path="users" element={<Users />} />
+        <Route path="users/:id" element={<UserDetail />} />
+        <Route path="fares" element={<Fares />} />
+        <Route path="audit" element={<Audit />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   );

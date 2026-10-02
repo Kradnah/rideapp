@@ -36,6 +36,10 @@ describe('App con sesión', () => {
               users: { passengers: 12, drivers: 3, admins: 1 },
               drivers: { pendingReview: 2, online: 1 },
               trips: { today: 7, active: 2 },
+              payments: {
+                pendingCash: 3,
+                capturedToday: { amountCents: 4_560_000, currency: 'COP' },
+              },
               maps: { provider: 'fake', callsToday: { route: 4 } },
             })
           : json({ status: 'ok', checks: {} }),
@@ -46,6 +50,7 @@ describe('App con sesión', () => {
     expect(await screen.findByText('12')).toBeTruthy();
     expect(screen.getByRole('link', { name: /Viajes de hoy\s*7/ })).toBeTruthy();
     expect(screen.getByText(/rutas 4/)).toBeTruthy();
+    expect(screen.getByText(/45\.600/)).toBeTruthy();
     expect(await screen.findByText('API operativa')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeTruthy();
   });
@@ -59,13 +64,139 @@ describe('App con sesión', () => {
     expect(screen.getByText(/Mapa desactivado/)).toBeTruthy();
   });
 
-  it('las secciones pendientes indican su fase', () => {
+  it('una ruta desconocida muestra "Página no encontrada"', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => json({}, 503)),
     );
+    renderAt('/no-existe');
+    expect(screen.getByRole('heading', { name: 'Página no encontrada' })).toBeTruthy();
+  });
+});
+
+const USER_ID = '0199a000-0000-7000-8000-0000000000c1';
+const userSummary = {
+  id: USER_ID,
+  fullName: 'Zoe Usuaria',
+  email: 'zoe@example.com',
+  role: 'PASSENGER',
+  status: 'ACTIVE',
+  rating: { average: 4.5, count: 2 },
+  createdAt: '2026-10-01T15:00:00.000Z',
+};
+
+describe('Usuarios, tarifas y auditoría', () => {
+  it('busca usuarios y el detalle enmascara el teléfono; suspender exige motivo', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      const u = String(url);
+      if (u.includes(`/admin/users/${USER_ID}/reveal-phone`))
+        return json({ value: '+573001234567' });
+      if (u.includes(`/admin/users/${USER_ID}/suspend`)) return new Response(null, { status: 204 });
+      if (u.includes(`/admin/users/${USER_ID}`)) {
+        return json({
+          ...userSummary,
+          emailVerified: true,
+          phoneMasked: '+57 *** *** 4567',
+          statusReason: null,
+          providers: ['password'],
+          trips: { completed: 3, cancelled: 1 },
+          consents: [
+            {
+              policyVersion: '2026-10-01',
+              acceptedAt: '2026-10-01T15:00:00.000Z',
+              channel: 'passenger',
+            },
+          ],
+          activeSessions: 2,
+        });
+      }
+      if (u.includes('/admin/users')) return json({ items: [userSummary], nextCursor: null });
+      return json({ status: 'ok', checks: {} });
+    });
+    vi.stubGlobal('fetch', fetchMock);
     renderAt('/users');
-    expect(screen.getByText(/Fase 5/)).toBeTruthy();
+    expect(await screen.findByText('Zoe Usuaria')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Buscar por nombre o email'), {
+      target: { value: 'zoe' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+    await vi.waitFor(() =>
+      expect(fetchMock.mock.calls.some(([u]) => String(u).includes('q=zoe'))).toBe(true),
+    );
+
+    cleanup();
+    renderAt(`/users/${USER_ID}`);
+    expect(await screen.findByText('+57 *** *** 4567')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar' }));
+    expect(await screen.findByText('+573001234567')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Suspender…' }));
+    const submit = screen.getByRole('button', { name: 'Suspender' }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText(/Motivo/), { target: { value: 'Reportes repetidos' } });
+    expect(submit.disabled).toBe(false);
+  });
+
+  it('tarifas: vigentes, historial y ejemplo de precio antes de crear', async () => {
+    const rule = {
+      id: '0199a000-0000-7000-8000-0000000000e1',
+      category: 'STANDARD',
+      baseCents: 400_000,
+      perKmCents: 150_000,
+      perMinCents: 30_000,
+      minFareCents: 600_000,
+      currency: 'COP',
+      validFrom: '2026-10-01T00:00:00.000Z',
+      validTo: null,
+      createdAt: '2026-10-01T00:00:00.000Z',
+      createdByName: null,
+      current: true,
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        String(url).includes('/admin/fares')
+          ? json({ rules: [rule] })
+          : json({ status: 'ok', checks: {} }),
+      ),
+    );
+    renderAt('/fares');
+    // 4.000 + 4 km × 1.500 + 12 min × 300 = 13.600
+    expect(await screen.findByText(/13\.600/)).toBeTruthy();
+    expect(screen.getByText('Vigente')).toBeTruthy();
+    fireEvent.click(screen.getByRole('radio', { name: 'Carro' }));
+    expect((screen.getByLabelText('Banderazo (COP)') as HTMLInputElement).value).toBe('4000');
+    expect(screen.getByText(/costaría/)).toBeTruthy();
+  });
+
+  it('auditoría: muestra la acción y el detalle como texto, sin interpretar HTML', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        String(url).includes('/admin/audit')
+          ? json({
+              items: [
+                {
+                  id: '0199a000-0000-7000-8000-0000000000a9',
+                  at: '2026-10-02T15:00:00.000Z',
+                  actorId: USER_ID,
+                  actorName: 'Admin Demo',
+                  action: 'admin.user_suspended',
+                  entity: 'user',
+                  entityId: USER_ID,
+                  ip: '10.0.0.1',
+                  meta: { reason: '<b>malo</b>' },
+                },
+              ],
+              nextCursor: null,
+            })
+          : json({ status: 'ok', checks: {} }),
+      ),
+    );
+    const { container } = renderAt('/audit');
+    expect(await screen.findByText('Usuario suspendido')).toBeTruthy();
+    expect(screen.getByText('{"reason":"<b>malo</b>"}')).toBeTruthy();
+    expect(container.querySelector('td b')).toBeNull();
   });
 });
 
@@ -272,6 +403,8 @@ const tripDetail = {
   offersDeclined: 1,
   trace: [],
   live: null,
+  payment: null,
+  ratings: [],
   events: [
     { fromStatus: null, toStatus: 'REQUESTED', actor: 'PASSENGER', at: '2026-10-02T15:00:00.000Z' },
     {
@@ -348,5 +481,42 @@ describe('Viajes', () => {
     // El destino se muestra como texto, nunca como HTML (14.6).
     expect(screen.getByText('<img src=x onerror=alert(1)>')).toBeTruthy();
     expect(container.querySelector('img[src="x"]')).toBeNull();
+  });
+
+  it('un viaje completado muestra el pago y las calificaciones escapadas', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        String(url).includes(`/admin/trips/${TRIP_ID}`)
+          ? json({
+              ...tripDetail,
+              status: 'COMPLETED',
+              cancelledAt: null,
+              cancelledBy: null,
+              cancelReason: null,
+              completedAt: '2026-10-02T15:20:00.000Z',
+              payment: {
+                method: 'CASH',
+                status: 'PENDING',
+                amount: { amountCents: 1_230_000, currency: 'COP' },
+                paidAt: null,
+              },
+              ratings: [
+                {
+                  by: 'PASSENGER',
+                  score: 4,
+                  comment: '<script>alert(1)</script>',
+                  at: '2026-10-02T15:21:00.000Z',
+                },
+              ],
+            })
+          : json({ status: 'ok', checks: {} }),
+      ),
+    );
+    const { container } = renderAt(`/trips/${TRIP_ID}`);
+    expect(await screen.findByText('Cierre')).toBeTruthy();
+    expect(screen.getByText('Pendiente')).toBeTruthy();
+    expect(screen.getByText('<script>alert(1)</script>')).toBeTruthy();
+    expect(container.querySelector('script')).toBeNull();
   });
 });

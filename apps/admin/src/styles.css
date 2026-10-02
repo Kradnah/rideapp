@@ -343,7 +343,8 @@ code {
   white-space: nowrap;
 }
 
-.tab[aria-selected='true'] {
+.tab[aria-selected='true'],
+.tab[aria-checked='true'] {
   color: var(--text);
   font-weight: 600;
   border-bottom-color: var(--accent);
@@ -707,4 +708,66 @@ code {
   border-radius: 50%;
   background: #1d4ed8;
   box-shadow: 0 0 0 1px var(--border);
+}
+
+/* ---------- Usuarios, tarifas y auditoría (Fase 5) ---------- */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.toolbar input:not([type='checkbox']) {
+  flex: 1 1 260px;
+  min-height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0 0.75rem;
+  font: inherit;
+}
+
+.toolbar input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.meta {
+  display: block;
+  max-width: 420px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.quote {
+  margin: 0.25rem 0;
+  padding-left: 0.6rem;
+  border-left: 3px solid var(--border);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
 }

@@ -5,8 +5,11 @@ import type {
   DriverStatus,
   Money,
   PaymentMethod,
+  PaymentStatus,
   TripEventActor,
   TripStatus,
+  UserRole,
+  UserStatus,
   VehicleCategory,
 } from '@rideapp/contracts';
 
@@ -49,6 +52,61 @@ export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
   CASH: 'Efectivo',
   FAKE_CARD: 'Tarjeta (demo)',
 };
+
+export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
+  PENDING: 'Pendiente',
+  AUTHORIZED: 'Autorizado',
+  CAPTURED: 'Cobrado',
+  FAILED: 'Fallido',
+  REFUNDED: 'Reembolsado',
+};
+
+export const ROLE_LABEL: Record<UserRole, string> = {
+  PASSENGER: 'Pasajero',
+  DRIVER: 'Conductor',
+  ADMIN: 'Administrador',
+};
+
+export const USER_STATUS_LABEL: Record<UserStatus, string> = {
+  ACTIVE: 'Activo',
+  SUSPENDED: 'Suspendido',
+  DELETED: 'Eliminado',
+};
+
+/** Acciones de auditoría conocidas; las demás se muestran con su código. */
+export const AUDIT_ACTION_LABEL: Record<string, string> = {
+  'auth.register': 'Registro',
+  'auth.login': 'Inicio de sesión',
+  'auth.login_failed': 'Inicio de sesión fallido',
+  'auth.logout': 'Cierre de sesión',
+  'auth.logout_all': 'Cerró todas las sesiones',
+  'auth.google_linked': 'Google vinculado',
+  'auth.email_verified': 'Email verificado',
+  'auth.password_reset_requested': 'Pidió restablecer la contraseña',
+  'auth.password_reset': 'Contraseña restablecida',
+  'auth.refresh_reuse_detected': 'Reutilización de sesión detectada',
+  'admin.created': 'Admin creado (CLI)',
+  'admin.login': 'Admin: inicio de sesión',
+  'admin.login_failed': 'Admin: inicio de sesión fallido',
+  'admin.logout': 'Admin: cierre de sesión',
+  'admin.driver_approved': 'Conductor aprobado',
+  'admin.driver_rejected': 'Conductor rechazado',
+  'admin.driver_suspended': 'Conductor suspendido',
+  'admin.driver_reactivated': 'Conductor reactivado',
+  'admin.driver_document_viewed': 'Documento consultado',
+  'admin.driver_field_revealed': 'Dato del conductor revelado',
+  'admin.user_field_revealed': 'Teléfono revelado',
+  'admin.user_suspended': 'Usuario suspendido',
+  'admin.user_reactivated': 'Usuario reactivado',
+  'admin.fare_rule_created': 'Tarifa creada',
+  'payment.created': 'Pago creado',
+  'payment.cash_confirmed': 'Cobro en efectivo confirmado',
+};
+
+/** Promedio con un decimal: "4,8". */
+export function formatRating(average: number | null): string {
+  return average === null ? '—' : `★ ${average.toFixed(1).replace('.', ',')}`;
+}
 
 export const ACTOR_LABEL: Record<TripEventActor, string> = {
   PASSENGER: 'Pasajero',

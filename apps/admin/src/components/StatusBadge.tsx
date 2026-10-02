@@ -1,5 +1,5 @@
-import type { DriverStatus, TripStatus } from '@rideapp/contracts';
-import { DRIVER_STATUS_LABEL, TRIP_STATUS_LABEL } from '../lib/labels';
+import type { DriverStatus, TripStatus, UserStatus } from '@rideapp/contracts';
+import { DRIVER_STATUS_LABEL, TRIP_STATUS_LABEL, USER_STATUS_LABEL } from '../lib/labels';
 
 export function StatusBadge({ status, submitted }: { status: DriverStatus; submitted?: boolean }) {
   // Pendiente sin enviar = el conductor aún está completando su registro.
@@ -20,4 +20,9 @@ export function TripStatusBadge({ status }: { status: TripStatus }) {
         ? 'rejected'
         : 'pending';
   return <span className={`badge badge--${tone}`}>{TRIP_STATUS_LABEL[status]}</span>;
+}
+
+export function UserStatusBadge({ status }: { status: UserStatus }) {
+  const tone = status === 'ACTIVE' ? 'approved' : 'suspended';
+  return <span className={`badge badge--${tone}`}>{USER_STATUS_LABEL[status]}</span>;
 }
