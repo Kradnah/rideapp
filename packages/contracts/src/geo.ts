@@ -34,6 +34,26 @@ export function haversineMeters(a: LatLng, b: LatLng): number {
   return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
+/** Cascos urbanos de la zona, para describir un punto sin dar la dirección exacta (14.4). */
+export const SERVICE_TOWNS = [
+  { name: 'Girardot', center: GIRARDOT_CENTER },
+  { name: 'Flandes', center: { lat: 4.2833, lng: -74.8167 } },
+  { name: 'Ricaurte', center: { lat: 4.28, lng: -74.772 } },
+] as const satisfies readonly { name: string; center: LatLng }[];
+
+/** Municipio más cercano a un punto: lo que ve el conductor del destino en una oferta. */
+export function approximateArea(point: LatLng): string {
+  let best: { name: string; distance: number } = {
+    name: SERVICE_TOWNS[0].name,
+    distance: Infinity,
+  };
+  for (const town of SERVICE_TOWNS) {
+    const distance = haversineMeters(point, town.center);
+    if (distance < best.distance) best = { name: town.name, distance };
+  }
+  return best.name;
+}
+
 export const AutocompleteQuery = z.object({
   q: z.string().trim().min(3).max(120),
   sessionToken: z.uuid(),

@@ -4,5 +4,6 @@ export * from './auth.js';
 export * from './geo.js';
 export * from './drivers.js';
 export * from './pricing.js';
+export * from './trips.js';
 export * from './events.js';
 export * from './polyline.js';

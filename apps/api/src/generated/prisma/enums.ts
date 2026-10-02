@@ -78,3 +78,44 @@ export const DriverDocumentStatus = {
 } as const
 
 export type DriverDocumentStatus = (typeof DriverDocumentStatus)[keyof typeof DriverDocumentStatus]
+
+
+export const TripStatus = {
+  REQUESTED: 'REQUESTED',
+  SEARCHING: 'SEARCHING',
+  NO_DRIVERS: 'NO_DRIVERS',
+  DRIVER_ASSIGNED: 'DRIVER_ASSIGNED',
+  DRIVER_ARRIVED: 'DRIVER_ARRIVED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type TripStatus = (typeof TripStatus)[keyof typeof TripStatus]
+
+
+export const CancelledBy = {
+  PASSENGER: 'PASSENGER',
+  DRIVER: 'DRIVER',
+  SYSTEM: 'SYSTEM'
+} as const
+
+export type CancelledBy = (typeof CancelledBy)[keyof typeof CancelledBy]
+
+
+export const PaymentMethod = {
+  CASH: 'CASH',
+  FAKE_CARD: 'FAKE_CARD'
+} as const
+
+export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod]
+
+
+export const TripEventActor = {
+  PASSENGER: 'PASSENGER',
+  DRIVER: 'DRIVER',
+  SYSTEM: 'SYSTEM',
+  ADMIN: 'ADMIN'
+} as const
+
+export type TripEventActor = (typeof TripEventActor)[keyof typeof TripEventActor]

@@ -39,21 +39,42 @@ export function computeFare(
   return roundFare(Math.max(raw, rule.minFareCents));
 }
 
+/** Texto que el pasajero ve como dirección (de Places o de la geocodificación inversa). */
+export const AddressLabel = z
+  .string()
+  .trim()
+  .max(200)
+  // Sin caracteres de control: el texto se muestra al conductor y en el panel.
+  // eslint-disable-next-line no-control-regex
+  .transform((v) => v.replace(/[\u0000-\u001f\u007f]/g, ' '));
+
+/**
+ * Cotización (8.7). Una sola ruta (una llamada a Routes) sirve para todas las categorías:
+ * la respuesta trae una opción por categoría, cada una con su `quoteId`.
+ */
 export const QuoteRequest = z.strictObject({
   origin: LatLng,
   destination: LatLng,
   destinationPlaceId: z.string().max(300).optional(),
-  category: VehicleCategory,
+  originAddress: AddressLabel.optional(),
+  destinationAddress: AddressLabel.optional(),
 });
 export type QuoteRequest = z.infer<typeof QuoteRequest>;
 
-export const QuoteResponse = z.object({
+export const QuoteOption = z.object({
   quoteId: z.uuid(),
+  category: VehicleCategory,
   amount: Money,
+});
+export type QuoteOption = z.infer<typeof QuoteOption>;
+
+export const QuoteResponse = z.object({
   distanceMeters: z.number().int().nonnegative(),
   durationSeconds: z.number().int().nonnegative(),
   /** Polilínea codificada (formato de Google). */
   polyline: z.string(),
+  /** Las cotizaciones caducan a los 5 minutos: después hay que volver a cotizar. */
   expiresAt: z.iso.datetime(),
+  options: z.array(QuoteOption).min(1),
 });
 export type QuoteResponse = z.infer<typeof QuoteResponse>;

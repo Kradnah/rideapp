@@ -64,10 +64,79 @@ redis.call('DEL', KEYS[1])
 return 1
 `;
 
+/**
+ * Reserva al conductor para una oferta (8.9, paso 5): solo si está libre, con ubicación reciente,
+ * sin viaje y sin otra oferta. Así nunca recibe dos ofertas a la vez.
+ * KEYS: estado, oferta del conductor, viaje del conductor. ARGV: tripId, ttlMs, lastSeen mínimo.
+ */
+const RESERVE_OFFER_LUA = `
+if redis.call('HGET', KEYS[1], 'availability') ~= 'AVAILABLE' then return 0 end
+local seen = tonumber(redis.call('HGET', KEYS[1], 'lastSeen') or '0')
+if seen < tonumber(ARGV[3]) then return 0 end
+if redis.call('EXISTS', KEYS[3]) == 1 then return 0 end
+if redis.call('SET', KEYS[2], ARGV[1], 'NX', 'PX', ARGV[2]) then return 1 end
+return 0
+`;
+
+/** Borra una clave solo si todavía vale lo esperado. KEYS: clave. ARGV: valor. */
+const DELETE_IF_EQUALS_LUA = `
+if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end
+return 0
+`;
+
+/**
+ * El conductor pasa a "en viaje": sale de la capa GEO y no recibe más ofertas.
+ * KEYS: estado, viaje del conductor, oferta del conductor, geo STANDARD, geo MOTO.
+ * ARGV: tripId, driverId.
+ */
+const MARK_BUSY_LUA = `
+redis.call('SET', KEYS[2], ARGV[1])
+if redis.call('GET', KEYS[3]) == ARGV[1] then redis.call('DEL', KEYS[3]) end
+if redis.call('EXISTS', KEYS[1]) == 1 then
+  redis.call('HSET', KEYS[1], 'availability', 'BUSY', 'tripId', ARGV[1])
+end
+redis.call('ZREM', KEYS[4], ARGV[2])
+redis.call('ZREM', KEYS[5], ARGV[2])
+return 1
+`;
+
+/**
+ * Termina el viaje para el conductor: vuelve a estar libre (y en la capa GEO con su última
+ * posición) si sigue en línea. KEYS: estado, viaje del conductor, geo STANDARD, geo MOTO.
+ * ARGV: tripId, driverId.
+ */
+const MARK_FREE_LUA = `
+if redis.call('GET', KEYS[2]) ~= ARGV[1] then return 0 end
+redis.call('DEL', KEYS[2])
+if redis.call('HGET', KEYS[1], 'availability') ~= 'BUSY' then return 1 end
+redis.call('HSET', KEYS[1], 'availability', 'AVAILABLE')
+redis.call('HDEL', KEYS[1], 'tripId')
+local lat = redis.call('HGET', KEYS[1], 'lat')
+local lng = redis.call('HGET', KEYS[1], 'lng')
+if lat and lng then
+  local geo = KEYS[3]
+  if redis.call('HGET', KEYS[1], 'category') == 'MOTO' then geo = KEYS[4] end
+  redis.call('GEOADD', geo, lng, lat, ARGV[2])
+end
+return 1
+`;
+
 type LuaRedis = {
   rideappUpdateLocation(...args: (string | number)[]): Promise<number>;
   rideappSweepOne(...args: (string | number)[]): Promise<number>;
+  rideappReserveOffer(...args: (string | number)[]): Promise<number>;
+  rideappDeleteIfEquals(...args: (string | number)[]): Promise<number>;
+  rideappMarkBusy(...args: (string | number)[]): Promise<number>;
+  rideappMarkFree(...args: (string | number)[]): Promise<number>;
 };
+
+const tripKey = (driverId: string) => `driver:${driverId}:trip`;
+const offerKey = (driverId: string) => `driver:${driverId}:offer`;
+
+export interface DriverCandidate {
+  driverId: string;
+  distanceMeters: number;
+}
 
 export type LocationResult = { ok: true } | { ok: false; code: DriverLocationRejection };
 
@@ -84,6 +153,10 @@ export class LocationService {
     const client = redis.client;
     client.defineCommand('rideappUpdateLocation', { numberOfKeys: 4, lua: UPDATE_LOCATION_LUA });
     client.defineCommand('rideappSweepOne', { numberOfKeys: 4, lua: SWEEP_ONE_LUA });
+    client.defineCommand('rideappReserveOffer', { numberOfKeys: 3, lua: RESERVE_OFFER_LUA });
+    client.defineCommand('rideappDeleteIfEquals', { numberOfKeys: 1, lua: DELETE_IF_EQUALS_LUA });
+    client.defineCommand('rideappMarkBusy', { numberOfKeys: 5, lua: MARK_BUSY_LUA });
+    client.defineCommand('rideappMarkFree', { numberOfKeys: 4, lua: MARK_FREE_LUA });
     this.lua = client as unknown as LuaRedis;
   }
 
@@ -92,6 +165,8 @@ export class LocationService {
     { category, vehicleId }: { category: VehicleCategory; vehicleId: string },
     now = Date.now(),
   ): Promise<void> {
+    // Si vuelve a conectarse a mitad de un viaje (app cerrada, sin señal), sigue ocupado.
+    const tripId = await this.currentTrip(driverId);
     await this.redis.client
       .multi()
       // Si cambió de vehículo, no debe quedar en la capa de la otra categoría.
@@ -99,10 +174,11 @@ export class LocationService {
       .zrem(GEO_KEYS[1]!, driverId)
       .del(stateKey(driverId))
       .hset(stateKey(driverId), {
-        availability: 'AVAILABLE',
+        availability: tripId ? 'BUSY' : 'AVAILABLE',
         category,
         vehicleId,
         lastSeen: now,
+        ...(tripId && { tripId }),
       })
       .expire(stateKey(driverId), PRESENCE_TTL_SECONDS)
       .zadd(ONLINE_KEY, now, driverId)
@@ -246,6 +322,97 @@ export class LocationService {
         },
       ];
     });
+  }
+
+  /**
+   * Candidatos para una oferta (8.9, paso 2): conductores libres de la categoría dentro del radio,
+   * del más cercano al más lejano en línea recta (sin pedir ETA a Google por cada uno, paso 4).
+   */
+  async candidates(
+    point: LatLng,
+    category: VehicleCategory,
+    radiusKm: number,
+    count = NEARBY_LIMIT,
+  ): Promise<DriverCandidate[]> {
+    const rows = (await this.redis.client.geosearch(
+      geoKey(category),
+      'FROMLONLAT',
+      point.lng,
+      point.lat,
+      'BYRADIUS',
+      radiusKm,
+      'km',
+      'ASC',
+      'COUNT',
+      count,
+      'WITHDIST',
+    )) as [string, string][];
+    return rows.map(([driverId, km]) => ({
+      driverId,
+      distanceMeters: Math.round(Number(km) * 1000),
+    }));
+  }
+
+  /** Reserva al conductor para una oferta durante `ttlMs`; false si ya no está disponible. */
+  async reserveForOffer(
+    driverId: string,
+    tripId: string,
+    ttlMs: number,
+    now = Date.now(),
+  ): Promise<boolean> {
+    const reserved = await this.lua.rideappReserveOffer(
+      stateKey(driverId),
+      offerKey(driverId),
+      tripKey(driverId),
+      tripId,
+      ttlMs,
+      now - PRESENCE_TTL_SECONDS * 1000,
+    );
+    return reserved === 1;
+  }
+
+  /** Libera la reserva de la oferta, solo si sigue siendo la de ese viaje. */
+  async releaseOffer(driverId: string, tripId: string): Promise<void> {
+    await this.lua.rideappDeleteIfEquals(offerKey(driverId), tripId);
+  }
+
+  /** Viaje cuya oferta tiene reservada el conductor ahora mismo. */
+  offeredTrip(driverId: string): Promise<string | null> {
+    return this.redis.client.get(offerKey(driverId));
+  }
+
+  /** Viaje en curso del conductor (espejo en Redis de `trips`; la verdad está en Postgres). */
+  currentTrip(driverId: string): Promise<string | null> {
+    return this.redis.client.get(tripKey(driverId));
+  }
+
+  async vehicleOf(driverId: string): Promise<string | null> {
+    return this.redis.client.hget(stateKey(driverId), 'vehicleId');
+  }
+
+  /** Aceptó un viaje: fuera de la capa GEO y sin más ofertas hasta terminarlo. */
+  async markBusy(driverId: string, tripId: string): Promise<void> {
+    await this.lua.rideappMarkBusy(
+      stateKey(driverId),
+      tripKey(driverId),
+      offerKey(driverId),
+      GEO_KEYS[0]!,
+      GEO_KEYS[1]!,
+      tripId,
+      driverId,
+    );
+  }
+
+  /** El viaje terminó o se canceló: vuelve a estar libre si sigue en línea. */
+  async markFree(driverId: string, tripId: string): Promise<void> {
+    await this.lua.rideappMarkFree(
+      stateKey(driverId),
+      tripKey(driverId),
+      GEO_KEYS[0]!,
+      GEO_KEYS[1]!,
+      tripId,
+      driverId,
+    );
   }
 
   async onlineCount(now = Date.now()): Promise<number> {

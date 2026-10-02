@@ -2,14 +2,17 @@ import { describe, expect, it } from 'vitest';
 import {
   ApiError,
   computeFare,
+  CreateTripRequest,
   CURRENT_POLICY_VERSION,
   DriverLocationV1,
   DriverOnboardingRequest,
   GIRARDOT_CENTER,
+  IdempotencyKey,
   isInServiceAreaBounds,
   LatLng,
   LoginRequest,
   Money,
+  QuoteRequest,
   RegisterRequest,
   roundFare,
   VehicleRequest,
@@ -171,5 +174,31 @@ describe('DriverOnboardingRequest', () => {
     expect(
       DriverOnboardingRequest.safeParse({ licenseNumber: '12 34', phone: '+573001234567' }).success,
     ).toBe(false);
+  });
+});
+
+describe('QuoteRequest', () => {
+  const base = { origin: GIRARDOT_CENTER, destination: { lat: 4.2955, lng: -74.788 } };
+  it('limpia las direcciones (sin caracteres de control) y no acepta precio ni campos extra', () => {
+    const ok = QuoteRequest.parse({ ...base, destinationAddress: '  Unicentro\n\u0007Girardot ' });
+    expect(ok.destinationAddress).toBe('Unicentro  Girardot');
+    expect(QuoteRequest.safeParse({ ...base, amountCents: 100 }).success).toBe(false);
+    expect(QuoteRequest.safeParse({ ...base, originAddress: 'x'.repeat(201) }).success).toBe(false);
+  });
+});
+
+describe('CreateTripRequest e IdempotencyKey', () => {
+  it('solo el quoteId y el método de pago', () => {
+    const quoteId = '0199a000-0000-7000-8000-000000000001';
+    expect(CreateTripRequest.safeParse({ quoteId, paymentMethod: 'CASH' }).success).toBe(true);
+    expect(
+      CreateTripRequest.safeParse({ quoteId, paymentMethod: 'CASH', amountCents: 1 }).success,
+    ).toBe(false);
+    expect(CreateTripRequest.safeParse({ quoteId, paymentMethod: 'BITCOIN' }).success).toBe(false);
+  });
+  it('la clave de idempotencia es un identificador razonable', () => {
+    expect(IdempotencyKey.safeParse('6f1c2d3e-4a5b-4c6d-8e7f-001122334455').success).toBe(true);
+    expect(IdempotencyKey.safeParse('corta').success).toBe(false);
+    expect(IdempotencyKey.safeParse('a'.repeat(16) + ' ;DROP').success).toBe(false);
   });
 });

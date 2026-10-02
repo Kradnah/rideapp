@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { LatLng, Money } from './common.js';
+import { LatLng } from './common.js';
 import { CancelledBy, DriverAvailability, TripStatus } from './enums.js';
+import { DriverOffer } from './trips.js';
 
 /**
  * Eventos Socket.IO (8.10). Nombres con dominio y versión (5.5):
@@ -28,14 +29,8 @@ export const TripDriverLocationV1 = z.object({
 });
 export type TripDriverLocationV1 = z.infer<typeof TripDriverLocationV1>;
 
-export const TripOfferV1 = z.object({
-  tripId: z.uuid(),
-  pickupDistanceMeters: z.number().int().nonnegative(),
-  /** Zona aproximada del destino, nunca la dirección exacta. */
-  destinationArea: z.string(),
-  amount: Money,
-  expiresAt: z.iso.datetime(),
-});
+/** Oferta a un solo conductor (8.9, paso 5): sin direcciones exactas ni datos del pasajero. */
+export const TripOfferV1 = DriverOffer;
 export type TripOfferV1 = z.infer<typeof TripOfferV1>;
 
 export const TripOfferCancelledV1 = z.object({

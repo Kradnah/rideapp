@@ -16,6 +16,7 @@ import { ApiException } from '../src/common/errors/api.exception.js';
 import { Public } from '../src/common/auth/auth.decorators.js';
 import { createZodDto } from '../src/common/zod/zod-dto.js';
 import { PrismaService } from '../src/infra/prisma/prisma.service.js';
+import { QueueService } from '../src/infra/queue/queue.service.js';
 import { RedisService } from '../src/infra/redis/redis.service.js';
 import { RealtimeGateway } from '../src/modules/realtime/realtime.gateway.js';
 import { testEnv } from './helpers/test-env.js';
@@ -100,7 +101,10 @@ async function startApp(
     .useValue(deps.throttlerStorage)
     // Sin Redis real no hay adaptador de Socket.IO: los sockets se prueban en drivers.int.test.ts.
     .overrideProvider(RealtimeGateway)
-    .useValue({ emitToUser: () => undefined })
+    .useValue({ emitToUser: () => undefined, registerRoomResolver: () => undefined })
+    // Sin Redis tampoco hay colas de BullMQ.
+    .overrideProvider(QueueService)
+    .useValue({ handle: () => undefined, every: () => undefined })
     .compile();
 
   app = moduleRef.createNestApplication<NestFastifyApplication>(createAdapter(env), {

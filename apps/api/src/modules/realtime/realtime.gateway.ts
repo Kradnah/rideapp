@@ -39,6 +39,10 @@ const MIN_LOCATION_GAP_MS = 900;
 const REVALIDATE_EVERY_MS = 60_000;
 
 export const userRoom = (userId: string) => `user:${userId}`;
+export const tripRoom = (tripId: string) => `trip:${tripId}`;
+
+/** Salas a las que debe unirse un socket al conectar (p. ej. la de su viaje activo), 8.10, paso 2. */
+export type RoomResolver = (user: { id: string; role: UserRole }) => Promise<string[]>;
 
 /**
  * Gateway Socket.IO (8.10), montado sobre el mismo servidor HTTP del API:
@@ -52,6 +56,7 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
   private readonly logger = new Logger(RealtimeGateway.name);
   private io: AppServer | null = null;
   private revalidateTimer: NodeJS.Timeout | null = null;
+  private readonly resolvers: RoomResolver[] = [];
 
   constructor(
     private readonly adapterHost: HttpAdapterHost,
@@ -103,6 +108,26 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
     this.io?.to(userRoom(userId)).emit(event, ...args);
   }
 
+  /** Un mismo socket en varias de las salas recibe el evento una sola vez. */
+  emitToRooms<E extends keyof Emit>(rooms: string[], event: E, ...args: Parameters<Emit[E]>): void {
+    this.io?.to(rooms).emit(event, ...args);
+  }
+
+  /** Une a una sala todos los sockets de un usuario, en cualquier réplica (adaptador de Redis). */
+  joinUser(userId: string, room: string): void {
+    this.io?.in(userRoom(userId)).socketsJoin(room);
+  }
+
+  /** Vacía una sala (p. ej. al terminar el viaje). */
+  closeRoom(room: string): void {
+    this.io?.in(room).socketsLeave(room);
+  }
+
+  /** Lo usan otros módulos (trips) para decidir salas al conectar, sin depender de ellos aquí. */
+  registerRoomResolver(resolver: RoomResolver): void {
+    this.resolvers.push(resolver);
+  }
+
   private async authenticate(socket: AppSocket): Promise<boolean> {
     const token: unknown = socket.handshake.auth['token'];
     if (typeof token !== 'string' || token.length > 4096) return false;
@@ -115,6 +140,7 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
   private onConnection(socket: AppSocket): void {
     const { userId, role } = socket.data;
     void socket.join(userRoom(userId));
+    void this.joinResolvedRooms(socket);
 
     socket.on(SocketEvent.DriverLocation, (payload, ack) => {
       const reply = (res: { ok: true } | { ok: false; code: DriverLocationRejection }) => {
@@ -139,6 +165,18 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
 
     if (role === 'DRIVER') {
       socket.on('disconnect', () => void this.onDriverDisconnect(userId));
+    }
+  }
+
+  private async joinResolvedRooms(socket: AppSocket): Promise<void> {
+    const { userId, role } = socket.data;
+    for (const resolve of this.resolvers) {
+      try {
+        const rooms = await resolve({ id: userId, role });
+        if (rooms.length) await socket.join(rooms);
+      } catch (err) {
+        this.logger.warn({ err }, 'No se pudieron resolver las salas del socket');
+      }
     }
   }
 

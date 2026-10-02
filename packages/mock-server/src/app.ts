@@ -9,22 +9,16 @@ import type {
 import {
   AutocompleteQuery,
   AutocompleteResponse,
-  computeFare,
   CURRENT_POLICY_VERSION,
-  DEFAULT_CURRENCY,
-  encodePolyline,
   GoogleLoginRequest,
   haversineMeters,
   HealthResponse,
-  isInServiceAreaBounds,
   LoginRequest,
   Me as MeSchema,
   NearbyDriversQuery,
   NearbyDriversResponse,
   PlaceDetails,
   PlaceDetailsQuery,
-  QuoteRequest,
-  QuoteResponse,
   RefreshRequest,
   ForgotPasswordRequest,
   RegisterRequest,
@@ -39,7 +33,6 @@ import {
 } from '@rideapp/contracts';
 import {
   DEMO_DRIVER_ROUTE,
-  DEMO_FARE_RULES,
   FIXTURE_PLACES,
   searchFixturePlaces,
 } from '@rideapp/contracts/fixtures';
@@ -48,6 +41,7 @@ import { Server } from 'socket.io';
 import { MockDrivers } from './drivers.js';
 import { HttpError, parse, send } from './http.js';
 import { RouteWalker } from './simulator.js';
+import { MockTrips } from './trips.js';
 import type { MockUser } from './users.js';
 
 /** En el mock, el código que llega "por correo" es siempre este. */
@@ -58,8 +52,6 @@ export const DEMO_TRIP_ID = '00000000-0000-4000-8000-000000000001';
 
 const ACCESS_PREFIX = 'mock-access.';
 const REFRESH_PREFIX = 'mock-refresh.';
-const ROUTE_DETOUR_FACTOR = 1.3;
-const AVG_SPEED_MPS = 25 / 3.6;
 
 export interface MockServerOptions {
   /** Intervalo del simulador en ms; 0 lo desactiva (útil en tests). */
@@ -69,6 +61,8 @@ export interface MockServerOptions {
    * datos a revisión. 0 = al instante.
    */
   driverApprovalDelayMs?: number;
+  /** El "conductor demo" acepta los viajes este tiempo después de pedirlos. */
+  tripAssignDelayMs?: number;
   logger?: boolean;
 }
 
@@ -79,6 +73,11 @@ export function buildMockServer(options: MockServerOptions = {}) {
 
   const walkers = [0, 1500, 3200].map((offset) => new RouteWalker(DEMO_DRIVER_ROUTE, 8, offset));
   const drivers = new MockDrivers(options.driverApprovalDelayMs ?? 5000);
+  // `io` se crea después de las rutas: el emisor lo resuelve al usarse.
+  let io: Server<ClientToServerEvents, ServerToClientEvents> | null = null;
+  const trips = new MockTrips(options.tripAssignDelayMs ?? 4000, (userId, event, ...args) =>
+    io?.to(`user:${userId}`).emit(event, ...args),
+  );
 
   // ---------- Utilidades de sesión falsa ----------
 
@@ -302,32 +301,7 @@ export function buildMockServer(options: MockServerOptions = {}) {
 
       drivers.register(api, requireUser);
 
-      api.post('/trips/quote', (req) => {
-        requireUser(req);
-        const body = parse(QuoteRequest, req.body);
-        if (!isInServiceAreaBounds(body.origin) || !isInServiceAreaBounds(body.destination)) {
-          throw new HttpError(422, 'OUT_OF_SERVICE_AREA', 'Fuera de la zona de servicio');
-        }
-        const distanceMeters = Math.round(
-          haversineMeters(body.origin, body.destination) * ROUTE_DETOUR_FACTOR,
-        );
-        const durationSeconds = Math.round(distanceMeters / AVG_SPEED_MPS);
-        return send(QuoteResponse, {
-          quoteId: randomUUID(),
-          amount: {
-            amountCents: computeFare(
-              DEMO_FARE_RULES[body.category],
-              distanceMeters,
-              durationSeconds,
-            ),
-            currency: DEFAULT_CURRENCY,
-          },
-          distanceMeters,
-          durationSeconds,
-          polyline: encodePolyline([body.origin, body.destination]),
-          expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
-        });
-      });
+      trips.register(api, requireUser);
 
       done();
     },
@@ -336,11 +310,12 @@ export function buildMockServer(options: MockServerOptions = {}) {
 
   // ---------- Socket.IO ----------
 
-  const io = new Server<ClientToServerEvents, ServerToClientEvents>(app.server, {
+  const server = new Server<ClientToServerEvents, ServerToClientEvents>(app.server, {
     cors: { origin: true },
   });
+  io = server;
 
-  io.use((socket, next) => {
+  server.use((socket, next) => {
     const token: unknown = socket.handshake.auth['token'];
     const user = userFromAccessToken(typeof token === 'string' ? token : undefined);
     if (!user) return next(new Error('UNAUTHORIZED'));
@@ -348,7 +323,7 @@ export function buildMockServer(options: MockServerOptions = {}) {
     next();
   });
 
-  io.on('connection', (socket) => {
+  server.on('connection', (socket) => {
     const { userId } = socket.data as { userId: string };
     void socket.join(`user:${userId}`);
 
@@ -359,7 +334,7 @@ export function buildMockServer(options: MockServerOptions = {}) {
 
   const emitDemoTripLocation = () => {
     const { position, heading } = walkers[0]!.positionAt(Date.now() - startedAt);
-    io.emit(
+    server.emit(
       SocketEvent.TripDriverLocation,
       TripDriverLocationV1.parse({
         tripId: DEMO_TRIP_ID,
@@ -380,9 +355,10 @@ export function buildMockServer(options: MockServerOptions = {}) {
   app.addHook('onClose', (_instance, done) => {
     clearInterval(timer);
     drivers.close();
-    void io.close();
+    trips.close();
+    void server.close();
     done();
   });
 
-  return { app, io, emitDemoTripLocation };
+  return { app, io: server, emitDemoTripLocation };
 }

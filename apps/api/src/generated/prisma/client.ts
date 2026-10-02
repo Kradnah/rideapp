@@ -96,3 +96,30 @@ export type Vehicle = Prisma.VehicleModel
  * (aleatorio, nunca el nombre original). Uno vigente por tipo: subir otro reemplaza el anterior.
  */
 export type DriverDocument = Prisma.DriverDocumentModel
+/**
+ * Model ServiceArea
+ * Zona de servicio (8.6, paso 6): polígono en PostGIS, comprobado con ST_Covers antes de llamar
+ * a Google. Se carga en la migración desde infra/geo/service-area.geojson.
+ */
+export type ServiceArea = Prisma.ServiceAreaModel
+/**
+ * Model FareRule
+ * Tarifas por categoría (8.7). Nunca se edita una vigente: se crea otra con `valid_from` (8.14).
+ */
+export type FareRule = Prisma.FareRuleModel
+/**
+ * Model FareQuote
+ * Cotización con caducidad (5 min). Cada una sirve para un solo viaje (`trips.quote_id` único).
+ */
+export type FareQuote = Prisma.FareQuoteModel
+/**
+ * Model Trip
+ * Viaje (8.8). Solo cambia de estado con TripTransitions (UPDATE ... WHERE status = :from).
+ * Índices únicos parciales en la migración: un viaje activo por pasajero y por conductor.
+ */
+export type Trip = Prisma.TripModel
+/**
+ * Model TripEvent
+ * Línea de tiempo del viaje: una fila por transición (8.8, paso 2).
+ */
+export type TripEvent = Prisma.TripEventModel

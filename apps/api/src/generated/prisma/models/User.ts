@@ -236,6 +236,8 @@ export type UserWhereInput = {
   adminTotp?: Prisma.XOR<Prisma.AdminTotpNullableScalarRelationFilter, Prisma.AdminTotpWhereInput> | null
   emailCodes?: Prisma.EmailCodeListRelationFilter
   driverProfile?: Prisma.XOR<Prisma.DriverProfileNullableScalarRelationFilter, Prisma.DriverProfileWhereInput> | null
+  fareQuotes?: Prisma.FareQuoteListRelationFilter
+  trips?: Prisma.TripListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -256,6 +258,8 @@ export type UserOrderByWithRelationInput = {
   adminTotp?: Prisma.AdminTotpOrderByWithRelationInput
   emailCodes?: Prisma.EmailCodeOrderByRelationAggregateInput
   driverProfile?: Prisma.DriverProfileOrderByWithRelationInput
+  fareQuotes?: Prisma.FareQuoteOrderByRelationAggregateInput
+  trips?: Prisma.TripOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -279,6 +283,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   adminTotp?: Prisma.XOR<Prisma.AdminTotpNullableScalarRelationFilter, Prisma.AdminTotpWhereInput> | null
   emailCodes?: Prisma.EmailCodeListRelationFilter
   driverProfile?: Prisma.XOR<Prisma.DriverProfileNullableScalarRelationFilter, Prisma.DriverProfileWhereInput> | null
+  fareQuotes?: Prisma.FareQuoteListRelationFilter
+  trips?: Prisma.TripListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -333,6 +339,8 @@ export type UserCreateInput = {
   adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
   driverProfile?: Prisma.DriverProfileCreateNestedOneWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteCreateNestedManyWithoutPassengerInput
+  trips?: Prisma.TripCreateNestedManyWithoutPassengerInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -353,6 +361,8 @@ export type UserUncheckedCreateInput = {
   adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
   driverProfile?: Prisma.DriverProfileUncheckedCreateNestedOneWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteUncheckedCreateNestedManyWithoutPassengerInput
+  trips?: Prisma.TripUncheckedCreateNestedManyWithoutPassengerInput
 }
 
 export type UserUpdateInput = {
@@ -373,6 +383,8 @@ export type UserUpdateInput = {
   adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
   driverProfile?: Prisma.DriverProfileUpdateOneWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUpdateManyWithoutPassengerNestedInput
+  trips?: Prisma.TripUpdateManyWithoutPassengerNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -393,6 +405,8 @@ export type UserUncheckedUpdateInput = {
   adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
   driverProfile?: Prisma.DriverProfileUncheckedUpdateOneWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUncheckedUpdateManyWithoutPassengerNestedInput
+  trips?: Prisma.TripUncheckedUpdateManyWithoutPassengerNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -596,6 +610,34 @@ export type UserUpdateOneRequiredWithoutDriverProfileNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutDriverProfileInput, Prisma.UserUpdateWithoutDriverProfileInput>, Prisma.UserUncheckedUpdateWithoutDriverProfileInput>
 }
 
+export type UserCreateNestedOneWithoutFareQuotesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutFareQuotesInput, Prisma.UserUncheckedCreateWithoutFareQuotesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutFareQuotesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutFareQuotesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutFareQuotesInput, Prisma.UserUncheckedCreateWithoutFareQuotesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutFareQuotesInput
+  upsert?: Prisma.UserUpsertWithoutFareQuotesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutFareQuotesInput, Prisma.UserUpdateWithoutFareQuotesInput>, Prisma.UserUncheckedUpdateWithoutFareQuotesInput>
+}
+
+export type UserCreateNestedOneWithoutTripsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutTripsInput, Prisma.UserUncheckedCreateWithoutTripsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutTripsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutTripsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutTripsInput, Prisma.UserUncheckedCreateWithoutTripsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutTripsInput
+  upsert?: Prisma.UserUpsertWithoutTripsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutTripsInput, Prisma.UserUpdateWithoutTripsInput>, Prisma.UserUncheckedUpdateWithoutTripsInput>
+}
+
 export type UserCreateWithoutIdentitiesInput = {
   id?: string
   email?: string | null
@@ -613,6 +655,8 @@ export type UserCreateWithoutIdentitiesInput = {
   adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
   driverProfile?: Prisma.DriverProfileCreateNestedOneWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteCreateNestedManyWithoutPassengerInput
+  trips?: Prisma.TripCreateNestedManyWithoutPassengerInput
 }
 
 export type UserUncheckedCreateWithoutIdentitiesInput = {
@@ -632,6 +676,8 @@ export type UserUncheckedCreateWithoutIdentitiesInput = {
   adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
   driverProfile?: Prisma.DriverProfileUncheckedCreateNestedOneWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteUncheckedCreateNestedManyWithoutPassengerInput
+  trips?: Prisma.TripUncheckedCreateNestedManyWithoutPassengerInput
 }
 
 export type UserCreateOrConnectWithoutIdentitiesInput = {
@@ -667,6 +713,8 @@ export type UserUpdateWithoutIdentitiesInput = {
   adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
   driverProfile?: Prisma.DriverProfileUpdateOneWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUpdateManyWithoutPassengerNestedInput
+  trips?: Prisma.TripUpdateManyWithoutPassengerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutIdentitiesInput = {
@@ -686,6 +734,8 @@ export type UserUncheckedUpdateWithoutIdentitiesInput = {
   adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
   driverProfile?: Prisma.DriverProfileUncheckedUpdateOneWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUncheckedUpdateManyWithoutPassengerNestedInput
+  trips?: Prisma.TripUncheckedUpdateManyWithoutPassengerNestedInput
 }
 
 export type UserCreateWithoutRefreshTokensInput = {
@@ -705,6 +755,8 @@ export type UserCreateWithoutRefreshTokensInput = {
   adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
   driverProfile?: Prisma.DriverProfileCreateNestedOneWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteCreateNestedManyWithoutPassengerInput
+  trips?: Prisma.TripCreateNestedManyWithoutPassengerInput
 }
 
 export type UserUncheckedCreateWithoutRefreshTokensInput = {
@@ -724,6 +776,8 @@ export type UserUncheckedCreateWithoutRefreshTokensInput = {
   adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
   driverProfile?: Prisma.DriverProfileUncheckedCreateNestedOneWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteUncheckedCreateNestedManyWithoutPassengerInput
+  trips?: Prisma.TripUncheckedCreateNestedManyWithoutPassengerInput
 }
 
 export type UserCreateOrConnectWithoutRefreshTokensInput = {
@@ -759,6 +813,8 @@ export type UserUpdateWithoutRefreshTokensInput = {
   adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
   driverProfile?: Prisma.DriverProfileUpdateOneWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUpdateManyWithoutPassengerNestedInput
+  trips?: Prisma.TripUpdateManyWithoutPassengerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRefreshTokensInput = {
@@ -778,6 +834,8 @@ export type UserUncheckedUpdateWithoutRefreshTokensInput = {
   adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
   driverProfile?: Prisma.DriverProfileUncheckedUpdateOneWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUncheckedUpdateManyWithoutPassengerNestedInput
+  trips?: Prisma.TripUncheckedUpdateManyWithoutPassengerNestedInput
 }
 
 export type UserCreateWithoutAdminTotpInput = {
@@ -797,6 +855,8 @@ export type UserCreateWithoutAdminTotpInput = {
   consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
   emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
   driverProfile?: Prisma.DriverProfileCreateNestedOneWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteCreateNestedManyWithoutPassengerInput
+  trips?: Prisma.TripCreateNestedManyWithoutPassengerInput
 }
 
 export type UserUncheckedCreateWithoutAdminTotpInput = {
@@ -816,6 +876,8 @@ export type UserUncheckedCreateWithoutAdminTotpInput = {
   consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
   emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
   driverProfile?: Prisma.DriverProfileUncheckedCreateNestedOneWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteUncheckedCreateNestedManyWithoutPassengerInput
+  trips?: Prisma.TripUncheckedCreateNestedManyWithoutPassengerInput
 }
 
 export type UserCreateOrConnectWithoutAdminTotpInput = {
@@ -851,6 +913,8 @@ export type UserUpdateWithoutAdminTotpInput = {
   consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
   driverProfile?: Prisma.DriverProfileUpdateOneWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUpdateManyWithoutPassengerNestedInput
+  trips?: Prisma.TripUpdateManyWithoutPassengerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAdminTotpInput = {
@@ -870,6 +934,8 @@ export type UserUncheckedUpdateWithoutAdminTotpInput = {
   consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
   driverProfile?: Prisma.DriverProfileUncheckedUpdateOneWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUncheckedUpdateManyWithoutPassengerNestedInput
+  trips?: Prisma.TripUncheckedUpdateManyWithoutPassengerNestedInput
 }
 
 export type UserCreateWithoutEmailCodesInput = {
@@ -889,6 +955,8 @@ export type UserCreateWithoutEmailCodesInput = {
   consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
   driverProfile?: Prisma.DriverProfileCreateNestedOneWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteCreateNestedManyWithoutPassengerInput
+  trips?: Prisma.TripCreateNestedManyWithoutPassengerInput
 }
 
 export type UserUncheckedCreateWithoutEmailCodesInput = {
@@ -908,6 +976,8 @@ export type UserUncheckedCreateWithoutEmailCodesInput = {
   consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
   driverProfile?: Prisma.DriverProfileUncheckedCreateNestedOneWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteUncheckedCreateNestedManyWithoutPassengerInput
+  trips?: Prisma.TripUncheckedCreateNestedManyWithoutPassengerInput
 }
 
 export type UserCreateOrConnectWithoutEmailCodesInput = {
@@ -943,6 +1013,8 @@ export type UserUpdateWithoutEmailCodesInput = {
   consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
   driverProfile?: Prisma.DriverProfileUpdateOneWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUpdateManyWithoutPassengerNestedInput
+  trips?: Prisma.TripUpdateManyWithoutPassengerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEmailCodesInput = {
@@ -962,6 +1034,8 @@ export type UserUncheckedUpdateWithoutEmailCodesInput = {
   consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
   driverProfile?: Prisma.DriverProfileUncheckedUpdateOneWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUncheckedUpdateManyWithoutPassengerNestedInput
+  trips?: Prisma.TripUncheckedUpdateManyWithoutPassengerNestedInput
 }
 
 export type UserCreateWithoutConsentsInput = {
@@ -981,6 +1055,8 @@ export type UserCreateWithoutConsentsInput = {
   adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
   driverProfile?: Prisma.DriverProfileCreateNestedOneWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteCreateNestedManyWithoutPassengerInput
+  trips?: Prisma.TripCreateNestedManyWithoutPassengerInput
 }
 
 export type UserUncheckedCreateWithoutConsentsInput = {
@@ -1000,6 +1076,8 @@ export type UserUncheckedCreateWithoutConsentsInput = {
   adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
   driverProfile?: Prisma.DriverProfileUncheckedCreateNestedOneWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteUncheckedCreateNestedManyWithoutPassengerInput
+  trips?: Prisma.TripUncheckedCreateNestedManyWithoutPassengerInput
 }
 
 export type UserCreateOrConnectWithoutConsentsInput = {
@@ -1035,6 +1113,8 @@ export type UserUpdateWithoutConsentsInput = {
   adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
   driverProfile?: Prisma.DriverProfileUpdateOneWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUpdateManyWithoutPassengerNestedInput
+  trips?: Prisma.TripUpdateManyWithoutPassengerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutConsentsInput = {
@@ -1054,6 +1134,8 @@ export type UserUncheckedUpdateWithoutConsentsInput = {
   adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
   driverProfile?: Prisma.DriverProfileUncheckedUpdateOneWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUncheckedUpdateManyWithoutPassengerNestedInput
+  trips?: Prisma.TripUncheckedUpdateManyWithoutPassengerNestedInput
 }
 
 export type UserCreateWithoutDriverProfileInput = {
@@ -1073,6 +1155,8 @@ export type UserCreateWithoutDriverProfileInput = {
   consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteCreateNestedManyWithoutPassengerInput
+  trips?: Prisma.TripCreateNestedManyWithoutPassengerInput
 }
 
 export type UserUncheckedCreateWithoutDriverProfileInput = {
@@ -1092,6 +1176,8 @@ export type UserUncheckedCreateWithoutDriverProfileInput = {
   consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteUncheckedCreateNestedManyWithoutPassengerInput
+  trips?: Prisma.TripUncheckedCreateNestedManyWithoutPassengerInput
 }
 
 export type UserCreateOrConnectWithoutDriverProfileInput = {
@@ -1127,6 +1213,8 @@ export type UserUpdateWithoutDriverProfileInput = {
   consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUpdateManyWithoutPassengerNestedInput
+  trips?: Prisma.TripUpdateManyWithoutPassengerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDriverProfileInput = {
@@ -1146,6 +1234,208 @@ export type UserUncheckedUpdateWithoutDriverProfileInput = {
   consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUncheckedUpdateManyWithoutPassengerNestedInput
+  trips?: Prisma.TripUncheckedUpdateManyWithoutPassengerNestedInput
+}
+
+export type UserCreateWithoutFareQuotesInput = {
+  id?: string
+  email?: string | null
+  emailVerified?: boolean
+  passwordHash?: string | null
+  fullName: string
+  phone?: string | null
+  role: $Enums.UserRole
+  status?: $Enums.UserStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  identities?: Prisma.AuthIdentityCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
+  emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
+  driverProfile?: Prisma.DriverProfileCreateNestedOneWithoutUserInput
+  trips?: Prisma.TripCreateNestedManyWithoutPassengerInput
+}
+
+export type UserUncheckedCreateWithoutFareQuotesInput = {
+  id?: string
+  email?: string | null
+  emailVerified?: boolean
+  passwordHash?: string | null
+  fullName: string
+  phone?: string | null
+  role: $Enums.UserRole
+  status?: $Enums.UserStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  identities?: Prisma.AuthIdentityUncheckedCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
+  emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
+  driverProfile?: Prisma.DriverProfileUncheckedCreateNestedOneWithoutUserInput
+  trips?: Prisma.TripUncheckedCreateNestedManyWithoutPassengerInput
+}
+
+export type UserCreateOrConnectWithoutFareQuotesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutFareQuotesInput, Prisma.UserUncheckedCreateWithoutFareQuotesInput>
+}
+
+export type UserUpsertWithoutFareQuotesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutFareQuotesInput, Prisma.UserUncheckedUpdateWithoutFareQuotesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutFareQuotesInput, Prisma.UserUncheckedCreateWithoutFareQuotesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutFareQuotesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutFareQuotesInput, Prisma.UserUncheckedUpdateWithoutFareQuotesInput>
+}
+
+export type UserUpdateWithoutFareQuotesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identities?: Prisma.AuthIdentityUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUpdateOneWithoutUserNestedInput
+  trips?: Prisma.TripUpdateManyWithoutPassengerNestedInput
+}
+
+export type UserUncheckedUpdateWithoutFareQuotesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identities?: Prisma.AuthIdentityUncheckedUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUncheckedUpdateOneWithoutUserNestedInput
+  trips?: Prisma.TripUncheckedUpdateManyWithoutPassengerNestedInput
+}
+
+export type UserCreateWithoutTripsInput = {
+  id?: string
+  email?: string | null
+  emailVerified?: boolean
+  passwordHash?: string | null
+  fullName: string
+  phone?: string | null
+  role: $Enums.UserRole
+  status?: $Enums.UserStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  identities?: Prisma.AuthIdentityCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
+  emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
+  driverProfile?: Prisma.DriverProfileCreateNestedOneWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteCreateNestedManyWithoutPassengerInput
+}
+
+export type UserUncheckedCreateWithoutTripsInput = {
+  id?: string
+  email?: string | null
+  emailVerified?: boolean
+  passwordHash?: string | null
+  fullName: string
+  phone?: string | null
+  role: $Enums.UserRole
+  status?: $Enums.UserStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  identities?: Prisma.AuthIdentityUncheckedCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
+  emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
+  driverProfile?: Prisma.DriverProfileUncheckedCreateNestedOneWithoutUserInput
+  fareQuotes?: Prisma.FareQuoteUncheckedCreateNestedManyWithoutPassengerInput
+}
+
+export type UserCreateOrConnectWithoutTripsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutTripsInput, Prisma.UserUncheckedCreateWithoutTripsInput>
+}
+
+export type UserUpsertWithoutTripsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutTripsInput, Prisma.UserUncheckedUpdateWithoutTripsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutTripsInput, Prisma.UserUncheckedCreateWithoutTripsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutTripsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutTripsInput, Prisma.UserUncheckedUpdateWithoutTripsInput>
+}
+
+export type UserUpdateWithoutTripsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identities?: Prisma.AuthIdentityUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUpdateOneWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUpdateManyWithoutPassengerNestedInput
+}
+
+export type UserUncheckedUpdateWithoutTripsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identities?: Prisma.AuthIdentityUncheckedUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUncheckedUpdateOneWithoutUserNestedInput
+  fareQuotes?: Prisma.FareQuoteUncheckedUpdateManyWithoutPassengerNestedInput
 }
 
 
@@ -1158,6 +1448,8 @@ export type UserCountOutputType = {
   refreshTokens: number
   consents: number
   emailCodes: number
+  fareQuotes: number
+  trips: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1165,6 +1457,8 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   refreshTokens?: boolean | UserCountOutputTypeCountRefreshTokensArgs
   consents?: boolean | UserCountOutputTypeCountConsentsArgs
   emailCodes?: boolean | UserCountOutputTypeCountEmailCodesArgs
+  fareQuotes?: boolean | UserCountOutputTypeCountFareQuotesArgs
+  trips?: boolean | UserCountOutputTypeCountTripsArgs
 }
 
 /**
@@ -1205,6 +1499,20 @@ export type UserCountOutputTypeCountEmailCodesArgs<ExtArgs extends runtime.Types
   where?: Prisma.EmailCodeWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountFareQuotesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FareQuoteWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountTripsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TripWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1224,6 +1532,8 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   adminTotp?: boolean | Prisma.User$adminTotpArgs<ExtArgs>
   emailCodes?: boolean | Prisma.User$emailCodesArgs<ExtArgs>
   driverProfile?: boolean | Prisma.User$driverProfileArgs<ExtArgs>
+  fareQuotes?: boolean | Prisma.User$fareQuotesArgs<ExtArgs>
+  trips?: boolean | Prisma.User$tripsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1277,6 +1587,8 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   adminTotp?: boolean | Prisma.User$adminTotpArgs<ExtArgs>
   emailCodes?: boolean | Prisma.User$emailCodesArgs<ExtArgs>
   driverProfile?: boolean | Prisma.User$driverProfileArgs<ExtArgs>
+  fareQuotes?: boolean | Prisma.User$fareQuotesArgs<ExtArgs>
+  trips?: boolean | Prisma.User$tripsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1291,6 +1603,8 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     adminTotp: Prisma.$AdminTotpPayload<ExtArgs> | null
     emailCodes: Prisma.$EmailCodePayload<ExtArgs>[]
     driverProfile: Prisma.$DriverProfilePayload<ExtArgs> | null
+    fareQuotes: Prisma.$FareQuotePayload<ExtArgs>[]
+    trips: Prisma.$TripPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1710,6 +2024,8 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   adminTotp<T extends Prisma.User$adminTotpArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$adminTotpArgs<ExtArgs>>): Prisma.Prisma__AdminTotpClient<runtime.Types.Result.GetResult<Prisma.$AdminTotpPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   emailCodes<T extends Prisma.User$emailCodesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$emailCodesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailCodePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   driverProfile<T extends Prisma.User$driverProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$driverProfileArgs<ExtArgs>>): Prisma.Prisma__DriverProfileClient<runtime.Types.Result.GetResult<Prisma.$DriverProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  fareQuotes<T extends Prisma.User$fareQuotesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$fareQuotesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FareQuotePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  trips<T extends Prisma.User$tripsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$tripsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TripPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2274,6 +2590,54 @@ export type User$driverProfileArgs<ExtArgs extends runtime.Types.Extensions.Inte
    */
   include?: Prisma.DriverProfileInclude<ExtArgs> | null
   where?: Prisma.DriverProfileWhereInput
+}
+
+/**
+ * User.fareQuotes
+ */
+export type User$fareQuotesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FareQuote
+   */
+  select?: Prisma.FareQuoteSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FareQuote
+   */
+  omit?: Prisma.FareQuoteOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FareQuoteInclude<ExtArgs> | null
+  where?: Prisma.FareQuoteWhereInput
+  orderBy?: Prisma.FareQuoteOrderByWithRelationInput | Prisma.FareQuoteOrderByWithRelationInput[]
+  cursor?: Prisma.FareQuoteWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.FareQuoteScalarFieldEnum | Prisma.FareQuoteScalarFieldEnum[]
+}
+
+/**
+ * User.trips
+ */
+export type User$tripsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Trip
+   */
+  select?: Prisma.TripSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Trip
+   */
+  omit?: Prisma.TripOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TripInclude<ExtArgs> | null
+  where?: Prisma.TripWhereInput
+  orderBy?: Prisma.TripOrderByWithRelationInput | Prisma.TripOrderByWithRelationInput[]
+  cursor?: Prisma.TripWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TripScalarFieldEnum | Prisma.TripScalarFieldEnum[]
 }
 
 /**

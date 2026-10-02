@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 import {
   CURRENT_POLICY_VERSION,
@@ -7,6 +8,7 @@ import {
   NearbyDriversResponse,
   QuoteResponse,
   TokenPair,
+  Trip,
   TripDriverLocationV1,
 } from '@rideapp/contracts';
 import { DEMO_DRIVER_ROUTE } from '@rideapp/contracts/fixtures';
@@ -18,7 +20,7 @@ import { RouteWalker } from '../src/simulator.js';
 let mock: ReturnType<typeof buildMockServer>;
 
 beforeEach(async () => {
-  mock = buildMockServer({ simulatorIntervalMs: 0 });
+  mock = buildMockServer({ simulatorIntervalMs: 0, tripAssignDelayMs: 50 });
   await mock.app.ready();
 });
 
@@ -107,11 +109,45 @@ describe('geo y tarifas', () => {
       payload: {
         origin: { lat: 4.3036, lng: -74.803 },
         destination: { lat: 4.2955, lng: -74.788 },
-        category: 'STANDARD',
       },
     });
     const quote = QuoteResponse.parse(res.json());
-    expect(quote.amount.amountCents % 10_000).toBe(0);
+    expect(quote.options.map((o) => o.category)).toEqual(['STANDARD', 'MOTO']);
+    expect(quote.options.every((o) => o.amount.amountCents % 10_000 === 0)).toBe(true);
+  });
+
+  it('pide un viaje y el conductor demo lo acepta', async () => {
+    const { accessToken } = await register();
+    const headers = { authorization: `Bearer ${accessToken}` };
+    const quote = QuoteResponse.parse(
+      (
+        await mock.app.inject({
+          method: 'POST',
+          url: '/api/trips/quote',
+          headers,
+          payload: {
+            origin: { lat: 4.3036, lng: -74.803 },
+            destination: { lat: 4.2955, lng: -74.788 },
+          },
+        })
+      ).json(),
+    );
+    const created = await mock.app.inject({
+      method: 'POST',
+      url: '/api/trips',
+      headers: { ...headers, 'idempotency-key': randomUUID() },
+      payload: { quoteId: quote.options[0]!.quoteId, paymentMethod: 'CASH' },
+    });
+    expect(created.statusCode).toBe(201);
+    const trip = Trip.parse(created.json());
+    expect(trip.status).toBe('SEARCHING');
+
+    await new Promise((r) => setTimeout(r, 100));
+    const res = await mock.app.inject({ method: 'GET', url: `/api/trips/${trip.id}`, headers });
+    expect(Trip.parse(res.json())).toMatchObject({
+      status: 'DRIVER_ASSIGNED',
+      driver: { fullName: 'Conductor Demo' },
+    });
   });
 
   it('rechaza cotizaciones fuera de zona', async () => {
@@ -123,7 +159,6 @@ describe('geo y tarifas', () => {
       payload: {
         origin: { lat: 4.3036, lng: -74.803 },
         destination: { lat: 4.711, lng: -74.0721 },
-        category: 'STANDARD',
       },
     });
     expect(res.statusCode).toBe(422);

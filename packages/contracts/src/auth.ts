@@ -131,6 +131,17 @@ export const AdminOverview = z.object({
     pendingReview: z.number().int().nonnegative(),
     online: z.number().int().nonnegative(),
   }),
+  trips: z.object({
+    /** Pedidos desde la medianoche de Colombia. */
+    today: z.number().int().nonnegative(),
+    /** Buscando conductor o en curso. */
+    active: z.number().int().nonnegative(),
+  }),
+  /** Llamadas de hoy al proveedor de mapas (12.4, paso 5), para vigilar el cupo gratis. */
+  maps: z.object({
+    provider: z.enum(['fake', 'google']),
+    callsToday: z.record(z.string(), z.number().int().nonnegative()),
+  }),
 });
 export type AdminOverview = z.infer<typeof AdminOverview>;
 

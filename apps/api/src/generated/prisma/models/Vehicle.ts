@@ -257,6 +257,7 @@ export type VehicleWhereInput = {
   active?: Prisma.BoolFilter<"Vehicle"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Vehicle"> | Date | string
   driver?: Prisma.XOR<Prisma.DriverProfileScalarRelationFilter, Prisma.DriverProfileWhereInput>
+  trips?: Prisma.TripListRelationFilter
 }
 
 export type VehicleOrderByWithRelationInput = {
@@ -271,6 +272,7 @@ export type VehicleOrderByWithRelationInput = {
   active?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   driver?: Prisma.DriverProfileOrderByWithRelationInput
+  trips?: Prisma.TripOrderByRelationAggregateInput
 }
 
 export type VehicleWhereUniqueInput = Prisma.AtLeast<{
@@ -289,6 +291,7 @@ export type VehicleWhereUniqueInput = Prisma.AtLeast<{
   active?: Prisma.BoolFilter<"Vehicle"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Vehicle"> | Date | string
   driver?: Prisma.XOR<Prisma.DriverProfileScalarRelationFilter, Prisma.DriverProfileWhereInput>
+  trips?: Prisma.TripListRelationFilter
 }, "id" | "driverId_plate">
 
 export type VehicleOrderByWithAggregationInput = {
@@ -336,6 +339,7 @@ export type VehicleCreateInput = {
   active?: boolean
   createdAt?: Date | string
   driver: Prisma.DriverProfileCreateNestedOneWithoutVehiclesInput
+  trips?: Prisma.TripCreateNestedManyWithoutVehicleInput
 }
 
 export type VehicleUncheckedCreateInput = {
@@ -349,6 +353,7 @@ export type VehicleUncheckedCreateInput = {
   category: $Enums.VehicleCategory
   active?: boolean
   createdAt?: Date | string
+  trips?: Prisma.TripUncheckedCreateNestedManyWithoutVehicleInput
 }
 
 export type VehicleUpdateInput = {
@@ -362,6 +367,7 @@ export type VehicleUpdateInput = {
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   driver?: Prisma.DriverProfileUpdateOneRequiredWithoutVehiclesNestedInput
+  trips?: Prisma.TripUpdateManyWithoutVehicleNestedInput
 }
 
 export type VehicleUncheckedUpdateInput = {
@@ -375,6 +381,7 @@ export type VehicleUncheckedUpdateInput = {
   category?: Prisma.EnumVehicleCategoryFieldUpdateOperationsInput | $Enums.VehicleCategory
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  trips?: Prisma.TripUncheckedUpdateManyWithoutVehicleNestedInput
 }
 
 export type VehicleCreateManyInput = {
@@ -477,6 +484,11 @@ export type VehicleSumOrderByAggregateInput = {
   year?: Prisma.SortOrder
 }
 
+export type VehicleNullableScalarRelationFilter = {
+  is?: Prisma.VehicleWhereInput | null
+  isNot?: Prisma.VehicleWhereInput | null
+}
+
 export type VehicleCreateNestedManyWithoutDriverInput = {
   create?: Prisma.XOR<Prisma.VehicleCreateWithoutDriverInput, Prisma.VehicleUncheckedCreateWithoutDriverInput> | Prisma.VehicleCreateWithoutDriverInput[] | Prisma.VehicleUncheckedCreateWithoutDriverInput[]
   connectOrCreate?: Prisma.VehicleCreateOrConnectWithoutDriverInput | Prisma.VehicleCreateOrConnectWithoutDriverInput[]
@@ -523,6 +535,22 @@ export type EnumVehicleCategoryFieldUpdateOperationsInput = {
   set?: $Enums.VehicleCategory
 }
 
+export type VehicleCreateNestedOneWithoutTripsInput = {
+  create?: Prisma.XOR<Prisma.VehicleCreateWithoutTripsInput, Prisma.VehicleUncheckedCreateWithoutTripsInput>
+  connectOrCreate?: Prisma.VehicleCreateOrConnectWithoutTripsInput
+  connect?: Prisma.VehicleWhereUniqueInput
+}
+
+export type VehicleUpdateOneWithoutTripsNestedInput = {
+  create?: Prisma.XOR<Prisma.VehicleCreateWithoutTripsInput, Prisma.VehicleUncheckedCreateWithoutTripsInput>
+  connectOrCreate?: Prisma.VehicleCreateOrConnectWithoutTripsInput
+  upsert?: Prisma.VehicleUpsertWithoutTripsInput
+  disconnect?: Prisma.VehicleWhereInput | boolean
+  delete?: Prisma.VehicleWhereInput | boolean
+  connect?: Prisma.VehicleWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.VehicleUpdateToOneWithWhereWithoutTripsInput, Prisma.VehicleUpdateWithoutTripsInput>, Prisma.VehicleUncheckedUpdateWithoutTripsInput>
+}
+
 export type VehicleCreateWithoutDriverInput = {
   id?: string
   plate: string
@@ -533,6 +561,7 @@ export type VehicleCreateWithoutDriverInput = {
   category: $Enums.VehicleCategory
   active?: boolean
   createdAt?: Date | string
+  trips?: Prisma.TripCreateNestedManyWithoutVehicleInput
 }
 
 export type VehicleUncheckedCreateWithoutDriverInput = {
@@ -545,6 +574,7 @@ export type VehicleUncheckedCreateWithoutDriverInput = {
   category: $Enums.VehicleCategory
   active?: boolean
   createdAt?: Date | string
+  trips?: Prisma.TripUncheckedCreateNestedManyWithoutVehicleInput
 }
 
 export type VehicleCreateOrConnectWithoutDriverInput = {
@@ -589,6 +619,74 @@ export type VehicleScalarWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Vehicle"> | Date | string
 }
 
+export type VehicleCreateWithoutTripsInput = {
+  id?: string
+  plate: string
+  brand: string
+  model: string
+  color: string
+  year: number
+  category: $Enums.VehicleCategory
+  active?: boolean
+  createdAt?: Date | string
+  driver: Prisma.DriverProfileCreateNestedOneWithoutVehiclesInput
+}
+
+export type VehicleUncheckedCreateWithoutTripsInput = {
+  id?: string
+  driverId: string
+  plate: string
+  brand: string
+  model: string
+  color: string
+  year: number
+  category: $Enums.VehicleCategory
+  active?: boolean
+  createdAt?: Date | string
+}
+
+export type VehicleCreateOrConnectWithoutTripsInput = {
+  where: Prisma.VehicleWhereUniqueInput
+  create: Prisma.XOR<Prisma.VehicleCreateWithoutTripsInput, Prisma.VehicleUncheckedCreateWithoutTripsInput>
+}
+
+export type VehicleUpsertWithoutTripsInput = {
+  update: Prisma.XOR<Prisma.VehicleUpdateWithoutTripsInput, Prisma.VehicleUncheckedUpdateWithoutTripsInput>
+  create: Prisma.XOR<Prisma.VehicleCreateWithoutTripsInput, Prisma.VehicleUncheckedCreateWithoutTripsInput>
+  where?: Prisma.VehicleWhereInput
+}
+
+export type VehicleUpdateToOneWithWhereWithoutTripsInput = {
+  where?: Prisma.VehicleWhereInput
+  data: Prisma.XOR<Prisma.VehicleUpdateWithoutTripsInput, Prisma.VehicleUncheckedUpdateWithoutTripsInput>
+}
+
+export type VehicleUpdateWithoutTripsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  plate?: Prisma.StringFieldUpdateOperationsInput | string
+  brand?: Prisma.StringFieldUpdateOperationsInput | string
+  model?: Prisma.StringFieldUpdateOperationsInput | string
+  color?: Prisma.StringFieldUpdateOperationsInput | string
+  year?: Prisma.IntFieldUpdateOperationsInput | number
+  category?: Prisma.EnumVehicleCategoryFieldUpdateOperationsInput | $Enums.VehicleCategory
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  driver?: Prisma.DriverProfileUpdateOneRequiredWithoutVehiclesNestedInput
+}
+
+export type VehicleUncheckedUpdateWithoutTripsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  driverId?: Prisma.StringFieldUpdateOperationsInput | string
+  plate?: Prisma.StringFieldUpdateOperationsInput | string
+  brand?: Prisma.StringFieldUpdateOperationsInput | string
+  model?: Prisma.StringFieldUpdateOperationsInput | string
+  color?: Prisma.StringFieldUpdateOperationsInput | string
+  year?: Prisma.IntFieldUpdateOperationsInput | number
+  category?: Prisma.EnumVehicleCategoryFieldUpdateOperationsInput | $Enums.VehicleCategory
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type VehicleCreateManyDriverInput = {
   id?: string
   plate: string
@@ -611,6 +709,7 @@ export type VehicleUpdateWithoutDriverInput = {
   category?: Prisma.EnumVehicleCategoryFieldUpdateOperationsInput | $Enums.VehicleCategory
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  trips?: Prisma.TripUpdateManyWithoutVehicleNestedInput
 }
 
 export type VehicleUncheckedUpdateWithoutDriverInput = {
@@ -623,6 +722,7 @@ export type VehicleUncheckedUpdateWithoutDriverInput = {
   category?: Prisma.EnumVehicleCategoryFieldUpdateOperationsInput | $Enums.VehicleCategory
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  trips?: Prisma.TripUncheckedUpdateManyWithoutVehicleNestedInput
 }
 
 export type VehicleUncheckedUpdateManyWithoutDriverInput = {
@@ -638,6 +738,35 @@ export type VehicleUncheckedUpdateManyWithoutDriverInput = {
 }
 
 
+/**
+ * Count Type VehicleCountOutputType
+ */
+
+export type VehicleCountOutputType = {
+  trips: number
+}
+
+export type VehicleCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  trips?: boolean | VehicleCountOutputTypeCountTripsArgs
+}
+
+/**
+ * VehicleCountOutputType without action
+ */
+export type VehicleCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the VehicleCountOutputType
+   */
+  select?: Prisma.VehicleCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * VehicleCountOutputType without action
+ */
+export type VehicleCountOutputTypeCountTripsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TripWhereInput
+}
+
 
 export type VehicleSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -651,6 +780,8 @@ export type VehicleSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   active?: boolean
   createdAt?: boolean
   driver?: boolean | Prisma.DriverProfileDefaultArgs<ExtArgs>
+  trips?: boolean | Prisma.Vehicle$tripsArgs<ExtArgs>
+  _count?: boolean | Prisma.VehicleCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["vehicle"]>
 
 export type VehicleSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -697,6 +828,8 @@ export type VehicleSelectScalar = {
 export type VehicleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "driverId" | "plate" | "brand" | "model" | "color" | "year" | "category" | "active" | "createdAt", ExtArgs["result"]["vehicle"]>
 export type VehicleInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   driver?: boolean | Prisma.DriverProfileDefaultArgs<ExtArgs>
+  trips?: boolean | Prisma.Vehicle$tripsArgs<ExtArgs>
+  _count?: boolean | Prisma.VehicleCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type VehicleIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   driver?: boolean | Prisma.DriverProfileDefaultArgs<ExtArgs>
@@ -709,6 +842,7 @@ export type $VehiclePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   name: "Vehicle"
   objects: {
     driver: Prisma.$DriverProfilePayload<ExtArgs>
+    trips: Prisma.$TripPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1116,6 +1250,7 @@ readonly fields: VehicleFieldRefs;
 export interface Prisma__VehicleClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   driver<T extends Prisma.DriverProfileDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DriverProfileDefaultArgs<ExtArgs>>): Prisma.Prisma__DriverProfileClient<runtime.Types.Result.GetResult<Prisma.$DriverProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  trips<T extends Prisma.Vehicle$tripsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Vehicle$tripsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TripPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1553,6 +1688,30 @@ export type VehicleDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Limit how many Vehicles to delete.
    */
   limit?: number
+}
+
+/**
+ * Vehicle.trips
+ */
+export type Vehicle$tripsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Trip
+   */
+  select?: Prisma.TripSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Trip
+   */
+  omit?: Prisma.TripOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TripInclude<ExtArgs> | null
+  where?: Prisma.TripWhereInput
+  orderBy?: Prisma.TripOrderByWithRelationInput | Prisma.TripOrderByWithRelationInput[]
+  cursor?: Prisma.TripWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TripScalarFieldEnum | Prisma.TripScalarFieldEnum[]
 }
 
 /**

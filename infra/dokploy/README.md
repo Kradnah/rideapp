@@ -46,4 +46,17 @@ Los documentos que suben los conductores se guardan cifrados en `STORAGE_DIR` (p
 
 Docker inicializa el volumen nuevo con el propietario de la carpeta de la imagen (usuario `app`, permisos 700). La clave de cifrado se deriva de `FIELD_ENCRYPTION_KEY`: **si se pierde esa variable, los archivos no se pueden recuperar**; incluir el volumen y la variable en los backups (13.6).
 
+## Activar Google Maps en el API (Fase 3)
+
+Hoy `MAPS_PROVIDER=fake`: rutas en línea recta × 1,3 y un puñado de lugares fijos de Girardot. Para usar Google (sección 12), **primero** configura las cuotas diarias y la clave `maps-server` restringida a la IP del VPS (12.4–12.5) y luego, en Dokploy → `rideapp-api` → Environment:
+
+```
+MAPS_PROVIDER=google
+GOOGLE_MAPS_SERVER_KEY=<clave maps-server>   # nunca en el repo ni en las apps
+```
+
+Y redesplegar. El panel muestra en el dashboard las llamadas del día por SKU. Si Google agota la cuota, las cotizaciones siguen funcionando con la ruta aproximada (queda un aviso en el log); el buscador responde "no disponible" y el pasajero puede elegir el punto en el mapa.
+
+La migración de la Fase 3 (`trips`) no crea extensiones: la puede aplicar `rideapp_app`. BullMQ usa el mismo Redis y necesita `maxmemory-policy noeviction` (13.5 C2).
+
 Socket.IO usa el mismo dominio del API (`wss://rideapp-api.julian-lizcano.com/socket.io`); Traefik reenvía WebSocket sin configuración extra.

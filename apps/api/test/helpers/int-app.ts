@@ -36,7 +36,9 @@ const silentMailer: Mailer = { enabled: true, send: async () => undefined };
  * API completa contra Postgres/PostGIS y Redis reales (Testcontainers, sección 16), escuchando en
  * un puerto aleatorio para poder probar también los sockets. Necesita Docker en marcha.
  */
-export async function startIntegrationApp(): Promise<IntegrationApp> {
+export async function startIntegrationApp(
+  overrides: { provide: unknown; useValue: unknown }[] = [],
+): Promise<IntegrationApp> {
   const [pg, redis]: [StartedPostgreSqlContainer, StartedRedisContainer] = await Promise.all([
     new PostgreSqlContainer('postgis/postgis:17-3.5').start(),
     new RedisContainer('redis:7-alpine').start(),
@@ -53,10 +55,11 @@ export async function startIntegrationApp(): Promise<IntegrationApp> {
     stdio: 'pipe',
   });
 
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(env)] })
+  let builder = Test.createTestingModule({ imports: [AppModule.forRoot(env)] })
     .overrideProvider(MAILER)
-    .useValue(silentMailer)
-    .compile();
+    .useValue(silentMailer);
+  for (const o of overrides) builder = builder.overrideProvider(o.provide).useValue(o.useValue);
+  const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication<NestFastifyApplication>(createAdapter(env), {
     bufferLogs: true,
   });

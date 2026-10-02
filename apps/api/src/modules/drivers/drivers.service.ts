@@ -303,13 +303,15 @@ export class DriversService {
       return { availability: 'BUSY', locationIntervalSeconds: AVAILABLE_INTERVAL_SECONDS };
     }
     await this.location.goOnline(userId, { category: vehicle.category, vehicleId: vehicle.id });
-    return { availability: 'AVAILABLE', locationIntervalSeconds: AVAILABLE_INTERVAL_SECONDS };
+    // Si tenía un viaje asignado (volvió tras cerrar la app), sigue ocupado.
+    const availability = (await this.location.currentTrip(userId)) ? 'BUSY' : 'AVAILABLE';
+    return { availability, locationIntervalSeconds: AVAILABLE_INTERVAL_SECONDS };
   }
 
   async goOffline(userId: string): Promise<DriverAvailabilityResponse> {
-    if ((await this.location.getAvailability(userId)) === 'BUSY') {
-      // Con un viaje en curso (Fase 4), primero hay que terminarlo o cancelarlo.
-      throw new ApiException(409, 'CONFLICT', 'Tienes un viaje en curso');
+    if (await this.location.currentTrip(userId)) {
+      // Con un viaje asignado, primero hay que terminarlo o cancelarlo.
+      throw new ApiException(409, 'ACTIVE_TRIP_EXISTS', 'Tienes un viaje en curso');
     }
     await this.location.goOffline(userId);
     return { availability: 'OFFLINE', locationIntervalSeconds: AVAILABLE_INTERVAL_SECONDS };
@@ -323,6 +325,15 @@ export class DriversService {
     return this.prisma.driverProfile.count({
       where: { status: 'PENDING', submittedAt: { not: null } },
     });
+  }
+
+  /** Vehículo activo del conductor (con el que se asigna un viaje). */
+  async activeVehicleId(driverId: string): Promise<string | null> {
+    const vehicle = await this.prisma.vehicle.findFirst({
+      where: { driverId, active: true },
+      select: { id: true },
+    });
+    return vehicle?.id ?? null;
   }
 
   /** Nombres de los conductores en línea, para el mapa del panel. */

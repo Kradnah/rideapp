@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 import { CURRENT_POLICY_VERSION } from '@rideapp/contracts';
 import { buildMockServer, DEMO_TRIP_ID } from '@rideapp/mock-server/app';
@@ -54,9 +55,19 @@ describe('contra el mock-server', () => {
     const quote = await api.trips.quote({
       origin: { lat: 4.3036, lng: -74.803 },
       destination: { lat: 4.2955, lng: -74.788 },
-      category: 'MOTO',
     });
-    expect(quote.amount.currency).toBe('COP');
+    expect(quote.options.map((o) => o.amount.currency)).toEqual(['COP', 'COP']);
+
+    const moto = quote.options.find((o) => o.category === 'MOTO')!;
+    const key = randomUUID();
+    const trip = await api.trips.create({ quoteId: moto.quoteId, paymentMethod: 'CASH' }, key);
+    expect(trip).toMatchObject({ status: 'SEARCHING', category: 'MOTO' });
+    // Reintento con la misma clave: el mismo viaje.
+    expect((await api.trips.create({ quoteId: moto.quoteId, paymentMethod: 'CASH' }, key)).id).toBe(
+      trip.id,
+    );
+    expect((await api.trips.active()).trip?.id).toBe(trip.id);
+    expect((await api.trips.cancel(trip.id, 'Prueba')).status).toBe('CANCELLED');
   });
 
   it('convierte los errores en ApiClientError con el código del contrato', async () => {

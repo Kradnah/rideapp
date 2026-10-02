@@ -1,4 +1,11 @@
 import {
+  ActiveTripResponse,
+  AdminTripDetail,
+  AdminTripList,
+  DriverOfferResponse,
+  Trip,
+  type AdminTripListQuery,
+  type CreateTripRequest,
   AdminDriverDetail,
   AdminDriverList,
   AdminLiveDrivers,
@@ -131,6 +138,8 @@ export function createApiClient(options: HttpClientOptions) {
         http.request('POST', '/drivers/me/online', { schema: DriverAvailabilityResponse }),
       goOffline: () =>
         http.request('POST', '/drivers/me/offline', { schema: DriverAvailabilityResponse }),
+      /** Oferta pendiente, por si la app perdió el evento `trip.offer.v1`. */
+      offer: () => http.request('GET', '/drivers/me/offer', { schema: DriverOfferResponse }),
     },
 
     /** Panel admin: sesión con cookie HttpOnly + CSRF (11.1). Solo para el navegador del panel. */
@@ -192,11 +201,36 @@ export function createApiClient(options: HttpClientOptions) {
         reactivate: (id: string) =>
           http.request('POST', `/admin/drivers/${encodeURIComponent(id)}/reactivate`),
       },
+      trips: {
+        list: (query: Partial<AdminTripListQuery> = {}) =>
+          http.request('GET', '/admin/trips', { query, schema: AdminTripList }),
+        detail: (id: string) =>
+          http.request('GET', `/admin/trips/${encodeURIComponent(id)}`, {
+            schema: AdminTripDetail,
+          }),
+      },
     },
 
     trips: {
       quote: (body: QuoteRequest) =>
         http.request('POST', '/trips/quote', { body, schema: QuoteResponse }),
+      /**
+       * Pide el viaje. `idempotencyKey` (un UUID por intento) evita duplicarlo si se reintenta
+       * por mala conexión (8.8, paso 5): genera una nueva solo si el usuario vuelve a pedir.
+       */
+      create: (body: CreateTripRequest, idempotencyKey: string) =>
+        http.request('POST', '/trips', { body, schema: Trip, idempotencyKey }),
+      active: () => http.request('GET', '/trips/active', { schema: ActiveTripResponse }),
+      get: (id: string) =>
+        http.request('GET', `/trips/${encodeURIComponent(id)}`, { schema: Trip }),
+      cancel: (id: string, reason?: string) =>
+        http.request('POST', `/trips/${encodeURIComponent(id)}/cancel`, {
+          body: reason ? { reason } : {},
+          schema: Trip,
+        }),
+      accept: (id: string) =>
+        http.request('POST', `/trips/${encodeURIComponent(id)}/accept`, { schema: Trip }),
+      reject: (id: string) => http.request('POST', `/trips/${encodeURIComponent(id)}/reject`),
     },
   };
 }

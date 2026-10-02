@@ -60,7 +60,12 @@ export const ModelName = {
   AuditLog: 'AuditLog',
   DriverProfile: 'DriverProfile',
   Vehicle: 'Vehicle',
-  DriverDocument: 'DriverDocument'
+  DriverDocument: 'DriverDocument',
+  ServiceArea: 'ServiceArea',
+  FareRule: 'FareRule',
+  FareQuote: 'FareQuote',
+  Trip: 'Trip',
+  TripEvent: 'TripEvent'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -223,6 +228,108 @@ export const DriverDocumentScalarFieldEnum = {
 } as const
 
 export type DriverDocumentScalarFieldEnum = (typeof DriverDocumentScalarFieldEnum)[keyof typeof DriverDocumentScalarFieldEnum]
+
+
+export const ServiceAreaScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  active: 'active'
+} as const
+
+export type ServiceAreaScalarFieldEnum = (typeof ServiceAreaScalarFieldEnum)[keyof typeof ServiceAreaScalarFieldEnum]
+
+
+export const FareRuleScalarFieldEnum = {
+  id: 'id',
+  category: 'category',
+  baseCents: 'baseCents',
+  perKmCents: 'perKmCents',
+  perMinCents: 'perMinCents',
+  minFareCents: 'minFareCents',
+  currency: 'currency',
+  validFrom: 'validFrom',
+  validTo: 'validTo',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt'
+} as const
+
+export type FareRuleScalarFieldEnum = (typeof FareRuleScalarFieldEnum)[keyof typeof FareRuleScalarFieldEnum]
+
+
+export const FareQuoteScalarFieldEnum = {
+  id: 'id',
+  passengerId: 'passengerId',
+  fareRuleId: 'fareRuleId',
+  category: 'category',
+  originLat: 'originLat',
+  originLng: 'originLng',
+  destinationLat: 'destinationLat',
+  destinationLng: 'destinationLng',
+  originAddress: 'originAddress',
+  destinationAddress: 'destinationAddress',
+  destinationPlaceId: 'destinationPlaceId',
+  distanceM: 'distanceM',
+  durationS: 'durationS',
+  amountCents: 'amountCents',
+  currency: 'currency',
+  polyline: 'polyline',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt'
+} as const
+
+export type FareQuoteScalarFieldEnum = (typeof FareQuoteScalarFieldEnum)[keyof typeof FareQuoteScalarFieldEnum]
+
+
+export const TripScalarFieldEnum = {
+  id: 'id',
+  passengerId: 'passengerId',
+  driverId: 'driverId',
+  vehicleId: 'vehicleId',
+  quoteId: 'quoteId',
+  category: 'category',
+  status: 'status',
+  paymentMethod: 'paymentMethod',
+  originLat: 'originLat',
+  originLng: 'originLng',
+  destinationLat: 'destinationLat',
+  destinationLng: 'destinationLng',
+  originAddress: 'originAddress',
+  destinationAddress: 'destinationAddress',
+  destinationPlaceId: 'destinationPlaceId',
+  distanceM: 'distanceM',
+  durationS: 'durationS',
+  polyline: 'polyline',
+  amountCents: 'amountCents',
+  currency: 'currency',
+  finalAmountCents: 'finalAmountCents',
+  pin: 'pin',
+  offersDeclined: 'offersDeclined',
+  requestedAt: 'requestedAt',
+  acceptedAt: 'acceptedAt',
+  arrivedAt: 'arrivedAt',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  cancelledAt: 'cancelledAt',
+  cancelledBy: 'cancelledBy',
+  cancelReason: 'cancelReason',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TripScalarFieldEnum = (typeof TripScalarFieldEnum)[keyof typeof TripScalarFieldEnum]
+
+
+export const TripEventScalarFieldEnum = {
+  id: 'id',
+  tripId: 'tripId',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  actor: 'actor',
+  actorId: 'actorId',
+  at: 'at',
+  meta: 'meta'
+} as const
+
+export type TripEventScalarFieldEnum = (typeof TripEventScalarFieldEnum)[keyof typeof TripEventScalarFieldEnum]
 
 
 export const SortOrder = {

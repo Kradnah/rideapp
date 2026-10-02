@@ -20,3 +20,13 @@ export interface MapsProvider {
 }
 
 export const MAPS_PROVIDER = Symbol('MAPS_PROVIDER');
+
+/** Google respondió que se agotó la cuota diaria (429 / RESOURCE_EXHAUSTED / OVER_QUERY_LIMIT), 12.4. */
+export class MapsQuotaExceededError extends Error {
+  override readonly name = 'MapsQuotaExceededError';
+}
+
+/** El proveedor falló (timeout, red, 5xx, respuesta inesperada) tras el reintento. */
+export class MapsUnavailableError extends Error {
+  override readonly name = 'MapsUnavailableError';
+}

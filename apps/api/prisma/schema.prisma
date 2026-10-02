@@ -60,6 +60,8 @@ model User {
   adminTotp     AdminTotp?
   emailCodes    EmailCode[]
   driverProfile DriverProfile?
+  fareQuotes    FareQuote[]
+  trips         Trip[]         @relation("PassengerTrips")
 
   @@map("users")
 }
@@ -218,6 +220,7 @@ model DriverProfile {
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   vehicles  Vehicle[]
   documents DriverDocument[]
+  trips     Trip[]
 
   @@index([status, submittedAt])
   @@map("driver_profiles")
@@ -237,6 +240,7 @@ model Vehicle {
   createdAt DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
 
   driver DriverProfile @relation(fields: [driverId], references: [userId], onDelete: Cascade)
+  trips  Trip[]
 
   @@unique([driverId, plate])
   @@index([plate])
@@ -261,4 +265,173 @@ model DriverDocument {
 
   @@unique([driverId, type])
   @@map("driver_documents")
+}
+
+// ---------------------------------------------------------------------------------------
+// Tarifas, cotizaciones y viajes (Fase 3, secciones 8.7–8.9)
+// ---------------------------------------------------------------------------------------
+
+/// Zona de servicio (8.6, paso 6): polígono en PostGIS, comprobado con ST_Covers antes de llamar
+/// a Google. Se carga en la migración desde infra/geo/service-area.geojson.
+model ServiceArea {
+  id     Int                                          @id @default(autoincrement())
+  name   String                                       @unique
+  area   Unsupported("geography(MultiPolygon, 4326)")
+  active Boolean                                      @default(true)
+
+  @@index([area], type: Gist)
+  @@map("service_areas")
+}
+
+enum TripStatus {
+  REQUESTED
+  SEARCHING
+  NO_DRIVERS
+  DRIVER_ASSIGNED
+  DRIVER_ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum CancelledBy {
+  PASSENGER
+  DRIVER
+  SYSTEM
+}
+
+enum PaymentMethod {
+  CASH
+  FAKE_CARD
+}
+
+enum TripEventActor {
+  PASSENGER
+  DRIVER
+  SYSTEM
+  ADMIN
+}
+
+/// Tarifas por categoría (8.7). Nunca se edita una vigente: se crea otra con `valid_from` (8.14).
+model FareRule {
+  id           String          @id @default(uuid(7)) @db.Uuid
+  category     VehicleCategory
+  baseCents    Int             @map("base_cents")
+  perKmCents   Int             @map("per_km_cents")
+  perMinCents  Int             @map("per_min_cents")
+  minFareCents Int             @map("min_fare_cents")
+  currency     String          @default("COP")
+  validFrom    DateTime        @default(now()) @map("valid_from") @db.Timestamptz(3)
+  validTo      DateTime?       @map("valid_to") @db.Timestamptz(3)
+  createdBy    String?         @map("created_by") @db.Uuid
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  quotes FareQuote[]
+
+  @@index([category, validFrom])
+  @@map("fare_rules")
+}
+
+/// Cotización con caducidad (5 min). Cada una sirve para un solo viaje (`trips.quote_id` único).
+model FareQuote {
+  id                 String          @id @default(uuid(7)) @db.Uuid
+  passengerId        String          @map("passenger_id") @db.Uuid
+  fareRuleId         String          @map("fare_rule_id") @db.Uuid
+  category           VehicleCategory
+  originLat          Float           @map("origin_lat")
+  originLng          Float           @map("origin_lng")
+  destinationLat     Float           @map("destination_lat")
+  destinationLng     Float           @map("destination_lng")
+  originAddress      String?         @map("origin_address")
+  destinationAddress String?         @map("destination_address")
+  destinationPlaceId String?         @map("destination_place_id")
+  distanceM          Int             @map("distance_m")
+  durationS          Int             @map("duration_s")
+  amountCents        Int             @map("amount_cents")
+  currency           String
+  polyline           String
+  expiresAt          DateTime        @map("expires_at") @db.Timestamptz(3)
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  passenger User     @relation(fields: [passengerId], references: [id], onDelete: Cascade)
+  fareRule  FareRule @relation(fields: [fareRuleId], references: [id])
+  trip      Trip?
+
+  @@index([passengerId, createdAt])
+  @@index([expiresAt])
+  @@map("fare_quotes")
+}
+
+/// Viaje (8.8). Solo cambia de estado con TripTransitions (UPDATE ... WHERE status = :from).
+/// Índices únicos parciales en la migración: un viaje activo por pasajero y por conductor.
+model Trip {
+  id                 String                                 @id @default(uuid(7)) @db.Uuid
+  passengerId        String                                 @map("passenger_id") @db.Uuid
+  driverId           String?                                @map("driver_id") @db.Uuid
+  vehicleId          String?                                @map("vehicle_id") @db.Uuid
+  quoteId            String                                 @unique @map("quote_id") @db.Uuid
+  category           VehicleCategory
+  status             TripStatus                             @default(REQUESTED)
+  paymentMethod      PaymentMethod                          @map("payment_method")
+  originLat          Float                                  @map("origin_lat")
+  originLng          Float                                  @map("origin_lng")
+  destinationLat     Float                                  @map("destination_lat")
+  destinationLng     Float                                  @map("destination_lng")
+  /// Generadas a partir de lat/lng (GENERATED ALWAYS ... STORED, en la migración): nunca se escriben.
+  origin             Unsupported("geography(Point, 4326)")? @default(dbgenerated("(st_setsrid(st_makepoint(origin_lng, origin_lat), 4326))::geography"))
+  destination        Unsupported("geography(Point, 4326)")? @default(dbgenerated("(st_setsrid(st_makepoint(destination_lng, destination_lat), 4326))::geography"))
+  originAddress      String?                                @map("origin_address")
+  destinationAddress String?                                @map("destination_address")
+  /// El place_id se puede guardar sin límite; las coordenadas de Google no (12.3).
+  destinationPlaceId String?                                @map("destination_place_id")
+  distanceM          Int                                    @map("distance_m")
+  durationS          Int                                    @map("duration_s")
+  polyline           String
+  amountCents        Int                                    @map("amount_cents")
+  currency           String
+  finalAmountCents   Int?                                   @map("final_amount_cents")
+  /// PIN de inicio (8.8, paso 4). Lo dicta el pasajero al conductor.
+  pin                String
+  /// Ofertas rechazadas o caducadas durante la búsqueda (métricas anti-abuso, 8.9, paso 9).
+  offersDeclined     Int                                    @default(0) @map("offers_declined")
+  requestedAt        DateTime                               @default(now()) @map("requested_at") @db.Timestamptz(3)
+  acceptedAt         DateTime?                              @map("accepted_at") @db.Timestamptz(3)
+  arrivedAt          DateTime?                              @map("arrived_at") @db.Timestamptz(3)
+  startedAt          DateTime?                              @map("started_at") @db.Timestamptz(3)
+  completedAt        DateTime?                              @map("completed_at") @db.Timestamptz(3)
+  cancelledAt        DateTime?                              @map("cancelled_at") @db.Timestamptz(3)
+  cancelledBy        CancelledBy?                           @map("cancelled_by")
+  cancelReason       String?                                @map("cancel_reason")
+  updatedAt          DateTime                               @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  passenger User           @relation("PassengerTrips", fields: [passengerId], references: [id])
+  driver    DriverProfile? @relation(fields: [driverId], references: [userId])
+  vehicle   Vehicle?       @relation(fields: [vehicleId], references: [id])
+  quote     FareQuote      @relation(fields: [quoteId], references: [id])
+  events    TripEvent[]
+
+  @@index([passengerId, requestedAt(sort: Desc)])
+  @@index([driverId, requestedAt(sort: Desc)])
+  @@index([status])
+  @@index([requestedAt])
+  @@index([origin], type: Gist)
+  @@index([destination], type: Gist)
+  @@map("trips")
+}
+
+/// Línea de tiempo del viaje: una fila por transición (8.8, paso 2).
+model TripEvent {
+  id         String         @id @default(uuid(7)) @db.Uuid
+  tripId     String         @map("trip_id") @db.Uuid
+  fromStatus TripStatus?    @map("from_status")
+  toStatus   TripStatus     @map("to_status")
+  actor      TripEventActor
+  actorId    String?        @map("actor_id") @db.Uuid
+  at         DateTime       @default(now()) @db.Timestamptz(3)
+  meta       Json?
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, at])
+  @@map("trip_events")
 }
