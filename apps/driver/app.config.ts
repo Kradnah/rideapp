@@ -10,7 +10,7 @@ const IOS_MAPS_KEY = process.env.GOOGLE_MAPS_IOS_KEY;
 
 // Identificador base de las apps. Debe quedar fijo antes de registrar las claves de Google
 // (Maps y OAuth se restringen por nombre de paquete + SHA-1).
-const APP_ID = 'com.julianlizcano.rideapp.driver';
+const APP_ID = 'com.norta.rideapp.driver';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
