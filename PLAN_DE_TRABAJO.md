@@ -1116,7 +1116,7 @@ Prueba: haz un cambio solo en `apps/admin/`, `git push`, y verás en la salida d
    EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=<...>
    GOOGLE_MAPS_ANDROID_KEY=<maps-android-passenger | maps-android-driver>
    ```
-4. Compila en tu PC (gratis y sin límite): `npx expo prebuild -p android` y luego `cd android && ./gradlew assembleRelease`. El APK queda en `android/app/build/outputs/apk/release/`. Como alternativa, EAS Build en su plan gratuito.
+4. Compila en tu PC (gratis y sin límite) con `scripts/build-apks.sh` (Git Bash): hace `expo prebuild` + `gradlew assembleRelease` de cada app contra producción y deja las APK **siempre** en `D:\Server\rideapp-apks` como `rideapp-pasajero-<versión>.apk` y `rideapp-conductor-<versión>.apk` (la versión sale de `app.config.ts`; los logs, en `logs/`). Como alternativa, EAS Build en su plan gratuito.
 5. Distribución de la demo: pasa el APK directamente (WhatsApp o Drive) o, cuando tengas la cuenta de Play (25 USD), usa **Pruebas internas** de Play Console, que además actualiza solo.
 6. Nombra cada versión igual en el APK y en Git: `versionName` 0.1.0, `versionCode` incremental, y `git tag v0.1.0 && git push --tags`.
 
