@@ -3,15 +3,12 @@ import cors from '@fastify/cors';
 import type {
   ApiError,
   ClientToServerEvents,
-  ErrorCode,
-  Me,
   ServerToClientEvents,
   UserRole,
 } from '@rideapp/contracts';
 import {
   AutocompleteQuery,
   AutocompleteResponse,
-  ClientToServerSchemas,
   computeFare,
   CURRENT_POLICY_VERSION,
   DEFAULT_CURRENCY,
@@ -22,6 +19,7 @@ import {
   isInServiceAreaBounds,
   LoginRequest,
   Me as MeSchema,
+  NearbyDriversQuery,
   NearbyDriversResponse,
   PlaceDetails,
   PlaceDetailsQuery,
@@ -47,8 +45,10 @@ import {
 } from '@rideapp/contracts/fixtures';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import { Server } from 'socket.io';
-import type { z } from 'zod';
+import { MockDrivers } from './drivers.js';
+import { HttpError, parse, send } from './http.js';
 import { RouteWalker } from './simulator.js';
+import type { MockUser } from './users.js';
 
 /** En el mock, el código que llega "por correo" es siempre este. */
 export const MOCK_EMAIL_CODE = '123456';
@@ -64,35 +64,12 @@ const AVG_SPEED_MPS = 25 / 3.6;
 export interface MockServerOptions {
   /** Intervalo del simulador en ms; 0 lo desactiva (útil en tests). */
   simulatorIntervalMs?: number;
+  /**
+   * El mock no tiene panel admin: aprueba al conductor este tiempo después de que envíe sus
+   * datos a revisión. 0 = al instante.
+   */
+  driverApprovalDelayMs?: number;
   logger?: boolean;
-}
-
-interface MockUser extends Me {
-  password: string | null;
-}
-
-class HttpError extends Error {
-  constructor(
-    readonly statusCode: number,
-    readonly code: ErrorCode,
-    message: string,
-    readonly details?: unknown,
-  ) {
-    super(message);
-  }
-}
-
-function parse<T extends z.ZodType>(schema: T, input: unknown): z.infer<T> {
-  const result = schema.safeParse(input);
-  if (!result.success) {
-    throw new HttpError(400, 'VALIDATION_FAILED', 'Datos inválidos', result.error.issues);
-  }
-  return result.data;
-}
-
-/** Valida también las respuestas: el mock nunca puede prometer algo que el contrato no permite. */
-function send<T extends z.ZodType>(schema: T, data: z.input<T>): z.infer<T> {
-  return schema.parse(data);
 }
 
 export function buildMockServer(options: MockServerOptions = {}) {
@@ -101,6 +78,7 @@ export function buildMockServer(options: MockServerOptions = {}) {
   const startedAt = Date.now();
 
   const walkers = [0, 1500, 3200].map((offset) => new RouteWalker(DEMO_DRIVER_ROUTE, 8, offset));
+  const drivers = new MockDrivers(options.driverApprovalDelayMs ?? 5000);
 
   // ---------- Utilidades de sesión falsa ----------
 
@@ -305,19 +283,24 @@ export function buildMockServer(options: MockServerOptions = {}) {
 
       api.get('/drivers/nearby', (req) => {
         requireUser(req);
-        parse(ReverseGeocodeQuery, req.query);
+        parse(NearbyDriversQuery, req.query);
         const elapsed = Date.now() - startedAt;
+        const simulated = walkers.map((w) => {
+          const { position, heading } = w.positionAt(elapsed);
+          return { ...position, heading };
+        });
         return send(NearbyDriversResponse, {
-          drivers: walkers.map((w) => {
-            const { position, heading } = w.positionAt(elapsed);
+          drivers: [...simulated, ...drivers.availablePositions()]
+            .slice(0, 10)
             // Igual que el API real: posiciones redondeadas (~100 m), sin IDs.
-            return {
-              position: { lat: +position.lat.toFixed(3), lng: +position.lng.toFixed(3) },
+            .map(({ lat, lng, heading }) => ({
+              position: { lat: +lat.toFixed(3), lng: +lng.toFixed(3) },
               heading,
-            };
-          }),
+            })),
         });
       });
+
+      drivers.register(api, requireUser);
 
       api.post('/trips/quote', (req) => {
         requireUser(req);
@@ -369,10 +352,9 @@ export function buildMockServer(options: MockServerOptions = {}) {
     const { userId } = socket.data as { userId: string };
     void socket.join(`user:${userId}`);
 
-    socket.on(SocketEvent.DriverLocation, (payload, ack) => {
-      const ok = ClientToServerSchemas[SocketEvent.DriverLocation].safeParse(payload).success;
-      ack?.(ok ? { ok: true } : { ok: false, code: 'VALIDATION_FAILED' });
-    });
+    socket.on(SocketEvent.DriverLocation, (payload, ack) =>
+      drivers.onLocation(userId, payload, ack),
+    );
   });
 
   const emitDemoTripLocation = () => {
@@ -397,6 +379,7 @@ export function buildMockServer(options: MockServerOptions = {}) {
   });
   app.addHook('onClose', (_instance, done) => {
     clearInterval(timer);
+    drivers.close();
     void io.close();
     done();
   });

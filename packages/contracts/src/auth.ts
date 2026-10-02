@@ -126,6 +126,11 @@ export const AdminOverview = z.object({
     drivers: z.number().int().nonnegative(),
     admins: z.number().int().nonnegative(),
   }),
+  drivers: z.object({
+    /** Enviados a revisión y esperando al admin. */
+    pendingReview: z.number().int().nonnegative(),
+    online: z.number().int().nonnegative(),
+  }),
 });
 export type AdminOverview = z.infer<typeof AdminOverview>;
 

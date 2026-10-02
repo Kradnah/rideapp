@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { LatLng, Money } from './common.js';
-import { CancelledBy, TripStatus } from './enums.js';
+import { CancelledBy, DriverAvailability, TripStatus } from './enums.js';
 
 /**
  * Eventos Socket.IO (8.10). Nombres con dominio y versión (5.5):
@@ -14,6 +14,8 @@ export const DriverLocationV1 = z.strictObject({
   speed: z.number().min(0).nullable(),
   accuracy: z.number().min(0),
   ts: z.number().int().positive(),
+  /** Android marca las lecturas de apps de ubicación falsa (14.4). Opcional: iOS no lo informa. */
+  mocked: z.boolean().optional(),
 });
 export type DriverLocationV1 = z.infer<typeof DriverLocationV1>;
 
@@ -51,6 +53,25 @@ export const TripStatusV1 = z.object({
 });
 export type TripStatusV1 = z.infer<typeof TripStatusV1>;
 
+/** Códigos del acuse de `driver.location.v1` cuando el servidor descarta la lectura. */
+export const DriverLocationRejection = z.enum([
+  'VALIDATION_FAILED',
+  'FORBIDDEN',
+  'RATE_LIMITED',
+  'LOW_ACCURACY',
+  'STALE',
+  'IMPLAUSIBLE',
+  'OFFLINE',
+]);
+export type DriverLocationRejection = z.infer<typeof DriverLocationRejection>;
+
+/** El servidor cambió la disponibilidad del conductor por su cuenta (suspensión, inactividad). */
+export const DriverAvailabilityV1 = z.object({
+  availability: DriverAvailability,
+  reason: z.enum(['SUSPENDED', 'INACTIVE']).nullable(),
+});
+export type DriverAvailabilityV1 = z.infer<typeof DriverAvailabilityV1>;
+
 export const SessionRevokedV1 = z.object({
   reason: z.enum(['LOGOUT_ALL', 'SUSPENDED', 'TOKEN_REUSE']),
 });
@@ -63,6 +84,7 @@ export const SocketEvent = {
   TripOfferCancelled: 'trip.offerCancelled.v1',
   TripStatus: 'trip.status.v1',
   SessionRevoked: 'session.revoked.v1',
+  DriverAvailability: 'driver.availability.v1',
 } as const;
 
 /** Acuse de recibo genérico para eventos cliente → servidor. */
@@ -74,6 +96,7 @@ export interface ServerToClientEvents {
   'trip.offerCancelled.v1': (payload: TripOfferCancelledV1) => void;
   'trip.status.v1': (payload: TripStatusV1) => void;
   'session.revoked.v1': (payload: SessionRevokedV1) => void;
+  'driver.availability.v1': (payload: DriverAvailabilityV1) => void;
 }
 
 export interface ClientToServerEvents {
@@ -87,6 +110,7 @@ export const ServerToClientSchemas = {
   'trip.offerCancelled.v1': TripOfferCancelledV1,
   'trip.status.v1': TripStatusV1,
   'session.revoked.v1': SessionRevokedV1,
+  'driver.availability.v1': DriverAvailabilityV1,
 } as const satisfies Record<keyof ServerToClientEvents, z.ZodType>;
 
 export const ClientToServerSchemas = {

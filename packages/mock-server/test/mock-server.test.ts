@@ -185,7 +185,8 @@ describe('socket', () => {
       accuracy: 8,
       ts: Date.now(),
     });
-    expect(ack).toEqual({ ok: true });
+    // Igual que el API real: solo un conductor en línea puede enviar su ubicación.
+    expect(ack).toEqual({ ok: false, code: 'FORBIDDEN' });
     client.close();
   });
 });

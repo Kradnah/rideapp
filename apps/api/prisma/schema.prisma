@@ -59,6 +59,7 @@ model User {
   consents      Consent[]
   adminTotp     AdminTotp?
   emailCodes    EmailCode[]
+  driverProfile DriverProfile?
 
   @@map("users")
 }
@@ -166,4 +167,98 @@ model AuditLog {
   @@index([actorId, at])
   @@index([entity, entityId])
   @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------------------
+// Conductores (Fase 2, sección 8.4)
+// ---------------------------------------------------------------------------------------
+
+enum DriverStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum VehicleCategory {
+  STANDARD
+  MOTO
+}
+
+enum DriverDocumentType {
+  DRIVER_LICENSE
+  VEHICLE_REGISTRATION
+  SOAT
+}
+
+enum DriverDocumentStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+/// Perfil de conductor sobre un usuario con rol DRIVER. Transiciones: PENDING → APPROVED | REJECTED;
+/// REJECTED → PENDING (al corregir y reenviar); APPROVED ↔ SUSPENDED.
+model DriverProfile {
+  userId           String       @id @map("user_id") @db.Uuid
+  status           DriverStatus @default(PENDING)
+  /// AES-256-GCM (FIELD_ENCRYPTION_KEY). Para mostrarla enmascarada basta `license_last4`.
+  licenseNumberEnc String       @map("license_number_enc")
+  licenseLast4     String       @map("license_last4")
+  /// Cuándo se envió a revisión; null mientras el conductor completa el registro.
+  submittedAt      DateTime?    @map("submitted_at") @db.Timestamptz(3)
+  /// Motivo del último rechazo o suspensión (lo ve el conductor).
+  statusReason     String?      @map("status_reason")
+  reviewedBy       String?      @map("reviewed_by") @db.Uuid
+  reviewedAt       DateTime?    @map("reviewed_at") @db.Timestamptz(3)
+  approvedAt       DateTime?    @map("approved_at") @db.Timestamptz(3)
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicles  Vehicle[]
+  documents DriverDocument[]
+
+  @@index([status, submittedAt])
+  @@map("driver_profiles")
+}
+
+/// Un solo vehículo activo por conductor (índice único parcial en la migración).
+model Vehicle {
+  id        String          @id @default(uuid(7)) @db.Uuid
+  driverId  String          @map("driver_id") @db.Uuid
+  plate     String
+  brand     String
+  model     String
+  color     String
+  year      Int
+  category  VehicleCategory
+  active    Boolean         @default(false)
+  createdAt DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  driver DriverProfile @relation(fields: [driverId], references: [userId], onDelete: Cascade)
+
+  @@unique([driverId, plate])
+  @@index([plate])
+  @@map("vehicles")
+}
+
+/// Documentos del conductor (14.7): el archivo vive cifrado en el StorageService bajo `storage_key`
+/// (aleatorio, nunca el nombre original). Uno vigente por tipo: subir otro reemplaza el anterior.
+model DriverDocument {
+  id         String               @id @default(uuid(7)) @db.Uuid
+  driverId   String               @map("driver_id") @db.Uuid
+  type       DriverDocumentType
+  storageKey String               @unique @map("storage_key")
+  mime       String
+  sizeBytes  Int                  @map("size_bytes")
+  sha256     String
+  status     DriverDocumentStatus @default(PENDING)
+  reviewedBy String?              @map("reviewed_by") @db.Uuid
+  createdAt  DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  driver DriverProfile @relation(fields: [driverId], references: [userId], onDelete: Cascade)
+
+  @@unique([driverId, type])
+  @@map("driver_documents")
 }

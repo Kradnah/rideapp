@@ -22,6 +22,8 @@ ENV NODE_ENV=production \
 WORKDIR /app
 RUN addgroup -S app && adduser -S app -G app
 COPY --from=build --chown=app:app /out ./
+# Documentos subidos (cifrados). En Dokploy se monta aquí un volumen persistente (STORAGE_DIR).
+RUN mkdir -p /app/var/storage && chown app:app /app/var/storage && chmod 700 /app/var/storage
 USER app
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=20s \

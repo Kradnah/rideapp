@@ -8,7 +8,7 @@ import { ApiClientError, createApiClient, createRealtime, HttpClient } from '../
  * Tests de contrato: el cliente habla con el mock-server real por HTTP.
  * Cuando exista el backend completo, los mismos tests podrán apuntar a él.
  */
-const mock = buildMockServer({ simulatorIntervalMs: 0 });
+const mock = buildMockServer({ simulatorIntervalMs: 0, driverApprovalDelayMs: 0 });
 let origin: string;
 
 beforeAll(async () => {
@@ -100,6 +100,60 @@ describe('contra el mock-server', () => {
     mock.emitDemoTripLocation();
     expect(await received).toBe(DEMO_TRIP_ID);
     socket.close();
+  });
+
+  it('conductor: registro, documentos en multipart, en línea y ubicación', async () => {
+    const session: { token: string | null } = { token: null };
+    const api = client(session);
+    session.token = (
+      await api.auth.register({
+        email: 'conductor@example.com',
+        password: 'una-clave-larga',
+        fullName: 'Conductor Demo',
+        role: 'DRIVER',
+        consent: { acceptTerms: true, policyVersion: CURRENT_POLICY_VERSION },
+      })
+    ).accessToken;
+
+    expect((await api.drivers.me()).status).toBeNull();
+    await api.drivers.saveProfile({ licenseNumber: '1070123456', phone: '+573001234567' });
+    const vehicle = await api.drivers.addVehicle({
+      plate: 'XYZ987',
+      brand: 'Renault',
+      model: 'Logan',
+      color: 'Gris',
+      year: 2019,
+      category: 'STANDARD',
+    });
+    expect(vehicle.active).toBe(true);
+    for (const type of ['DRIVER_LICENSE', 'VEHICLE_REGISTRATION', 'SOAT'] as const) {
+      const form = new FormData();
+      form.append(
+        'file',
+        new Blob([new Uint8Array([0xff, 0xd8, 0xff])], { type: 'image/jpeg' }),
+        'f.jpg',
+      );
+      expect((await api.drivers.uploadDocument(type, form)).type).toBe(type);
+    }
+    // El mock aprueba al instante en los tests (no tiene panel admin).
+    expect(await api.drivers.submit()).toMatchObject({ submitted: true });
+    expect((await api.drivers.me()).status).toBe('APPROVED');
+    expect((await api.drivers.goOnline()).availability).toBe('AVAILABLE');
+
+    const socket = createRealtime({ url: origin, getAccessToken: () => session.token });
+    await new Promise<void>((resolve) => socket.on('connect', resolve));
+    const ack = await socket.timeout(2000).emitWithAck('driver.location.v1', {
+      lat: 4.31,
+      lng: -74.81,
+      heading: null,
+      speed: null,
+      accuracy: 10,
+      ts: Date.now(),
+    });
+    expect(ack).toEqual({ ok: true });
+    socket.close();
+
+    expect((await api.drivers.goOffline()).availability).toBe('OFFLINE');
   });
 });
 

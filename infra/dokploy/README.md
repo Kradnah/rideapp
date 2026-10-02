@@ -35,3 +35,13 @@ MAIL_FROM=rideapp <no-reply@<dominio>>
 ```
 
 Y redesplegar. Comprobar que el VPS llega al puerto (`timeout 8 bash -c "exec 3<>/dev/tcp/<host>/587"`) y configurar SPF/DKIM del dominio para que los correos no acaben en spam. En producción el STARTTLS es obligatorio.
+
+## Volumen de documentos de conductores (Fase 2)
+
+Los documentos que suben los conductores se guardan cifrados en `STORAGE_DIR` (por defecto `/app/var/storage` dentro del contenedor). Sin volumen se perderían en cada despliegue. En Dokploy → `rideapp-api` → Advanced → Volumes:
+
+- Tipo **Volume mount**, nombre `rideapp-api-storage`, ruta `/app/var/storage`.
+
+Docker inicializa el volumen nuevo con el propietario de la carpeta de la imagen (usuario `app`, permisos 700). La clave de cifrado se deriva de `FIELD_ENCRYPTION_KEY`: **si se pierde esa variable, los archivos no se pueden recuperar**; incluir el volumen y la variable en los backups (13.6).
+
+Socket.IO usa el mismo dominio del API (`wss://rideapp-api.julian-lizcano.com/socket.io`); Traefik reenvía WebSocket sin configuración extra.

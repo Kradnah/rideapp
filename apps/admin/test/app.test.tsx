@@ -32,7 +32,10 @@ describe('App con sesión', () => {
       'fetch',
       vi.fn(async (url: string) =>
         String(url).includes('/admin/overview')
-          ? json({ users: { passengers: 12, drivers: 3, admins: 1 } })
+          ? json({
+              users: { passengers: 12, drivers: 3, admins: 1 },
+              drivers: { pendingReview: 2, online: 1 },
+            })
           : json({ status: 'ok', checks: {} }),
       ),
     );

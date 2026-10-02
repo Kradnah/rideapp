@@ -79,3 +79,20 @@ export type Consent = Prisma.ConsentModel
  * Auditoría (8.15). Sin FK a users: los registros sobreviven al borrado de la cuenta.
  */
 export type AuditLog = Prisma.AuditLogModel
+/**
+ * Model DriverProfile
+ * Perfil de conductor sobre un usuario con rol DRIVER. Transiciones: PENDING → APPROVED | REJECTED;
+ * REJECTED → PENDING (al corregir y reenviar); APPROVED ↔ SUSPENDED.
+ */
+export type DriverProfile = Prisma.DriverProfileModel
+/**
+ * Model Vehicle
+ * Un solo vehículo activo por conductor (índice único parcial en la migración).
+ */
+export type Vehicle = Prisma.VehicleModel
+/**
+ * Model DriverDocument
+ * Documentos del conductor (14.7): el archivo vive cifrado en el StorageService bajo `storage_key`
+ * (aleatorio, nunca el nombre original). Uno vigente por tipo: subir otro reemplaza el anterior.
+ */
+export type DriverDocument = Prisma.DriverDocumentModel

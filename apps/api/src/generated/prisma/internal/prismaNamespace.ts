@@ -403,7 +403,10 @@ export const ModelName = {
   AdminTotp: 'AdminTotp',
   EmailCode: 'EmailCode',
   Consent: 'Consent',
-  AuditLog: 'AuditLog'
+  AuditLog: 'AuditLog',
+  DriverProfile: 'DriverProfile',
+  Vehicle: 'Vehicle',
+  DriverDocument: 'DriverDocument'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -419,7 +422,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "authIdentity" | "refreshToken" | "adminTotp" | "emailCode" | "consent" | "auditLog"
+    modelProps: "user" | "authIdentity" | "refreshToken" | "adminTotp" | "emailCode" | "consent" | "auditLog" | "driverProfile" | "vehicle" | "driverDocument"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -941,6 +944,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    DriverProfile: {
+      payload: Prisma.$DriverProfilePayload<ExtArgs>
+      fields: Prisma.DriverProfileFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DriverProfileFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverProfilePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DriverProfileFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverProfilePayload>
+        }
+        findFirst: {
+          args: Prisma.DriverProfileFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverProfilePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DriverProfileFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverProfilePayload>
+        }
+        findMany: {
+          args: Prisma.DriverProfileFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverProfilePayload>[]
+        }
+        create: {
+          args: Prisma.DriverProfileCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverProfilePayload>
+        }
+        createMany: {
+          args: Prisma.DriverProfileCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DriverProfileCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverProfilePayload>[]
+        }
+        delete: {
+          args: Prisma.DriverProfileDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverProfilePayload>
+        }
+        update: {
+          args: Prisma.DriverProfileUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverProfilePayload>
+        }
+        deleteMany: {
+          args: Prisma.DriverProfileDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DriverProfileUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DriverProfileUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverProfilePayload>[]
+        }
+        upsert: {
+          args: Prisma.DriverProfileUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverProfilePayload>
+        }
+        aggregate: {
+          args: Prisma.DriverProfileAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDriverProfile>
+        }
+        groupBy: {
+          args: Prisma.DriverProfileGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DriverProfileGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DriverProfileCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DriverProfileCountAggregateOutputType> | number
+        }
+      }
+    }
+    Vehicle: {
+      payload: Prisma.$VehiclePayload<ExtArgs>
+      fields: Prisma.VehicleFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.VehicleFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VehiclePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.VehicleFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VehiclePayload>
+        }
+        findFirst: {
+          args: Prisma.VehicleFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VehiclePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.VehicleFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VehiclePayload>
+        }
+        findMany: {
+          args: Prisma.VehicleFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VehiclePayload>[]
+        }
+        create: {
+          args: Prisma.VehicleCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VehiclePayload>
+        }
+        createMany: {
+          args: Prisma.VehicleCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.VehicleCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VehiclePayload>[]
+        }
+        delete: {
+          args: Prisma.VehicleDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VehiclePayload>
+        }
+        update: {
+          args: Prisma.VehicleUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VehiclePayload>
+        }
+        deleteMany: {
+          args: Prisma.VehicleDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.VehicleUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.VehicleUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VehiclePayload>[]
+        }
+        upsert: {
+          args: Prisma.VehicleUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VehiclePayload>
+        }
+        aggregate: {
+          args: Prisma.VehicleAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateVehicle>
+        }
+        groupBy: {
+          args: Prisma.VehicleGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VehicleGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.VehicleCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VehicleCountAggregateOutputType> | number
+        }
+      }
+    }
+    DriverDocument: {
+      payload: Prisma.$DriverDocumentPayload<ExtArgs>
+      fields: Prisma.DriverDocumentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DriverDocumentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverDocumentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DriverDocumentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverDocumentPayload>
+        }
+        findFirst: {
+          args: Prisma.DriverDocumentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverDocumentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DriverDocumentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverDocumentPayload>
+        }
+        findMany: {
+          args: Prisma.DriverDocumentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverDocumentPayload>[]
+        }
+        create: {
+          args: Prisma.DriverDocumentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverDocumentPayload>
+        }
+        createMany: {
+          args: Prisma.DriverDocumentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DriverDocumentCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverDocumentPayload>[]
+        }
+        delete: {
+          args: Prisma.DriverDocumentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverDocumentPayload>
+        }
+        update: {
+          args: Prisma.DriverDocumentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverDocumentPayload>
+        }
+        deleteMany: {
+          args: Prisma.DriverDocumentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DriverDocumentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DriverDocumentUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverDocumentPayload>[]
+        }
+        upsert: {
+          args: Prisma.DriverDocumentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverDocumentPayload>
+        }
+        aggregate: {
+          args: Prisma.DriverDocumentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDriverDocument>
+        }
+        groupBy: {
+          args: Prisma.DriverDocumentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DriverDocumentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DriverDocumentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DriverDocumentCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1075,6 +1300,55 @@ export const AuditLogScalarFieldEnum = {
 } as const
 
 export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
+
+
+export const DriverProfileScalarFieldEnum = {
+  userId: 'userId',
+  status: 'status',
+  licenseNumberEnc: 'licenseNumberEnc',
+  licenseLast4: 'licenseLast4',
+  submittedAt: 'submittedAt',
+  statusReason: 'statusReason',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt',
+  approvedAt: 'approvedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DriverProfileScalarFieldEnum = (typeof DriverProfileScalarFieldEnum)[keyof typeof DriverProfileScalarFieldEnum]
+
+
+export const VehicleScalarFieldEnum = {
+  id: 'id',
+  driverId: 'driverId',
+  plate: 'plate',
+  brand: 'brand',
+  model: 'model',
+  color: 'color',
+  year: 'year',
+  category: 'category',
+  active: 'active',
+  createdAt: 'createdAt'
+} as const
+
+export type VehicleScalarFieldEnum = (typeof VehicleScalarFieldEnum)[keyof typeof VehicleScalarFieldEnum]
+
+
+export const DriverDocumentScalarFieldEnum = {
+  id: 'id',
+  driverId: 'driverId',
+  type: 'type',
+  storageKey: 'storageKey',
+  mime: 'mime',
+  sizeBytes: 'sizeBytes',
+  sha256: 'sha256',
+  status: 'status',
+  reviewedBy: 'reviewedBy',
+  createdAt: 'createdAt'
+} as const
+
+export type DriverDocumentScalarFieldEnum = (typeof DriverDocumentScalarFieldEnum)[keyof typeof DriverDocumentScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1258,6 +1532,62 @@ export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$Prisma
 
 
 /**
+ * Reference to a field of type 'DriverStatus'
+ */
+export type EnumDriverStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DriverStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'DriverStatus[]'
+ */
+export type ListEnumDriverStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DriverStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'VehicleCategory'
+ */
+export type EnumVehicleCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'VehicleCategory'>
+    
+
+
+/**
+ * Reference to a field of type 'VehicleCategory[]'
+ */
+export type ListEnumVehicleCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'VehicleCategory[]'>
+    
+
+
+/**
+ * Reference to a field of type 'DriverDocumentType'
+ */
+export type EnumDriverDocumentTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DriverDocumentType'>
+    
+
+
+/**
+ * Reference to a field of type 'DriverDocumentType[]'
+ */
+export type ListEnumDriverDocumentTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DriverDocumentType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'DriverDocumentStatus'
+ */
+export type EnumDriverDocumentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DriverDocumentStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'DriverDocumentStatus[]'
+ */
+export type ListEnumDriverDocumentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DriverDocumentStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -1428,6 +1758,9 @@ export type GlobalOmitConfig = {
   emailCode?: Prisma.EmailCodeOmit
   consent?: Prisma.ConsentOmit
   auditLog?: Prisma.AuditLogOmit
+  driverProfile?: Prisma.DriverProfileOmit
+  vehicle?: Prisma.VehicleOmit
+  driverDocument?: Prisma.DriverDocumentOmit
 }
 
 /* Types for Logging */

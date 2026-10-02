@@ -42,3 +42,39 @@ export const AuthProvider = {
 } as const
 
 export type AuthProvider = (typeof AuthProvider)[keyof typeof AuthProvider]
+
+
+export const DriverStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  SUSPENDED: 'SUSPENDED'
+} as const
+
+export type DriverStatus = (typeof DriverStatus)[keyof typeof DriverStatus]
+
+
+export const VehicleCategory = {
+  STANDARD: 'STANDARD',
+  MOTO: 'MOTO'
+} as const
+
+export type VehicleCategory = (typeof VehicleCategory)[keyof typeof VehicleCategory]
+
+
+export const DriverDocumentType = {
+  DRIVER_LICENSE: 'DRIVER_LICENSE',
+  VEHICLE_REGISTRATION: 'VEHICLE_REGISTRATION',
+  SOAT: 'SOAT'
+} as const
+
+export type DriverDocumentType = (typeof DriverDocumentType)[keyof typeof DriverDocumentType]
+
+
+export const DriverDocumentStatus = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED'
+} as const
+
+export type DriverDocumentStatus = (typeof DriverDocumentStatus)[keyof typeof DriverDocumentStatus]

@@ -22,3 +22,6 @@ ios/
 .DS_Store
 Thumbs.db
 src/generated/
+
+# Archivos subidos en desarrollo (documentos cifrados)
+apps/api/var/

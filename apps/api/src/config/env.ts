@@ -93,6 +93,12 @@ export const EnvSchema = z
     /** Remitente, p. ej. "rideapp <no-reply@tudominio.com>". */
     MAIL_FROM: z.string().min(3).optional(),
 
+    /**
+     * Carpeta de los archivos subidos (documentos de conductores), cifrados con una clave derivada
+     * de FIELD_ENCRYPTION_KEY. En Docker debe ser un volumen persistente (infra/dokploy/README.md).
+     */
+    STORAGE_DIR: z.string().min(1).default('var/storage'),
+
     MAPS_PROVIDER: z.enum(['fake', 'google']).default('fake'),
     GOOGLE_MAPS_SERVER_KEY: z.string().min(1).optional(),
   })

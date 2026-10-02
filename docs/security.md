@@ -63,6 +63,23 @@ Clave JWT de producción: generada en el VPS con openssl y guardada solo en Dokp
 - Plantillas con el nombre del usuario escapado (sin HTML inyectable); sin datos sensibles más allá del código.
 - `MAIL_TRANSPORT=log` prohibido en producción (los códigos acabarían en los logs). Hoy producción usa `disabled` hasta tener el SMTP del dominio.
 
+## Conductores, documentos y ubicación (Fase 2)
+
+| Control (8.4, 8.5, 8.10, 14.3, 14.4, 14.7) | Implementación                                                                                                                                                                                    |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Número de licencia cifrado                 | AES-256-GCM en `driver_profiles.license_number_enc`; para mostrarla basta `license_last4`                                                                                                         |
+| Subidas                                    | Multipart con 1 archivo y 5 MB máximo; tipo por **magic bytes** (`file-type`): JPEG, PNG o PDF                                                                                                    |
+| EXIF / contenido oculto                    | Las imágenes se recodifican con sharp (sin metadatos, máximo 2400 px, límite de píxeles contra bombas de descompresión)                                                                           |
+| Almacenamiento                             | `StorageService` en disco con AES-256-GCM por archivo; clave derivada con HKDF de `FIELD_ENCRYPTION_KEY`; nombres UUID, nunca el original                                                         |
+| Acceso a documentos                        | Solo admin, con URL firmada (HMAC, clave derivada) de 5 min; cada apertura se audita. Tipo validado, `nosniff`, CSP `sandbox`, PDF como descarga                                                  |
+| Datos enmascarados en el panel             | Teléfono `+57 *** *** 1234` y licencia `****1234`; revelarlos queda en `audit_logs` (`admin.driver_field_revealed`)                                                                               |
+| Decisiones del admin                       | Bloqueo optimista (dos admins no pisan la decisión del otro) y auditoría de aprobar, rechazar, suspender y reactivar                                                                              |
+| IDOR                                       | Todas las rutas del conductor operan sobre el usuario del token; las del admin filtran documento **y** conductor                                                                                  |
+| Socket.IO                                  | JWT en `auth` del handshake; salas decididas por el servidor (`user:{id}`); solo WebSocket; `maxHttpBufferSize` 10 KB; CORS con la lista blanca                                                   |
+| Mensajes de ubicación                      | Zod estricto, 1 por segundo por socket, `accuracy` ≤ 100 m, `ts` reciente, velocidad implícita ≤ 200 km/h y `mocked` de Android → descartadas y anotadas                                          |
+| Sesiones revocadas                         | Cada 60 s se desconectan los sockets de sesiones cerradas y el conductor sale de línea                                                                                                            |
+| Privacidad de la ubicación                 | Solo en Redis con TTL de 60 s; al pasar a "fuera de línea" se borra todo. El pasajero ve como máximo 10 conductores, **sin ID** y redondeados a ~100 m (redondeo, no ruido: el ruido se promedia) |
+
 ## Pendiente o a vigilar
 
 - **Postgres en producción:** el API usa el rol `rideapp_app` (sin superusuario, dueño del esquema `public`). PostGIS no es una extensión _trusted_: si una migración futura necesita otra extensión, la crea antes el superusuario `rideapp`.

@@ -2,9 +2,11 @@ import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
+import multipart from '@fastify/multipart';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { DRIVER_DOCUMENT_MAX_BYTES } from '@rideapp/contracts';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter.js';
@@ -63,6 +65,17 @@ export async function configureApp(app: NestFastifyApplication, env: Env): Promi
       env.NODE_ENV === 'production'
         ? { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } }
         : false,
+  });
+
+  // Subidas (documentos de conductores, 8.4): un solo archivo por petición y tope de tamaño propio.
+  await app.register(multipart, {
+    limits: {
+      fileSize: DRIVER_DOCUMENT_MAX_BYTES,
+      files: 1,
+      fields: 0,
+      parts: 1,
+      headerPairs: 20,
+    },
   });
 
   app.useGlobalPipes(new ZodValidationPipe());

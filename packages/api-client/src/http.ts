@@ -46,7 +46,12 @@ export interface RequestOptions<S extends z.ZodType | undefined> {
   /** Cabeceras adicionales (p. ej. el token CSRF del panel). */
   headers?: Record<string, string>;
   signal?: AbortSignal;
+  /** Sobrescribe el tiempo máximo de la petición (p. ej. subidas de archivos). */
+  timeoutMs?: number;
 }
+
+const isFormData = (body: unknown): body is FormData =>
+  typeof FormData !== 'undefined' && body instanceof FormData;
 
 // URLSearchParams no está completo en todos los motores de React Native.
 function buildQuery(query: Record<string, QueryValue> | undefined): string {
@@ -87,9 +92,14 @@ export class HttpClient {
     return this.parse(res, opts.schema);
   }
 
-  /** Varias peticiones con 401 simultáneas comparten un único refresh. */
-  private refreshOnce(): Promise<string | null> {
-    this.refreshing ??= this.options.refreshSession!()
+  /**
+   * Varias peticiones con 401 simultáneas comparten un único refresh. Público para que el socket
+   * pida un token nuevo por el mismo camino y nunca haya dos refrescos a la vez (8.2).
+   */
+  refreshOnce(): Promise<string | null> {
+    if (!this.options.refreshSession) return Promise.resolve(null);
+    this.refreshing ??= this.options
+      .refreshSession()
       .catch(() => null)
       .finally(() => {
         this.refreshing = null;
@@ -104,7 +114,9 @@ export class HttpClient {
     token: string | null | undefined,
   ): Promise<Response> {
     const headers: Record<string, string> = { accept: 'application/json' };
-    if (opts.body !== undefined) headers['content-type'] = 'application/json';
+    const form = isFormData(opts.body) ? opts.body : null;
+    // Con FormData, fetch pone el Content-Type con su boundary.
+    if (opts.body !== undefined && !form) headers['content-type'] = 'application/json';
     if (token) headers['authorization'] = `Bearer ${token}`;
     if (this.options.appVersion) headers['x-app-version'] = this.options.appVersion;
     if (opts.idempotencyKey) headers['idempotency-key'] = opts.idempotencyKey;
@@ -112,7 +124,10 @@ export class HttpClient {
 
     // AbortSignal.timeout/any no existen en todos los motores (Hermes): se combina a mano.
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.options.timeoutMs ?? 15_000);
+    const timer = setTimeout(
+      () => controller.abort(),
+      opts.timeoutMs ?? this.options.timeoutMs ?? 15_000,
+    );
     const onAbort = () => controller.abort();
     opts.signal?.addEventListener('abort', onAbort);
 
@@ -120,7 +135,7 @@ export class HttpClient {
       return await this.fetchImpl(`${this.options.baseUrl}${path}${buildQuery(opts.query)}`, {
         method,
         headers,
-        body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+        body: form ?? (opts.body === undefined ? undefined : JSON.stringify(opts.body)),
         credentials: this.options.credentials,
         signal: controller.signal,
       });

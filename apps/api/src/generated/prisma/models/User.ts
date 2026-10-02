@@ -235,6 +235,7 @@ export type UserWhereInput = {
   consents?: Prisma.ConsentListRelationFilter
   adminTotp?: Prisma.XOR<Prisma.AdminTotpNullableScalarRelationFilter, Prisma.AdminTotpWhereInput> | null
   emailCodes?: Prisma.EmailCodeListRelationFilter
+  driverProfile?: Prisma.XOR<Prisma.DriverProfileNullableScalarRelationFilter, Prisma.DriverProfileWhereInput> | null
 }
 
 export type UserOrderByWithRelationInput = {
@@ -254,6 +255,7 @@ export type UserOrderByWithRelationInput = {
   consents?: Prisma.ConsentOrderByRelationAggregateInput
   adminTotp?: Prisma.AdminTotpOrderByWithRelationInput
   emailCodes?: Prisma.EmailCodeOrderByRelationAggregateInput
+  driverProfile?: Prisma.DriverProfileOrderByWithRelationInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -276,6 +278,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   consents?: Prisma.ConsentListRelationFilter
   adminTotp?: Prisma.XOR<Prisma.AdminTotpNullableScalarRelationFilter, Prisma.AdminTotpWhereInput> | null
   emailCodes?: Prisma.EmailCodeListRelationFilter
+  driverProfile?: Prisma.XOR<Prisma.DriverProfileNullableScalarRelationFilter, Prisma.DriverProfileWhereInput> | null
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -329,6 +332,7 @@ export type UserCreateInput = {
   consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
+  driverProfile?: Prisma.DriverProfileCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -348,6 +352,7 @@ export type UserUncheckedCreateInput = {
   consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
+  driverProfile?: Prisma.DriverProfileUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -367,6 +372,7 @@ export type UserUpdateInput = {
   consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -386,6 +392,7 @@ export type UserUncheckedUpdateInput = {
   consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -575,6 +582,20 @@ export type UserUpdateOneRequiredWithoutConsentsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutConsentsInput, Prisma.UserUpdateWithoutConsentsInput>, Prisma.UserUncheckedUpdateWithoutConsentsInput>
 }
 
+export type UserCreateNestedOneWithoutDriverProfileInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDriverProfileInput, Prisma.UserUncheckedCreateWithoutDriverProfileInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDriverProfileInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutDriverProfileNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDriverProfileInput, Prisma.UserUncheckedCreateWithoutDriverProfileInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDriverProfileInput
+  upsert?: Prisma.UserUpsertWithoutDriverProfileInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutDriverProfileInput, Prisma.UserUpdateWithoutDriverProfileInput>, Prisma.UserUncheckedUpdateWithoutDriverProfileInput>
+}
+
 export type UserCreateWithoutIdentitiesInput = {
   id?: string
   email?: string | null
@@ -591,6 +612,7 @@ export type UserCreateWithoutIdentitiesInput = {
   consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
+  driverProfile?: Prisma.DriverProfileCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutIdentitiesInput = {
@@ -609,6 +631,7 @@ export type UserUncheckedCreateWithoutIdentitiesInput = {
   consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
+  driverProfile?: Prisma.DriverProfileUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutIdentitiesInput = {
@@ -643,6 +666,7 @@ export type UserUpdateWithoutIdentitiesInput = {
   consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutIdentitiesInput = {
@@ -661,6 +685,7 @@ export type UserUncheckedUpdateWithoutIdentitiesInput = {
   consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutRefreshTokensInput = {
@@ -679,6 +704,7 @@ export type UserCreateWithoutRefreshTokensInput = {
   consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
+  driverProfile?: Prisma.DriverProfileCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutRefreshTokensInput = {
@@ -697,6 +723,7 @@ export type UserUncheckedCreateWithoutRefreshTokensInput = {
   consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
+  driverProfile?: Prisma.DriverProfileUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutRefreshTokensInput = {
@@ -731,6 +758,7 @@ export type UserUpdateWithoutRefreshTokensInput = {
   consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRefreshTokensInput = {
@@ -749,6 +777,7 @@ export type UserUncheckedUpdateWithoutRefreshTokensInput = {
   consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAdminTotpInput = {
@@ -767,6 +796,7 @@ export type UserCreateWithoutAdminTotpInput = {
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
   emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
+  driverProfile?: Prisma.DriverProfileCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAdminTotpInput = {
@@ -785,6 +815,7 @@ export type UserUncheckedCreateWithoutAdminTotpInput = {
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
   emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
+  driverProfile?: Prisma.DriverProfileUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAdminTotpInput = {
@@ -819,6 +850,7 @@ export type UserUpdateWithoutAdminTotpInput = {
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAdminTotpInput = {
@@ -837,6 +869,7 @@ export type UserUncheckedUpdateWithoutAdminTotpInput = {
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutEmailCodesInput = {
@@ -855,6 +888,7 @@ export type UserCreateWithoutEmailCodesInput = {
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
+  driverProfile?: Prisma.DriverProfileCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutEmailCodesInput = {
@@ -873,6 +907,7 @@ export type UserUncheckedCreateWithoutEmailCodesInput = {
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
+  driverProfile?: Prisma.DriverProfileUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutEmailCodesInput = {
@@ -907,6 +942,7 @@ export type UserUpdateWithoutEmailCodesInput = {
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEmailCodesInput = {
@@ -925,6 +961,7 @@ export type UserUncheckedUpdateWithoutEmailCodesInput = {
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutConsentsInput = {
@@ -943,6 +980,7 @@ export type UserCreateWithoutConsentsInput = {
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
+  driverProfile?: Prisma.DriverProfileCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutConsentsInput = {
@@ -961,6 +999,7 @@ export type UserUncheckedCreateWithoutConsentsInput = {
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
   adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
   emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
+  driverProfile?: Prisma.DriverProfileUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutConsentsInput = {
@@ -995,6 +1034,7 @@ export type UserUpdateWithoutConsentsInput = {
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutConsentsInput = {
@@ -1011,6 +1051,99 @@ export type UserUncheckedUpdateWithoutConsentsInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   identities?: Prisma.AuthIdentityUncheckedUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
+  driverProfile?: Prisma.DriverProfileUncheckedUpdateOneWithoutUserNestedInput
+}
+
+export type UserCreateWithoutDriverProfileInput = {
+  id?: string
+  email?: string | null
+  emailVerified?: boolean
+  passwordHash?: string | null
+  fullName: string
+  phone?: string | null
+  role: $Enums.UserRole
+  status?: $Enums.UserStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  identities?: Prisma.AuthIdentityCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
+  emailCodes?: Prisma.EmailCodeCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutDriverProfileInput = {
+  id?: string
+  email?: string | null
+  emailVerified?: boolean
+  passwordHash?: string | null
+  fullName: string
+  phone?: string | null
+  role: $Enums.UserRole
+  status?: $Enums.UserStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  identities?: Prisma.AuthIdentityUncheckedCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
+  emailCodes?: Prisma.EmailCodeUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutDriverProfileInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutDriverProfileInput, Prisma.UserUncheckedCreateWithoutDriverProfileInput>
+}
+
+export type UserUpsertWithoutDriverProfileInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutDriverProfileInput, Prisma.UserUncheckedUpdateWithoutDriverProfileInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutDriverProfileInput, Prisma.UserUncheckedCreateWithoutDriverProfileInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutDriverProfileInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutDriverProfileInput, Prisma.UserUncheckedUpdateWithoutDriverProfileInput>
+}
+
+export type UserUpdateWithoutDriverProfileInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identities?: Prisma.AuthIdentityUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
+  emailCodes?: Prisma.EmailCodeUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutDriverProfileInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identities?: Prisma.AuthIdentityUncheckedUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
   adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
   emailCodes?: Prisma.EmailCodeUncheckedUpdateManyWithoutUserNestedInput
 }
@@ -1090,6 +1223,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   consents?: boolean | Prisma.User$consentsArgs<ExtArgs>
   adminTotp?: boolean | Prisma.User$adminTotpArgs<ExtArgs>
   emailCodes?: boolean | Prisma.User$emailCodesArgs<ExtArgs>
+  driverProfile?: boolean | Prisma.User$driverProfileArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1142,6 +1276,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   consents?: boolean | Prisma.User$consentsArgs<ExtArgs>
   adminTotp?: boolean | Prisma.User$adminTotpArgs<ExtArgs>
   emailCodes?: boolean | Prisma.User$emailCodesArgs<ExtArgs>
+  driverProfile?: boolean | Prisma.User$driverProfileArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1155,6 +1290,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     consents: Prisma.$ConsentPayload<ExtArgs>[]
     adminTotp: Prisma.$AdminTotpPayload<ExtArgs> | null
     emailCodes: Prisma.$EmailCodePayload<ExtArgs>[]
+    driverProfile: Prisma.$DriverProfilePayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1573,6 +1709,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   consents<T extends Prisma.User$consentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$consentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ConsentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   adminTotp<T extends Prisma.User$adminTotpArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$adminTotpArgs<ExtArgs>>): Prisma.Prisma__AdminTotpClient<runtime.Types.Result.GetResult<Prisma.$AdminTotpPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   emailCodes<T extends Prisma.User$emailCodesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$emailCodesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailCodePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  driverProfile<T extends Prisma.User$driverProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$driverProfileArgs<ExtArgs>>): Prisma.Prisma__DriverProfileClient<runtime.Types.Result.GetResult<Prisma.$DriverProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2118,6 +2255,25 @@ export type User$emailCodesArgs<ExtArgs extends runtime.Types.Extensions.Interna
   take?: number
   skip?: number
   distinct?: Prisma.EmailCodeScalarFieldEnum | Prisma.EmailCodeScalarFieldEnum[]
+}
+
+/**
+ * User.driverProfile
+ */
+export type User$driverProfileArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DriverProfile
+   */
+  select?: Prisma.DriverProfileSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DriverProfile
+   */
+  omit?: Prisma.DriverProfileOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DriverProfileInclude<ExtArgs> | null
+  where?: Prisma.DriverProfileWhereInput
 }
 
 /**

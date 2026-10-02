@@ -17,6 +17,7 @@ import { Public } from '../src/common/auth/auth.decorators.js';
 import { createZodDto } from '../src/common/zod/zod-dto.js';
 import { PrismaService } from '../src/infra/prisma/prisma.service.js';
 import { RedisService } from '../src/infra/redis/redis.service.js';
+import { RealtimeGateway } from '../src/modules/realtime/realtime.gateway.js';
 import { testEnv } from './helpers/test-env.js';
 
 // ---------- Controlador de prueba para ejercitar pipe y filtro ----------
@@ -57,7 +58,8 @@ function fakeDeps(opts: { dbUp: boolean; redisUp: boolean }) {
       onModuleDestroy: async () => {},
     },
     redis: {
-      client: {},
+      // LocationService registra sus scripts Lua al crearse.
+      client: { defineCommand: () => undefined },
       ping: async () => {
         if (!opts.redisUp) throw new Error('down');
       },
@@ -96,6 +98,9 @@ async function startApp(
     .useValue(deps.redis)
     .overrideProvider(getStorageToken())
     .useValue(deps.throttlerStorage)
+    // Sin Redis real no hay adaptador de Socket.IO: los sockets se prueban en drivers.int.test.ts.
+    .overrideProvider(RealtimeGateway)
+    .useValue({ emitToUser: () => undefined })
     .compile();
 
   app = moduleRef.createNestApplication<NestFastifyApplication>(createAdapter(env), {

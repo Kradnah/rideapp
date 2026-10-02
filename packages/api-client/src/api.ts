@@ -1,6 +1,15 @@
 import {
+  AdminDriverDetail,
+  AdminDriverList,
+  AdminLiveDrivers,
   AdminLoginChallenge,
   AdminOverview,
+  AdminRevealResponse,
+  DriverAccount,
+  DriverAvailabilityResponse,
+  DriverDocument,
+  SignedFileUrl,
+  Vehicle,
   AdminSession,
   AutocompleteResponse,
   CSRF_HEADER,
@@ -11,6 +20,9 @@ import {
   QuoteResponse,
   ReverseGeocodeResponse,
   TokenPair,
+  type AdminDriverListQuery,
+  type DriverDocumentType,
+  type DriverOnboardingRequest,
   type ForgotPasswordRequest,
   type GoogleLoginRequest,
   type LatLng,
@@ -18,8 +30,12 @@ import {
   type QuoteRequest,
   type RegisterRequest,
   type ResetPasswordRequest,
+  type RevealableDriverField,
   type UpdateMeRequest,
+  type VehicleCategory,
+  type VehicleRequest,
 } from '@rideapp/contracts';
+import { z } from 'zod';
 import { HttpClient, type HttpClientOptions } from './http.js';
 
 /** Cliente tipado del API. Cada respuesta se valida con su esquema de `contracts`. */
@@ -82,11 +98,39 @@ export function createApiClient(options: HttpClientOptions) {
     },
 
     drivers: {
-      nearby: ({ lat, lng }: LatLng) =>
+      /** Pasajero: conductores libres cerca, aproximados y sin ID. */
+      nearby: ({ lat, lng }: LatLng, category?: VehicleCategory) =>
         http.request('GET', '/drivers/nearby', {
-          query: { lat, lng },
+          query: { lat, lng, category },
           schema: NearbyDriversResponse,
         }),
+      me: () => http.request('GET', '/drivers/me', { schema: DriverAccount }),
+      saveProfile: (body: DriverOnboardingRequest) =>
+        http.request('POST', '/drivers/onboarding', { body, schema: DriverAccount }),
+      vehicles: () => http.request('GET', '/drivers/vehicles', { schema: z.array(Vehicle) }),
+      addVehicle: (body: VehicleRequest) =>
+        http.request('POST', '/drivers/vehicles', { body, schema: Vehicle }),
+      deleteVehicle: (id: string) =>
+        http.request('DELETE', `/drivers/vehicles/${encodeURIComponent(id)}`),
+      activateVehicle: (id: string) =>
+        http.request('POST', `/drivers/vehicles/${encodeURIComponent(id)}/activate`, {
+          schema: Vehicle,
+        }),
+      /**
+       * Sube un documento (campo `file`). En React Native:
+       * `form.append('file', { uri, name, type } as unknown as Blob)`.
+       */
+      uploadDocument: (type: DriverDocumentType, form: FormData) =>
+        http.request('PUT', `/drivers/documents/${type}`, {
+          body: form,
+          schema: DriverDocument,
+          timeoutMs: 60_000,
+        }),
+      submit: () => http.request('POST', '/drivers/me/submit', { schema: DriverAccount }),
+      goOnline: () =>
+        http.request('POST', '/drivers/me/online', { schema: DriverAvailabilityResponse }),
+      goOffline: () =>
+        http.request('POST', '/drivers/me/offline', { schema: DriverAvailabilityResponse }),
     },
 
     /** Panel admin: sesión con cookie HttpOnly + CSRF (11.1). Solo para el navegador del panel. */
@@ -115,6 +159,39 @@ export function createApiClient(options: HttpClientOptions) {
           headers: { [CSRF_HEADER]: csrfToken },
         }),
       overview: () => http.request('GET', '/admin/overview', { schema: AdminOverview }),
+      drivers: {
+        list: (query: Partial<AdminDriverListQuery> = {}) =>
+          http.request('GET', '/admin/drivers', { query, schema: AdminDriverList }),
+        live: () => http.request('GET', '/admin/drivers/live', { schema: AdminLiveDrivers }),
+        detail: (id: string) =>
+          http.request('GET', `/admin/drivers/${encodeURIComponent(id)}`, {
+            schema: AdminDriverDetail,
+          }),
+        reveal: (id: string, field: RevealableDriverField) =>
+          http.request('POST', `/admin/drivers/${encodeURIComponent(id)}/reveal`, {
+            body: { field },
+            schema: AdminRevealResponse,
+          }),
+        /** URL firmada de 5 minutos; `path` es relativo a la base del API. */
+        documentUrl: (id: string, documentId: string) =>
+          http.request(
+            'GET',
+            `/admin/drivers/${encodeURIComponent(id)}/documents/${encodeURIComponent(documentId)}/url`,
+            { schema: SignedFileUrl },
+          ),
+        approve: (id: string) =>
+          http.request('POST', `/admin/drivers/${encodeURIComponent(id)}/approve`),
+        reject: (id: string, reason: string) =>
+          http.request('POST', `/admin/drivers/${encodeURIComponent(id)}/reject`, {
+            body: { reason },
+          }),
+        suspend: (id: string, reason: string) =>
+          http.request('POST', `/admin/drivers/${encodeURIComponent(id)}/suspend`, {
+            body: { reason },
+          }),
+        reactivate: (id: string) =>
+          http.request('POST', `/admin/drivers/${encodeURIComponent(id)}/reactivate`),
+      },
     },
 
     trips: {

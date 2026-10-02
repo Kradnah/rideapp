@@ -10,12 +10,15 @@ import { MailModule } from './infra/mail/mail.module.js';
 import { PrismaModule } from './infra/prisma/prisma.module.js';
 import { RedisModule } from './infra/redis/redis.module.js';
 import { RedisService } from './infra/redis/redis.service.js';
+import { StorageModule } from './infra/storage/storage.module.js';
 import { RedisThrottlerStorage } from './infra/throttler/redis-throttler.storage.js';
 import { AdminModule } from './modules/admin/admin.module.js';
 import { AuditModule } from './modules/audit/audit.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { DriversModule } from './modules/drivers/drivers.module.js';
 import { GeoModule } from './modules/geo/geo.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { RealtimeModule } from './modules/realtime/realtime.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 
 @Module({})
@@ -29,6 +32,7 @@ export class AppModule {
         PrismaModule,
         RedisModule,
         MailModule,
+        StorageModule,
         ThrottlerModule.forRootAsync({
           inject: [RedisService],
           useFactory: (redis: RedisService) => ({
@@ -40,6 +44,8 @@ export class AppModule {
         AuditModule,
         AuthModule,
         UsersModule,
+        DriversModule,
+        RealtimeModule,
         AdminModule,
         HealthModule,
         GeoModule,

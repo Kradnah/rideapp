@@ -53,6 +53,10 @@ export const ErrorCode = z.enum([
   'SERVICE_UNAVAILABLE',
   'QUOTE_EXPIRED',
   'ACTIVE_TRIP_EXISTS',
+  'DRIVER_NOT_APPROVED',
+  'REQUIREMENTS_INCOMPLETE',
+  'UNSUPPORTED_FILE',
+  'FILE_TOO_LARGE',
   'INTERNAL',
 ]);
 export type ErrorCode = z.infer<typeof ErrorCode>;

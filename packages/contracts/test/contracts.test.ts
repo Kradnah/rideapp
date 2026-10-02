@@ -4,6 +4,7 @@ import {
   computeFare,
   CURRENT_POLICY_VERSION,
   DriverLocationV1,
+  DriverOnboardingRequest,
   GIRARDOT_CENTER,
   isInServiceAreaBounds,
   LatLng,
@@ -11,6 +12,7 @@ import {
   Money,
   RegisterRequest,
   roundFare,
+  VehicleRequest,
 } from '../src/index.js';
 
 describe('LatLng', () => {
@@ -123,5 +125,51 @@ describe('ApiError', () => {
   it('solo acepta códigos conocidos', () => {
     expect(ApiError.safeParse({ code: 'NOT_FOUND', message: 'No existe' }).success).toBe(true);
     expect(ApiError.safeParse({ code: 'WHATEVER', message: '?' }).success).toBe(false);
+  });
+});
+
+describe('VehicleRequest', () => {
+  const car = {
+    plate: 'abc 123',
+    brand: 'Chevrolet',
+    model: 'Spark',
+    color: 'Blanco',
+    year: 2018,
+    category: 'STANDARD',
+  };
+
+  it('normaliza la placa (mayúsculas, sin espacios ni guiones)', () => {
+    expect(VehicleRequest.parse(car).plate).toBe('ABC123');
+    expect(VehicleRequest.parse({ ...car, plate: 'xyz-98a', category: 'MOTO' }).plate).toBe(
+      'XYZ98A',
+    );
+  });
+  it('exige el formato de placa de la categoría', () => {
+    expect(VehicleRequest.safeParse({ ...car, plate: 'ABC12D' }).success).toBe(false);
+    expect(VehicleRequest.safeParse({ ...car, category: 'MOTO' }).success).toBe(false);
+    expect(VehicleRequest.safeParse({ ...car, plate: 'AB<12>' }).success).toBe(false);
+  });
+  it('rechaza años imposibles y campos desconocidos', () => {
+    expect(VehicleRequest.safeParse({ ...car, year: 1950 }).success).toBe(false);
+    expect(VehicleRequest.safeParse({ ...car, year: new Date().getFullYear() + 2 }).success).toBe(
+      false,
+    );
+    expect(VehicleRequest.safeParse({ ...car, active: true }).success).toBe(false);
+  });
+});
+
+describe('DriverOnboardingRequest', () => {
+  it('normaliza la licencia y exige teléfono E.164', () => {
+    const ok = DriverOnboardingRequest.parse({
+      licenseNumber: ' 1070abc ',
+      phone: '+573001234567',
+    });
+    expect(ok.licenseNumber).toBe('1070ABC');
+    expect(
+      DriverOnboardingRequest.safeParse({ licenseNumber: '12345', phone: '3001234567' }).success,
+    ).toBe(false);
+    expect(
+      DriverOnboardingRequest.safeParse({ licenseNumber: '12 34', phone: '+573001234567' }).success,
+    ).toBe(false);
   });
 });

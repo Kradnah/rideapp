@@ -57,7 +57,10 @@ export const ModelName = {
   AdminTotp: 'AdminTotp',
   EmailCode: 'EmailCode',
   Consent: 'Consent',
-  AuditLog: 'AuditLog'
+  AuditLog: 'AuditLog',
+  DriverProfile: 'DriverProfile',
+  Vehicle: 'Vehicle',
+  DriverDocument: 'DriverDocument'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -171,6 +174,55 @@ export const AuditLogScalarFieldEnum = {
 } as const
 
 export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
+
+
+export const DriverProfileScalarFieldEnum = {
+  userId: 'userId',
+  status: 'status',
+  licenseNumberEnc: 'licenseNumberEnc',
+  licenseLast4: 'licenseLast4',
+  submittedAt: 'submittedAt',
+  statusReason: 'statusReason',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt',
+  approvedAt: 'approvedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DriverProfileScalarFieldEnum = (typeof DriverProfileScalarFieldEnum)[keyof typeof DriverProfileScalarFieldEnum]
+
+
+export const VehicleScalarFieldEnum = {
+  id: 'id',
+  driverId: 'driverId',
+  plate: 'plate',
+  brand: 'brand',
+  model: 'model',
+  color: 'color',
+  year: 'year',
+  category: 'category',
+  active: 'active',
+  createdAt: 'createdAt'
+} as const
+
+export type VehicleScalarFieldEnum = (typeof VehicleScalarFieldEnum)[keyof typeof VehicleScalarFieldEnum]
+
+
+export const DriverDocumentScalarFieldEnum = {
+  id: 'id',
+  driverId: 'driverId',
+  type: 'type',
+  storageKey: 'storageKey',
+  mime: 'mime',
+  sizeBytes: 'sizeBytes',
+  sha256: 'sha256',
+  status: 'status',
+  reviewedBy: 'reviewedBy',
+  createdAt: 'createdAt'
+} as const
+
+export type DriverDocumentScalarFieldEnum = (typeof DriverDocumentScalarFieldEnum)[keyof typeof DriverDocumentScalarFieldEnum]
 
 
 export const SortOrder = {

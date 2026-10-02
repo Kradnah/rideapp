@@ -43,9 +43,13 @@ Todas las rutas exigen `Authorization: Bearer <access token>` salvo las marcadas
 src/
 ├── config/          Variables de entorno validadas con Zod
 ├── common/          Pipe Zod, filtro de errores → ApiError, logger
-├── infra/           Prisma 7 (adapter pg), Redis (ioredis), throttler en Redis
+├── infra/           Prisma 7 (adapter pg), Redis (ioredis), throttler en Redis, almacenamiento cifrado
 ├── modules/
 │   ├── health/
+│   ├── auth/ users/ audit/ admin/
+│   ├── drivers/     Perfil, vehículos, documentos y revisión (8.4); URLs firmadas
+│   ├── location/    Disponibilidad y ubicación en vivo en Redis (GEO, TTL, Lua)
+│   ├── realtime/    Gateway Socket.IO (8.10) y latido de conductores inactivos
 │   └── geo/         MapsProvider + FakeMapsProvider (Google en la Fase 3)
 └── generated/       Cliente Prisma (generado, no se versiona)
 ```
