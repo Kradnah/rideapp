@@ -54,6 +54,7 @@ export const ModelName = {
   User: 'User',
   AuthIdentity: 'AuthIdentity',
   RefreshToken: 'RefreshToken',
+  AdminTotp: 'AdminTotp',
   Consent: 'Consent',
   AuditLog: 'AuditLog'
 } as const
@@ -112,10 +113,23 @@ export const RefreshTokenScalarFieldEnum = {
   createdAt: 'createdAt',
   expiresAt: 'expiresAt',
   revokedAt: 'revokedAt',
-  replacedBy: 'replacedBy'
+  replacedBy: 'replacedBy',
+  amr: 'amr',
+  idleSeconds: 'idleSeconds',
+  absoluteExpiresAt: 'absoluteExpiresAt'
 } as const
 
 export type RefreshTokenScalarFieldEnum = (typeof RefreshTokenScalarFieldEnum)[keyof typeof RefreshTokenScalarFieldEnum]
+
+
+export const AdminTotpScalarFieldEnum = {
+  userId: 'userId',
+  secretEnc: 'secretEnc',
+  lastUsedStep: 'lastUsedStep',
+  createdAt: 'createdAt'
+} as const
+
+export type AdminTotpScalarFieldEnum = (typeof AdminTotpScalarFieldEnum)[keyof typeof AdminTotpScalarFieldEnum]
 
 
 export const ConsentScalarFieldEnum = {

@@ -9,7 +9,11 @@ import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redi
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { configureApp, createAdapter } from '../src/app.factory.js';
 import { AppModule } from '../src/app.module.js';
+import { FieldCrypto } from '../src/common/crypto/field-crypto.js';
 import { PrismaService } from '../src/infra/prisma/prisma.service.js';
+import { buildTotp, createAdmin } from '../src/modules/admin/admin-provisioning.js';
+import { PasswordService } from '../src/modules/auth/password.service.js';
+import { TokenService } from '../src/modules/auth/token.service.js';
 import { GOOGLE_VERIFIER, type GoogleTokenVerifier } from '../src/modules/auth/google-verifier.js';
 import { testEnv } from './helpers/test-env.js';
 
@@ -82,14 +86,17 @@ const freshIp = () => `10.0.${Math.floor(ipCounter / 250)}.${(ipCounter++ % 250)
 async function call(
   method: 'GET' | 'POST' | 'PATCH',
   url: string,
-  opts: { body?: unknown; token?: string; ip?: string } = {},
+  opts: { body?: unknown; token?: string; ip?: string; headers?: Record<string, string> } = {},
 ) {
   return app.inject({
     method,
     url: `/api${url}`,
     payload: opts.body as object | undefined,
     remoteAddress: opts.ip ?? freshIp(),
-    headers: opts.token ? { authorization: `Bearer ${opts.token}` } : {},
+    headers: {
+      ...(opts.token ? { authorization: `Bearer ${opts.token}` } : {}),
+      ...opts.headers,
+    },
   });
 }
 
@@ -444,5 +451,180 @@ describe('login con Google', () => {
     expect(
       await prisma.auditLog.count({ where: { actorId: user.id, action: 'auth.google_linked' } }),
     ).toBe(1);
+  });
+});
+
+// ---------- Panel admin (TOTP) ----------
+
+describe('login del panel con TOTP', () => {
+  const ADMIN_PASSWORD = 'panel-girardot-seguro-2026';
+
+  async function newAdmin() {
+    const email = `admin-${randomUUID()}@example.com`;
+    const created = await createAdmin(
+      { prisma, crypto: app.get(FieldCrypto), passwords: new PasswordService() },
+      { email, fullName: 'Admin Demo', password: ADMIN_PASSWORD },
+    );
+    return { email, totp: buildTotp(created.secretBase32, email) };
+  }
+
+  /** Cookies de la respuesta: crudas, como mapa y como cabecera Cookie. */
+  function cookiesOf(res: Awaited<ReturnType<typeof call>>) {
+    const raw = ([] as string[]).concat(res.headers['set-cookie'] ?? []);
+    const jar = Object.fromEntries(
+      raw.map((c) => {
+        const pair = c.split(';')[0]!;
+        const i = pair.indexOf('=');
+        return [pair.slice(0, i), pair.slice(i + 1)];
+      }),
+    );
+    return { raw, jar, header: raw.map((c) => c.split(';')[0]).join('; ') };
+  }
+
+  async function passwordStep(email: string) {
+    const res = await call('POST', '/auth/admin/login', {
+      body: { email, password: ADMIN_PASSWORD },
+    });
+    expect(res.statusCode, res.body).toBe(200);
+    return (res.json() as { challengeId: string }).challengeId;
+  }
+
+  async function fullLogin() {
+    const admin = await newAdmin();
+    const challengeId = await passwordStep(admin.email);
+    const res = await call('POST', '/auth/admin/totp', {
+      body: { challengeId, code: admin.totp.generate() },
+    });
+    expect(res.statusCode, res.body).toBe(200);
+    return { admin, res, session: res.json() as { accessToken: string } };
+  }
+
+  it('contraseña + código → sesión con amr pwd,totp y cookies __Host- seguras', async () => {
+    const { res, session } = await fullLogin();
+    const rt = cookiesOf(res).raw.find((c) => c.startsWith('__Host-rideapp_admin_rt='))!;
+    expect(rt).toMatch(/HttpOnly/i);
+    expect(rt).toMatch(/Secure/i);
+    expect(rt).toMatch(/SameSite=Strict/i);
+    expect(rt).toMatch(/Path=\//);
+    expect(rt).not.toMatch(/Domain=/i);
+    expect(res.body).not.toContain('refreshToken');
+
+    const claims = JSON.parse(
+      Buffer.from(session.accessToken.split('.')[1]!, 'base64url').toString(),
+    );
+    expect(claims).toMatchObject({ role: 'ADMIN', amr: ['pwd', 'totp'] });
+    const overview = await call('GET', '/admin/overview', { token: session.accessToken });
+    expect(overview.statusCode).toBe(200);
+    expect(overview.json()).toMatchObject({ users: { admins: expect.any(Number) } });
+  });
+
+  it('contraseña incorrecta, usuario no admin o código incorrecto → error genérico', async () => {
+    const admin = await newAdmin();
+    const bad = await call('POST', '/auth/admin/login', {
+      body: { email: admin.email, password: 'mala-clave-123' },
+    });
+    expect(bad.json()).toMatchObject({ code: 'INVALID_CREDENTIALS' });
+
+    const { email } = await register();
+    const passenger = await call('POST', '/auth/admin/login', {
+      body: { email, password: PASSWORD },
+    });
+    expect(passenger.json()).toMatchObject({ code: 'INVALID_CREDENTIALS' });
+
+    const challengeId = await passwordStep(admin.email);
+    const wrong = await call('POST', '/auth/admin/totp', { body: { challengeId, code: '000000' } });
+    expect(wrong.statusCode).toBe(401);
+  });
+
+  it('un código ya usado no sirve para otro login (anti-replay del TOTP)', async () => {
+    const admin = await newAdmin();
+    const code = admin.totp.generate();
+    for (const expected of [200, 401]) {
+      const challengeId = await passwordStep(admin.email);
+      const res = await call('POST', '/auth/admin/totp', { body: { challengeId, code } });
+      expect(res.statusCode).toBe(expected);
+    }
+  });
+
+  it('el reto se bloquea tras 5 códigos incorrectos', async () => {
+    const admin = await newAdmin();
+    const challengeId = await passwordStep(admin.email);
+    for (let i = 0; i < 5; i++) {
+      await call('POST', '/auth/admin/totp', { body: { challengeId, code: '000000' } });
+    }
+    const blocked = await call('POST', '/auth/admin/totp', {
+      body: { challengeId, code: admin.totp.generate() },
+    });
+    expect(blocked.statusCode).toBe(429);
+  });
+
+  it('refresh y logout por cookie exigen el token CSRF', async () => {
+    const { res } = await fullLogin();
+    const { jar, header } = cookiesOf(res);
+
+    const noCsrf = await call('POST', '/auth/admin/refresh', { headers: { cookie: header } });
+    expect(noCsrf.statusCode).toBe(403);
+
+    const ok = await call('POST', '/auth/admin/refresh', {
+      headers: { cookie: header, 'x-csrf-token': jar['__Host-rideapp_admin_csrf']! },
+    });
+    expect(ok.statusCode, ok.body).toBe(200);
+    const next = cookiesOf(ok);
+    const nextHeaders = {
+      cookie: next.header,
+      'x-csrf-token': next.jar['__Host-rideapp_admin_csrf']!,
+    };
+
+    expect((await call('POST', '/auth/admin/logout', { headers: nextHeaders })).statusCode).toBe(
+      204,
+    );
+    expect((await call('POST', '/auth/admin/refresh', { headers: nextHeaders })).statusCode).toBe(
+      401,
+    );
+  });
+
+  it('la sesión del panel caduca por inactividad', async () => {
+    const { res } = await fullLogin();
+    const { jar, header } = cookiesOf(res);
+    // Simula 31 minutos sin uso: el token vigente ya está vencido.
+    await prisma.refreshToken.updateMany({
+      where: { revokedAt: null, idleSeconds: { not: null } },
+      data: { expiresAt: new Date(Date.now() - 60_000) },
+    });
+    const expired = await call('POST', '/auth/admin/refresh', {
+      headers: { cookie: header, 'x-csrf-token': jar['__Host-rideapp_admin_csrf']! },
+    });
+    expect(expired.statusCode).toBe(401);
+  });
+
+  it('/admin/* exige rol ADMIN y segundo factor', async () => {
+    const { tokens } = await register();
+    expect((await call('GET', '/admin/overview', { token: tokens.accessToken })).statusCode).toBe(
+      403,
+    );
+
+    // Un token de admin sin 'totp' en amr (solo contraseña) no basta.
+    const pwdOnly = await app.get(TokenService).signAccessToken({
+      sub: randomUUID(),
+      role: 'ADMIN',
+      sid: randomUUID(),
+      amr: ['pwd'],
+    });
+    expect((await call('GET', '/admin/overview', { token: pwdOnly })).statusCode).toBe(403);
+  });
+
+  it('la sesión de Google conserva amr google al refrescar', async () => {
+    const sub = randomUUID();
+    const res = await call('POST', '/auth/google', {
+      body: { idToken: googleToken(sub, `amr-${sub}@gmail.com`), consent },
+    });
+    const pair = TokenPair.parse(res.json());
+    const refreshed = TokenPair.parse(
+      (await call('POST', '/auth/refresh', { body: { refreshToken: pair.refreshToken } })).json(),
+    );
+    const claims = JSON.parse(
+      Buffer.from(refreshed.accessToken.split('.')[1]!, 'base64url').toString(),
+    );
+    expect(claims.amr).toEqual(['google']);
   });
 });

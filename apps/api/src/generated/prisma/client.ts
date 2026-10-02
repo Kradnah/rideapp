@@ -59,6 +59,11 @@ export type AuthIdentity = Prisma.AuthIdentityModel
  */
 export type RefreshToken = Prisma.RefreshTokenModel
 /**
+ * Model AdminTotp
+ * Segundo factor del panel (8.14). El secreto va cifrado con AES-256-GCM (FIELD_ENCRYPTION_KEY).
+ */
+export type AdminTotp = Prisma.AdminTotpModel
+/**
  * Model Consent
  * Prueba de la autorización de tratamiento de datos (Ley 1581, sección 15).
  */

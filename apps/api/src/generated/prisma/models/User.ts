@@ -233,6 +233,7 @@ export type UserWhereInput = {
   identities?: Prisma.AuthIdentityListRelationFilter
   refreshTokens?: Prisma.RefreshTokenListRelationFilter
   consents?: Prisma.ConsentListRelationFilter
+  adminTotp?: Prisma.XOR<Prisma.AdminTotpNullableScalarRelationFilter, Prisma.AdminTotpWhereInput> | null
 }
 
 export type UserOrderByWithRelationInput = {
@@ -250,6 +251,7 @@ export type UserOrderByWithRelationInput = {
   identities?: Prisma.AuthIdentityOrderByRelationAggregateInput
   refreshTokens?: Prisma.RefreshTokenOrderByRelationAggregateInput
   consents?: Prisma.ConsentOrderByRelationAggregateInput
+  adminTotp?: Prisma.AdminTotpOrderByWithRelationInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -270,6 +272,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   identities?: Prisma.AuthIdentityListRelationFilter
   refreshTokens?: Prisma.RefreshTokenListRelationFilter
   consents?: Prisma.ConsentListRelationFilter
+  adminTotp?: Prisma.XOR<Prisma.AdminTotpNullableScalarRelationFilter, Prisma.AdminTotpWhereInput> | null
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -321,6 +324,7 @@ export type UserCreateInput = {
   identities?: Prisma.AuthIdentityCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -338,6 +342,7 @@ export type UserUncheckedCreateInput = {
   identities?: Prisma.AuthIdentityUncheckedCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -355,6 +360,7 @@ export type UserUpdateInput = {
   identities?: Prisma.AuthIdentityUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -372,6 +378,7 @@ export type UserUncheckedUpdateInput = {
   identities?: Prisma.AuthIdentityUncheckedUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -519,6 +526,20 @@ export type UserUpdateOneRequiredWithoutRefreshTokensNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutRefreshTokensInput, Prisma.UserUpdateWithoutRefreshTokensInput>, Prisma.UserUncheckedUpdateWithoutRefreshTokensInput>
 }
 
+export type UserCreateNestedOneWithoutAdminTotpInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAdminTotpInput, Prisma.UserUncheckedCreateWithoutAdminTotpInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAdminTotpInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutAdminTotpNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAdminTotpInput, Prisma.UserUncheckedCreateWithoutAdminTotpInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAdminTotpInput
+  upsert?: Prisma.UserUpsertWithoutAdminTotpInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAdminTotpInput, Prisma.UserUpdateWithoutAdminTotpInput>, Prisma.UserUncheckedUpdateWithoutAdminTotpInput>
+}
+
 export type UserCreateNestedOneWithoutConsentsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutConsentsInput, Prisma.UserUncheckedCreateWithoutConsentsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutConsentsInput
@@ -547,6 +568,7 @@ export type UserCreateWithoutIdentitiesInput = {
   deletedAt?: Date | string | null
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutIdentitiesInput = {
@@ -563,6 +585,7 @@ export type UserUncheckedCreateWithoutIdentitiesInput = {
   deletedAt?: Date | string | null
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutIdentitiesInput = {
@@ -595,6 +618,7 @@ export type UserUpdateWithoutIdentitiesInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutIdentitiesInput = {
@@ -611,6 +635,7 @@ export type UserUncheckedUpdateWithoutIdentitiesInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutRefreshTokensInput = {
@@ -627,6 +652,7 @@ export type UserCreateWithoutRefreshTokensInput = {
   deletedAt?: Date | string | null
   identities?: Prisma.AuthIdentityCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutRefreshTokensInput = {
@@ -643,6 +669,7 @@ export type UserUncheckedCreateWithoutRefreshTokensInput = {
   deletedAt?: Date | string | null
   identities?: Prisma.AuthIdentityUncheckedCreateNestedManyWithoutUserInput
   consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutRefreshTokensInput = {
@@ -675,6 +702,7 @@ export type UserUpdateWithoutRefreshTokensInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   identities?: Prisma.AuthIdentityUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRefreshTokensInput = {
@@ -690,6 +718,91 @@ export type UserUncheckedUpdateWithoutRefreshTokensInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   identities?: Prisma.AuthIdentityUncheckedUpdateManyWithoutUserNestedInput
+  consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
+}
+
+export type UserCreateWithoutAdminTotpInput = {
+  id?: string
+  email?: string | null
+  emailVerified?: boolean
+  passwordHash?: string | null
+  fullName: string
+  phone?: string | null
+  role: $Enums.UserRole
+  status?: $Enums.UserStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  identities?: Prisma.AuthIdentityCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  consents?: Prisma.ConsentCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutAdminTotpInput = {
+  id?: string
+  email?: string | null
+  emailVerified?: boolean
+  passwordHash?: string | null
+  fullName: string
+  phone?: string | null
+  role: $Enums.UserRole
+  status?: $Enums.UserStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  identities?: Prisma.AuthIdentityUncheckedCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  consents?: Prisma.ConsentUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutAdminTotpInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutAdminTotpInput, Prisma.UserUncheckedCreateWithoutAdminTotpInput>
+}
+
+export type UserUpsertWithoutAdminTotpInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutAdminTotpInput, Prisma.UserUncheckedUpdateWithoutAdminTotpInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutAdminTotpInput, Prisma.UserUncheckedCreateWithoutAdminTotpInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutAdminTotpInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutAdminTotpInput, Prisma.UserUncheckedUpdateWithoutAdminTotpInput>
+}
+
+export type UserUpdateWithoutAdminTotpInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identities?: Prisma.AuthIdentityUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  consents?: Prisma.ConsentUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutAdminTotpInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  identities?: Prisma.AuthIdentityUncheckedUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   consents?: Prisma.ConsentUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -707,6 +820,7 @@ export type UserCreateWithoutConsentsInput = {
   deletedAt?: Date | string | null
   identities?: Prisma.AuthIdentityCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutConsentsInput = {
@@ -723,6 +837,7 @@ export type UserUncheckedCreateWithoutConsentsInput = {
   deletedAt?: Date | string | null
   identities?: Prisma.AuthIdentityUncheckedCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  adminTotp?: Prisma.AdminTotpUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutConsentsInput = {
@@ -755,6 +870,7 @@ export type UserUpdateWithoutConsentsInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   identities?: Prisma.AuthIdentityUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutConsentsInput = {
@@ -771,6 +887,7 @@ export type UserUncheckedUpdateWithoutConsentsInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   identities?: Prisma.AuthIdentityUncheckedUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  adminTotp?: Prisma.AdminTotpUncheckedUpdateOneWithoutUserNestedInput
 }
 
 
@@ -837,6 +954,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   identities?: boolean | Prisma.User$identitiesArgs<ExtArgs>
   refreshTokens?: boolean | Prisma.User$refreshTokensArgs<ExtArgs>
   consents?: boolean | Prisma.User$consentsArgs<ExtArgs>
+  adminTotp?: boolean | Prisma.User$adminTotpArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -887,6 +1005,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   identities?: boolean | Prisma.User$identitiesArgs<ExtArgs>
   refreshTokens?: boolean | Prisma.User$refreshTokensArgs<ExtArgs>
   consents?: boolean | Prisma.User$consentsArgs<ExtArgs>
+  adminTotp?: boolean | Prisma.User$adminTotpArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -898,6 +1017,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     identities: Prisma.$AuthIdentityPayload<ExtArgs>[]
     refreshTokens: Prisma.$RefreshTokenPayload<ExtArgs>[]
     consents: Prisma.$ConsentPayload<ExtArgs>[]
+    adminTotp: Prisma.$AdminTotpPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1314,6 +1434,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   identities<T extends Prisma.User$identitiesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$identitiesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuthIdentityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   refreshTokens<T extends Prisma.User$refreshTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$refreshTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RefreshTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   consents<T extends Prisma.User$consentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$consentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ConsentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  adminTotp<T extends Prisma.User$adminTotpArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$adminTotpArgs<ExtArgs>>): Prisma.Prisma__AdminTotpClient<runtime.Types.Result.GetResult<Prisma.$AdminTotpPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1816,6 +1937,25 @@ export type User$consentsArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   take?: number
   skip?: number
   distinct?: Prisma.ConsentScalarFieldEnum | Prisma.ConsentScalarFieldEnum[]
+}
+
+/**
+ * User.adminTotp
+ */
+export type User$adminTotpArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AdminTotp
+   */
+  select?: Prisma.AdminTotpSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AdminTotp
+   */
+  omit?: Prisma.AdminTotpOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AdminTotpInclude<ExtArgs> | null
+  where?: Prisma.AdminTotpWhereInput
 }
 
 /**

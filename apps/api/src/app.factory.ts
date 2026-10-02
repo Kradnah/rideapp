@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
+import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -52,6 +53,9 @@ export async function configureApp(app: NestFastifyApplication, env: Env): Promi
     credentials: true,
     exposedHeaders: [REQUEST_ID_HEADER],
   });
+
+  // Cookies de sesión del panel (11.1). Sin firma: el refresh token ya es aleatorio e inadivinable.
+  await app.register(cookie);
 
   await app.register(helmet, {
     // El API solo devuelve JSON. Fuera de producción se relaja para que funcione Swagger UI.

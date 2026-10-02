@@ -85,11 +85,42 @@ export const ResetPasswordRequest = z.strictObject({
 });
 export type ResetPasswordRequest = z.infer<typeof ResetPasswordRequest>;
 
-export const AdminTotpRequest = z.strictObject({
+/** Paso 1 del login del panel: credenciales correctas → reto para el código TOTP (8.14). */
+export const AdminLoginChallenge = z.object({
   challengeId: z.string().min(1),
+  /** Segundos que dura el reto. */
+  expiresIn: z.number().int().positive(),
+});
+export type AdminLoginChallenge = z.infer<typeof AdminLoginChallenge>;
+
+export const AdminTotpRequest = z.strictObject({
+  challengeId: z.string().min(1).max(128),
   code: z.string().regex(/^\d{6}$/),
 });
 export type AdminTotpRequest = z.infer<typeof AdminTotpRequest>;
+
+/**
+ * Sesión del panel. El refresh token va en una cookie HttpOnly `__Host-` y nunca en el cuerpo;
+ * el access token se guarda solo en memoria del navegador (11.1, paso 2).
+ */
+export const AdminSession = z.object({
+  accessToken: z.string(),
+  expiresIn: z.number().int().positive(),
+});
+export type AdminSession = z.infer<typeof AdminSession>;
+
+/** Cabecera que debe repetir el valor de la cookie CSRF en las peticiones con cookie (11.1). */
+export const CSRF_HEADER = 'x-csrf-token';
+
+/** Resumen para el dashboard del panel. */
+export const AdminOverview = z.object({
+  users: z.object({
+    passengers: z.number().int().nonnegative(),
+    drivers: z.number().int().nonnegative(),
+    admins: z.number().int().nonnegative(),
+  }),
+});
+export type AdminOverview = z.infer<typeof AdminOverview>;
 
 /** Perfil propio (GET /me). */
 export const Me = z.object({

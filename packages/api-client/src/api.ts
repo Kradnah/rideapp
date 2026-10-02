@@ -1,5 +1,9 @@
 import {
+  AdminLoginChallenge,
+  AdminOverview,
+  AdminSession,
   AutocompleteResponse,
+  CSRF_HEADER,
   HealthResponse,
   Me,
   NearbyDriversResponse,
@@ -75,6 +79,34 @@ export function createApiClient(options: HttpClientOptions) {
           query: { lat, lng },
           schema: NearbyDriversResponse,
         }),
+    },
+
+    /** Panel admin: sesión con cookie HttpOnly + CSRF (11.1). Solo para el navegador del panel. */
+    admin: {
+      login: (body: LoginRequest) =>
+        http.request('POST', '/auth/admin/login', {
+          body,
+          schema: AdminLoginChallenge,
+          auth: false,
+        }),
+      verifyTotp: (challengeId: string, code: string) =>
+        http.request('POST', '/auth/admin/totp', {
+          body: { challengeId, code },
+          schema: AdminSession,
+          auth: false,
+        }),
+      refresh: (csrfToken: string) =>
+        http.request('POST', '/auth/admin/refresh', {
+          schema: AdminSession,
+          auth: false,
+          headers: { [CSRF_HEADER]: csrfToken },
+        }),
+      logout: (csrfToken: string) =>
+        http.request('POST', '/auth/admin/logout', {
+          auth: false,
+          headers: { [CSRF_HEADER]: csrfToken },
+        }),
+      overview: () => http.request('GET', '/admin/overview', { schema: AdminOverview }),
     },
 
     trips: {

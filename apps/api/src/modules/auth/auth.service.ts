@@ -245,8 +245,8 @@ export class AuthService {
         sub: user.id,
         role: user.role,
         sid: result.familyId,
-        // El refresco mantiene la sesión; el método original no se guarda en el refresh token.
-        amr: ['pwd'],
+        // Se conserva cómo se inició la sesión (pwd, google…), guardado en el refresh token.
+        amr: result.amr,
       }),
       expiresIn: this.tokens.accessTtlSeconds,
       refreshToken: result.refresh.raw,
@@ -277,7 +277,7 @@ export class AuthService {
   }
 
   private async issue(user: User, amr: AuthUser['amr'], ctx: RequestContext): Promise<TokenPair> {
-    const refresh = await this.sessions.start(user.id, ctx);
+    const refresh = await this.sessions.start(user.id, ctx, { amr });
     return {
       accessToken: await this.tokens.signAccessToken({
         sub: user.id,

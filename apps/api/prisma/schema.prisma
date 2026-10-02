@@ -52,6 +52,7 @@ model User {
   identities    AuthIdentity[]
   refreshTokens RefreshToken[]
   consents      Consent[]
+  adminTotp     AdminTotp?
 
   @@map("users")
 }
@@ -75,22 +76,40 @@ model AuthIdentity {
 /// Una familia = una sesión (`sid` del access token); si se reutiliza un token ya rotado,
 /// se revoca la familia entera.
 model RefreshToken {
-  id         String    @id @default(uuid(7)) @db.Uuid
-  userId     String    @map("user_id") @db.Uuid
-  familyId   String    @map("family_id") @db.Uuid
-  tokenHash  String    @unique @map("token_hash")
-  userAgent  String?   @map("user_agent")
-  ip         String?
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
-  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
-  replacedBy String?   @map("replaced_by") @db.Uuid
+  id                String    @id @default(uuid(7)) @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  familyId          String    @map("family_id") @db.Uuid
+  tokenHash         String    @unique @map("token_hash")
+  userAgent         String?   @map("user_agent")
+  ip                String?
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt         DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt         DateTime? @map("revoked_at") @db.Timestamptz(3)
+  replacedBy        String?   @map("replaced_by") @db.Uuid
+  /// Métodos de autenticación de la sesión (pwd, google, totp): se conservan al rotar.
+  amr               String[]  @default([])
+  /// Sesiones con caducidad por inactividad (panel admin: 30 min) y absoluta (8 h), 11.2.
+  idleSeconds       Int?      @map("idle_seconds")
+  absoluteExpiresAt DateTime? @map("absolute_expires_at") @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([familyId])
   @@map("refresh_tokens")
+}
+
+/// Segundo factor del panel (8.14). El secreto va cifrado con AES-256-GCM (FIELD_ENCRYPTION_KEY).
+model AdminTotp {
+  userId       String   @id @map("user_id") @db.Uuid
+  secretEnc    String   @map("secret_enc")
+  /// Último intervalo de 30 s aceptado: impide reutilizar un código ya usado.
+  lastUsedStep BigInt?  @map("last_used_step")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_totp")
 }
 
 /// Prueba de la autorización de tratamiento de datos (Ley 1581, sección 15).

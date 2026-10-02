@@ -10,6 +10,7 @@ import { PrismaModule } from './infra/prisma/prisma.module.js';
 import { RedisModule } from './infra/redis/redis.module.js';
 import { RedisService } from './infra/redis/redis.service.js';
 import { RedisThrottlerStorage } from './infra/throttler/redis-throttler.storage.js';
+import { AdminModule } from './modules/admin/admin.module.js';
 import { AuditModule } from './modules/audit/audit.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { GeoModule } from './modules/geo/geo.module.js';
@@ -37,6 +38,7 @@ export class AppModule {
         AuditModule,
         AuthModule,
         UsersModule,
+        AdminModule,
         HealthModule,
         GeoModule,
       ],

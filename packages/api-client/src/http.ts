@@ -43,6 +43,8 @@ export interface RequestOptions<S extends z.ZodType | undefined> {
   /** false para rutas públicas (login, registro...): no envía token ni intenta refrescar. */
   auth?: boolean;
   idempotencyKey?: string;
+  /** Cabeceras adicionales (p. ej. el token CSRF del panel). */
+  headers?: Record<string, string>;
   signal?: AbortSignal;
 }
 
@@ -106,6 +108,7 @@ export class HttpClient {
     if (token) headers['authorization'] = `Bearer ${token}`;
     if (this.options.appVersion) headers['x-app-version'] = this.options.appVersion;
     if (opts.idempotencyKey) headers['idempotency-key'] = opts.idempotencyKey;
+    Object.assign(headers, opts.headers);
 
     // AbortSignal.timeout/any no existen en todos los motores (Hermes): se combina a mano.
     const controller = new AbortController();

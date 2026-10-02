@@ -18,6 +18,7 @@ export function testEnv(overrides: Record<string, string> = {}): Env {
     CORS_ORIGINS: 'http://localhost:5173',
     JWT_PRIVATE_KEY: TEST_JWT_KEY,
     JWT_KID: 'test-1',
+    FIELD_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
     ...overrides,
   });
 }

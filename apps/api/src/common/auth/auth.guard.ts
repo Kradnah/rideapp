@@ -4,7 +4,12 @@ import type { UserRole } from '@rideapp/contracts';
 import { SessionRevocationService } from '../../modules/auth/session-revocation.service.js';
 import { TokenService } from '../../modules/auth/token.service.js';
 import { ApiException } from '../errors/api.exception.js';
-import { type AuthenticatedRequest, IS_PUBLIC_KEY, ROLES_KEY } from './auth.decorators.js';
+import {
+  type AuthenticatedRequest,
+  IS_PUBLIC_KEY,
+  REQUIRE_TOTP_KEY,
+  ROLES_KEY,
+} from './auth.decorators.js';
 
 /**
  * Guard global: exige un access token válido salvo en rutas @Public() y aplica @Roles().
@@ -40,6 +45,12 @@ export class AuthGuard implements CanActivate {
     const roles = this.reflector.getAllAndOverride<UserRole[] | undefined>(ROLES_KEY, targets);
     if (roles && !roles.includes(claims.role)) {
       throw new ApiException(403, 'FORBIDDEN', 'Sin permiso');
+    }
+    if (
+      this.reflector.getAllAndOverride<boolean>(REQUIRE_TOTP_KEY, targets) &&
+      !claims.amr.includes('totp')
+    ) {
+      throw new ApiException(403, 'FORBIDDEN', 'Se requiere el segundo factor');
     }
     return true;
   }

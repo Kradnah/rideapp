@@ -400,6 +400,7 @@ export const ModelName = {
   User: 'User',
   AuthIdentity: 'AuthIdentity',
   RefreshToken: 'RefreshToken',
+  AdminTotp: 'AdminTotp',
   Consent: 'Consent',
   AuditLog: 'AuditLog'
 } as const
@@ -417,7 +418,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "authIdentity" | "refreshToken" | "consent" | "auditLog"
+    modelProps: "user" | "authIdentity" | "refreshToken" | "adminTotp" | "consent" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -640,6 +641,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.RefreshTokenCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.RefreshTokenCountAggregateOutputType> | number
+        }
+      }
+    }
+    AdminTotp: {
+      payload: Prisma.$AdminTotpPayload<ExtArgs>
+      fields: Prisma.AdminTotpFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AdminTotpFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdminTotpPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AdminTotpFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdminTotpPayload>
+        }
+        findFirst: {
+          args: Prisma.AdminTotpFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdminTotpPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AdminTotpFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdminTotpPayload>
+        }
+        findMany: {
+          args: Prisma.AdminTotpFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdminTotpPayload>[]
+        }
+        create: {
+          args: Prisma.AdminTotpCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdminTotpPayload>
+        }
+        createMany: {
+          args: Prisma.AdminTotpCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AdminTotpCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdminTotpPayload>[]
+        }
+        delete: {
+          args: Prisma.AdminTotpDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdminTotpPayload>
+        }
+        update: {
+          args: Prisma.AdminTotpUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdminTotpPayload>
+        }
+        deleteMany: {
+          args: Prisma.AdminTotpDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AdminTotpUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AdminTotpUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdminTotpPayload>[]
+        }
+        upsert: {
+          args: Prisma.AdminTotpUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdminTotpPayload>
+        }
+        aggregate: {
+          args: Prisma.AdminTotpAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAdminTotp>
+        }
+        groupBy: {
+          args: Prisma.AdminTotpGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AdminTotpGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AdminTotpCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AdminTotpCountAggregateOutputType> | number
         }
       }
     }
@@ -868,10 +943,23 @@ export const RefreshTokenScalarFieldEnum = {
   createdAt: 'createdAt',
   expiresAt: 'expiresAt',
   revokedAt: 'revokedAt',
-  replacedBy: 'replacedBy'
+  replacedBy: 'replacedBy',
+  amr: 'amr',
+  idleSeconds: 'idleSeconds',
+  absoluteExpiresAt: 'absoluteExpiresAt'
 } as const
 
 export type RefreshTokenScalarFieldEnum = (typeof RefreshTokenScalarFieldEnum)[keyof typeof RefreshTokenScalarFieldEnum]
+
+
+export const AdminTotpScalarFieldEnum = {
+  userId: 'userId',
+  secretEnc: 'secretEnc',
+  lastUsedStep: 'lastUsedStep',
+  createdAt: 'createdAt'
+} as const
+
+export type AdminTotpScalarFieldEnum = (typeof AdminTotpScalarFieldEnum)[keyof typeof AdminTotpScalarFieldEnum]
 
 
 export const ConsentScalarFieldEnum = {
@@ -1025,6 +1113,34 @@ export type ListEnumAuthProviderFieldRefInput<$PrismaModel> = FieldRefInputType<
 
 
 /**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BigInt'
+ */
+export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
+    
+
+
+/**
+ * Reference to a field of type 'BigInt[]'
+ */
+export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
+    
+
+
+/**
  * Reference to a field of type 'Json'
  */
 export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
@@ -1039,16 +1155,16 @@ export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$Prisma
 
 
 /**
- * Reference to a field of type 'Int'
+ * Reference to a field of type 'Float'
  */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
     
 
 
 /**
- * Reference to a field of type 'Int[]'
+ * Reference to a field of type 'Float[]'
  */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
 
 /**
@@ -1205,6 +1321,7 @@ export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   authIdentity?: Prisma.AuthIdentityOmit
   refreshToken?: Prisma.RefreshTokenOmit
+  adminTotp?: Prisma.AdminTotpOmit
   consent?: Prisma.ConsentOmit
   auditLog?: Prisma.AuditLogOmit
 }

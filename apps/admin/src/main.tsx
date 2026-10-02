@@ -4,6 +4,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import { App } from './App';
+import { AdminSessionProvider } from './lib/session';
 import './styles.css';
 
 const queryClient = new QueryClient({
@@ -13,9 +14,11 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <AdminSessionProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </AdminSessionProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

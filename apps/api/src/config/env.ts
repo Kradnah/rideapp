@@ -68,6 +68,11 @@ export const EnvSchema = z
     ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(900).default(900),
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
 
+    /** Clave AES-256-GCM (32 bytes en base64) para cifrar columnas sensibles: secretos TOTP, licencias (8.4). */
+    FIELD_ENCRYPTION_KEY: z
+      .string()
+      .refine((v) => Buffer.from(v, 'base64').length === 32, 'Deben ser 32 bytes en base64'),
+
     /** Client ID "Aplicación web" de Google: audience del idToken (8.2). Sin él, /auth/google responde 404. */
     GOOGLE_WEB_CLIENT_ID: z
       .string()

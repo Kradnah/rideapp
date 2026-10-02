@@ -19,6 +19,22 @@ pnpm --filter @rideapp/api dev               # http://127.0.0.1:3000/api  ·  Sw
 | `POST /api/auth/logout` · `/logout-all` | Cierra la sesión actual o todas                                        |
 | `GET` · `PATCH /api/me`                 | Perfil propio                                                          |
 
+| `POST /api/auth/google` | idToken de Google → tokens (consentimiento al crear la cuenta) |
+| `POST /api/auth/admin/login` → `/totp` | Login del panel: contraseña → código TOTP → cookie de sesión |
+| `POST /api/auth/admin/refresh` · `/logout` | Con la cookie `__Host-` y la cabecera `X-CSRF-Token` |
+| `GET /api/admin/overview` | Solo admin con TOTP |
+
+## Crear un administrador
+
+Los admins no se registran por el API (8.14). El comando pide la contraseña sin mostrarla y enseña **una sola vez** el QR para Google Authenticator o Aegis:
+
+```bash
+# Local
+pnpm --filter @rideapp/api cli:create-admin -- --email ana@ejemplo.com --name "Ana Admin"
+# Producción (en el VPS)
+sudo docker exec -it $(sudo docker ps -q -f name=rideapp-api | head -1) node dist/cli/create-admin.js --email ana@ejemplo.com --name "Ana Admin"
+```
+
 Todas las rutas exigen `Authorization: Bearer <access token>` salvo las marcadas con `@Public()`.
 
 ## Estructura

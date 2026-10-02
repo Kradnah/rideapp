@@ -7,6 +7,7 @@ const base = {
   REDIS_URL: 'redis://:secreto@127.0.0.1:6379',
   JWT_PRIVATE_KEY: TEST_JWT_KEY,
   JWT_KID: 'test-1',
+  FIELD_ENCRYPTION_KEY: Buffer.alloc(32, 1).toString('base64'),
 };
 
 describe('parseEnv', () => {

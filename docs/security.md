@@ -35,6 +35,25 @@ Checklist completa en la sección 14 del plan. Aquí se registran las decisiones
 
 Clave JWT de producción: generada en el VPS con openssl y guardada solo en Dokploy (`JWT_KID=2026-10`).
 
+## Login con Google (Fase 1c)
+
+- `verifyIdToken` con `audience` = Client ID web; `iss` de Google; `email_verified` obligatorio.
+- Usuario identificado por `sub` (`auth_identities`), nunca por el email.
+- Anti-replay: cada idToken abre como máximo una sesión (`google:idtoken:*` en Redis hasta su `exp`).
+- **No se vincula** automáticamente una cuenta con contraseña cuyo email no esté verificado (toma de cuenta); si está verificado, se vincula y se audita (`auth.google_linked`). Pendiente (1b): avisar por correo.
+
+## Panel admin (Fase 1e)
+
+| Control (8.14, 11.1, 11.2) | Implementación                                                                                                                   |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Sin registro público       | CLI `create-admin` dentro del contenedor                                                                                         |
+| TOTP obligatorio           | Reto de 5 min tras la contraseña; ±1 intervalo; **cada código vale una vez** (`last_used_step`); bloqueo tras 5 fallos           |
+| Secreto TOTP cifrado       | AES-256-GCM con `FIELD_ENCRYPTION_KEY` (generada en el VPS, solo en Dokploy)                                                     |
+| Sesión con cookies         | Refresh token en `__Host-rideapp_admin_rt` (HttpOnly, Secure, SameSite=Strict, Path=/, sin Domain); access token solo en memoria |
+| CSRF                       | Double-submit: cookie `__Host-rideapp_admin_csrf` + cabecera `X-CSRF-Token` en refresh y logout                                  |
+| Caducidad                  | 30 min de inactividad y 8 h como máximo                                                                                          |
+| `/admin/*`                 | `@AdminOnly()`: rol ADMIN **y** `amr` con `totp`                                                                                 |
+
 ## Pendiente o a vigilar
 
 - **Postgres en producción:** el API usa el rol `rideapp_app` (sin superusuario, dueño del esquema `public`). PostGIS no es una extensión _trusted_: si una migración futura necesita otra extensión, la crea antes el superusuario `rideapp`.

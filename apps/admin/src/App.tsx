@@ -1,6 +1,8 @@
 import { NavLink, Outlet, Route, Routes } from 'react-router';
 import { ApiStatus } from './components/ApiStatus';
+import { useAdminSession } from './lib/session-context';
 import { Dashboard } from './pages/Dashboard';
+import { Login } from './pages/Login';
 import { Placeholder } from './pages/Placeholder';
 
 /** Menú del panel (11.1, paso 3). */
@@ -14,6 +16,7 @@ const NAV = [
 ] as const;
 
 function Layout() {
+  const { signOut } = useAdminSession();
   return (
     <div className="shell">
       <aside className="sidebar">
@@ -26,6 +29,9 @@ function Layout() {
           ))}
         </nav>
         <ApiStatus />
+        <button type="button" className="btn btn--ghost" onClick={() => void signOut()}>
+          Cerrar sesión
+        </button>
       </aside>
       <main className="content">
         <Outlet />
@@ -35,6 +41,9 @@ function Layout() {
 }
 
 export function App() {
+  const { status } = useAdminSession();
+  if (status === 'loading') return <div className="splash" aria-busy="true" />;
+  if (status === 'signedOut') return <Login />;
   return (
     <Routes>
       <Route element={<Layout />}>

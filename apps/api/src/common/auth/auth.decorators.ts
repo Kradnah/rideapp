@@ -1,9 +1,15 @@
-import { createParamDecorator, type ExecutionContext, SetMetadata } from '@nestjs/common';
+import {
+  applyDecorators,
+  createParamDecorator,
+  type ExecutionContext,
+  SetMetadata,
+} from '@nestjs/common';
 import type { AccessTokenClaims, UserRole } from '@rideapp/contracts';
 import type { FastifyRequest } from 'fastify';
 
 export const IS_PUBLIC_KEY = 'auth:isPublic';
 export const ROLES_KEY = 'auth:roles';
+export const REQUIRE_TOTP_KEY = 'auth:requireTotp';
 
 /** Usuario autenticado, tal como lo deja el AuthGuard en la petición. */
 export interface AuthUser {
@@ -21,6 +27,9 @@ export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 
 /** Restringe la ruta a ciertos roles (8.1, paso 2). */
 export const Roles = (...roles: UserRole[]) => SetMetadata(ROLES_KEY, roles);
+
+/** Rutas del panel: rol ADMIN y sesión que pasó el TOTP (`amr` con 'totp'), 8.14. */
+export const AdminOnly = () => applyDecorators(Roles('ADMIN'), SetMetadata(REQUIRE_TOTP_KEY, true));
 
 export const CurrentUser = createParamDecorator((_data: unknown, ctx: ExecutionContext) => {
   const user = ctx.switchToHttp().getRequest<AuthenticatedRequest>().user;

@@ -1,5 +1,10 @@
 import { Global, Module } from '@nestjs/common';
+import { FieldCrypto } from '../../common/crypto/field-crypto.js';
+import { ENV } from '../../config/config.module.js';
+import type { Env } from '../../config/env.js';
 import { UsersModule } from '../users/users.module.js';
+import { AdminAuthController } from './admin-auth.controller.js';
+import { AdminAuthService } from './admin-auth.service.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { GOOGLE_VERIFIER, GoogleAuthLibraryVerifier } from './google-verifier.js';
@@ -12,15 +17,21 @@ import { TokenService } from './token.service.js';
 @Global()
 @Module({
   imports: [UsersModule],
-  controllers: [AuthController],
+  controllers: [AuthController, AdminAuthController],
   providers: [
     AuthService,
+    AdminAuthService,
+    {
+      provide: FieldCrypto,
+      inject: [ENV],
+      useFactory: (env: Env) => new FieldCrypto(env.FIELD_ENCRYPTION_KEY),
+    },
     PasswordService,
     SessionService,
     SessionRevocationService,
     TokenService,
     { provide: GOOGLE_VERIFIER, useClass: GoogleAuthLibraryVerifier },
   ],
-  exports: [TokenService, SessionRevocationService, SessionService],
+  exports: [TokenService, SessionRevocationService, SessionService, FieldCrypto],
 })
 export class AuthModule {}
