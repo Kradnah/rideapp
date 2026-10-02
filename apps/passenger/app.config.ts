@@ -17,7 +17,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: 'rideapp',
   slug: 'rideapp-passenger',
   scheme: 'rideapp-passenger',
-  version: '0.4.0',
+  version: '0.5.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
