@@ -19,3 +19,20 @@ minimumReleaseAgeExclude:
   - '@turbo/windows-arm64@2.11.6'
   - globals@17.13.0
   - turbo@2.11.6
+  - vite@8.3.2
+
+# Versiones compartidas. React lo fija Expo SDK 57: el admin usa la misma para que
+# solo exista una copia de React en el node_modules plano.
+catalog:
+  react: 19.2.3
+  react-dom: 19.2.3
+  '@types/react': ~19.2.18
+  '@types/react-dom': ~19.2.0
+  zod: ^4.6.5
+  typescript: ~6.0.3
+  vitest: ^5.0.3
+
+# Una sola copia de React en todo el monorepo (la CLI de Prisma trae otra como peer de Prisma Studio).
+overrides:
+  react: 'catalog:'
+  react-dom: 'catalog:'

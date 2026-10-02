@@ -23,3 +23,10 @@ Checklist completa en la sección 14 del plan. Aquí se registran las decisiones
 - **PostGIS en Dokploy:** no es una extensión _trusted_. Antes del primer `migrate deploy`, un superusuario debe ejecutar `CREATE EXTENSION postgis; CREATE EXTENSION citext;` en `rideapp`. Lo ideal es que la app use después un rol sin superusuario (en Dokploy el `POSTGRES_USER` es superusuario).
 - `TRUST_PROXY=true` en Dokploy (detrás de Traefik); si no, todas las peticiones parecen venir de la IP de Traefik y el rate limiting las agrupa.
 - Límites estrictos en `/auth/*` (Fase 1).
+
+## Panel admin (Fase 0)
+
+- nginx con CSP, `X-Frame-Options DENY`, HSTS, `nosniff`, `Referrer-Policy` y `Permissions-Policy` (`apps/admin/nginx/`).
+- **Excepción a 11.2:** `style-src` incluye `'unsafe-inline'` porque Google Maps JS inyecta estilos en línea (guía oficial de CSP de Maps). `script-src` **no** lleva `unsafe-inline` ni `unsafe-eval`.
+- Zod en modo `jitless` en el navegador, para no necesitar `unsafe-eval` (`apps/admin/src/zod-config.ts`).
+- ESLint prohíbe `dangerouslySetInnerHTML`.

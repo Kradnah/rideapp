@@ -1,0 +1,37 @@
+{
+  "name": "@rideapp/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rideapp/contracts": "workspace:*",
+    "socket.io-client": "^4.8.4",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@rideapp/config": "workspace:*",
+    "@rideapp/mock-server": "workspace:*",
+    "@types/node": "^24.0.0",
+    "eslint": "^10.0.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
