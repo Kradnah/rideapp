@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/.turbo
+**/coverage
+**/src/generated
+.git
+.husky
+**/.env*
+!**/.env.example
+**/*.pem
+**/*.key
+**/.expo
+**/android
+**/ios

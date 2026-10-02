@@ -1,0 +1,13 @@
+// Esquema de rideapp. La URL de la BD está en prisma.config.ts (Prisma 7).
+// Las columnas geography (PostGIS) se declaran como Unsupported(...) y se gestionan con SQL en la migración.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}

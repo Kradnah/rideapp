@@ -1,0 +1,12 @@
+{
+  "extends": "@rideapp/config/tsconfig.node.json",
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["src"]
+}

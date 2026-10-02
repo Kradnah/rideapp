@@ -1,0 +1,10 @@
+{
+  "extends": "@rideapp/config/tsconfig.node.json",
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "rootDir": ".",
+    "noEmit": true
+  },
+  "include": ["src", "test", "prisma.config.ts", "vitest.config.ts"]
+}

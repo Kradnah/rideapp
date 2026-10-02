@@ -3,3 +3,5 @@ dist
 .turbo
 coverage
 PLAN_DE_TRABAJO.md
+AGENTS.md
+**/src/generated

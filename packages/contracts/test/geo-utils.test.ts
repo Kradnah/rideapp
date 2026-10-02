@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { DEMO_DRIVER_ROUTE, FIXTURE_PLACES, searchFixturePlaces } from '../src/fixtures.js';
 import {
-  DEMO_DRIVER_ROUTE,
-  FIXTURE_PLACES,
-  searchFixturePlaces,
-} from '../src/fixtures.js';
-import { decodePolyline, encodePolyline, haversineMeters, isInServiceAreaBounds } from '../src/index.js';
+  decodePolyline,
+  encodePolyline,
+  haversineMeters,
+  isInServiceAreaBounds,
+} from '../src/index.js';
 
 describe('polilíneas', () => {
   it('codifica el ejemplo de la documentación de Google', () => {

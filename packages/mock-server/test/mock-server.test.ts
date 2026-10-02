@@ -29,7 +29,12 @@ async function register() {
   const res = await mock.app.inject({
     method: 'POST',
     url: '/api/auth/register',
-    payload: { email: 'ana@example.com', password: 'una-clave-larga', fullName: 'Ana', role: 'PASSENGER' },
+    payload: {
+      email: 'ana@example.com',
+      password: 'una-clave-larga',
+      fullName: 'Ana',
+      role: 'PASSENGER',
+    },
   });
   expect(res.statusCode).toBe(201);
   return TokenPair.parse(res.json());
@@ -50,7 +55,12 @@ describe('auth', () => {
     const res = await mock.app.inject({
       method: 'POST',
       url: '/api/auth/register',
-      payload: { email: 'x@example.com', password: 'una-clave-larga', fullName: 'X', role: 'ADMIN' },
+      payload: {
+        email: 'x@example.com',
+        password: 'una-clave-larga',
+        fullName: 'X',
+        role: 'ADMIN',
+      },
     });
     expect(res.statusCode).toBe(400);
     expect(ApiError.parse(res.json()).code).toBe('VALIDATION_FAILED');
@@ -148,7 +158,9 @@ describe('socket', () => {
     const url = `http://127.0.0.1:${port}`;
 
     const anon = connect(url, { transports: ['websocket'], reconnection: false });
-    const rejected = await new Promise<string>((resolve) => anon.on('connect_error', (e) => resolve(e.message)));
+    const rejected = await new Promise<string>((resolve) =>
+      anon.on('connect_error', (e) => resolve(e.message)),
+    );
     expect(rejected).toBe('UNAUTHORIZED');
     anon.close();
 
@@ -156,7 +168,9 @@ describe('socket', () => {
     const client = connect(url, { transports: ['websocket'], auth: { token: accessToken } });
     await new Promise<void>((resolve) => client.on('connect', resolve));
 
-    const received = new Promise<unknown>((resolve) => client.on('trip.driverLocation.v1', resolve));
+    const received = new Promise<unknown>((resolve) =>
+      client.on('trip.driverLocation.v1', resolve),
+    );
     mock.emitDemoTripLocation();
     expect(TripDriverLocationV1.parse(await received).tripId).toBe(DEMO_TRIP_ID);
 

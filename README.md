@@ -18,13 +18,13 @@ pnpm turbo run build typecheck lint test
 
 ## Estructura
 
-| Carpeta | Contenido |
-|---|---|
-| `apps/api` | API NestJS |
-| `apps/passenger`, `apps/driver` | Apps Expo |
-| `apps/admin` | Panel web |
-| `packages/contracts` | Esquemas Zod compartidos: **fuente única de verdad** |
-| `packages/config` | tsconfig y ESLint compartidos |
-| `packages/mock-server` | API falsa para desarrollar clientes sin backend |
-| `infra/` | docker-compose local, zona de servicio, despliegue |
-| `docs/adr/` | Decisiones de arquitectura |
+| Carpeta                         | Contenido                                            |
+| ------------------------------- | ---------------------------------------------------- |
+| `apps/api`                      | API NestJS                                           |
+| `apps/passenger`, `apps/driver` | Apps Expo                                            |
+| `apps/admin`                    | Panel web                                            |
+| `packages/contracts`            | Esquemas Zod compartidos: **fuente única de verdad** |
+| `packages/config`               | tsconfig y ESLint compartidos                        |
+| `packages/mock-server`          | API falsa para desarrollar clientes sin backend      |
+| `infra/`                        | docker-compose local, zona de servicio, despliegue   |
+| `docs/adr/`                     | Decisiones de arquitectura                           |

@@ -104,7 +104,12 @@ export function buildMockServer(options: MockServerOptions = {}) {
       refreshToken: `${REFRESH_PREFIX}${user.id}.${randomUUID()}`,
     });
 
-  const createUser = (email: string | null, fullName: string, role: UserRole, password: string | null) => {
+  const createUser = (
+    email: string | null,
+    fullName: string,
+    role: UserRole,
+    password: string | null,
+  ) => {
     const user: MockUser = {
       id: randomUUID(),
       email,
@@ -148,7 +153,9 @@ export function buildMockServer(options: MockServerOptions = {}) {
   });
 
   app.setNotFoundHandler((req, reply) => {
-    void reply.status(404).send({ code: 'NOT_FOUND', message: 'Ruta no encontrada', requestId: req.id });
+    void reply
+      .status(404)
+      .send({ code: 'NOT_FOUND', message: 'Ruta no encontrada', requestId: req.id });
   });
 
   void app.register(cors, { origin: true });
@@ -278,7 +285,11 @@ export function buildMockServer(options: MockServerOptions = {}) {
         return send(QuoteResponse, {
           quoteId: randomUUID(),
           amount: {
-            amountCents: computeFare(DEMO_FARE_RULES[body.category], distanceMeters, durationSeconds),
+            amountCents: computeFare(
+              DEMO_FARE_RULES[body.category],
+              distanceMeters,
+              durationSeconds,
+            ),
             currency: DEFAULT_CURRENCY,
           },
           distanceMeters,

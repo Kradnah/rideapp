@@ -21,3 +21,4 @@ ios/
 # Sistema
 .DS_Store
 Thumbs.db
+src/generated/
