@@ -1,5 +1,5 @@
 import { GIRARDOT_CENTER, type LatLng } from '@rideapp/contracts';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View, useColorScheme } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, type EdgePadding } from 'react-native-maps';
 import { colors } from '@rideapp/ui';
@@ -15,6 +15,13 @@ export interface BaseMapProps {
   showsUserLocation?: boolean;
   /** Si cambia, la cámara se mueve hasta ese punto (p. ej. la ubicación del usuario). */
   center?: LatLng | null;
+  /** Encuadra estos puntos (p. ej. la ruta cotizada) respetando `mapPadding`. */
+  fitTo?: LatLng[] | null;
+  /**
+   * Centro de la cámara (el del área sin `mapPadding`) cuando el usuario deja de mover el mapa,
+   * para "fijar en el mapa" (9.3, paso 2).
+   */
+  onRegionChangeComplete?: (center: LatLng) => void;
   children?: ReactNode;
 }
 
@@ -31,6 +38,8 @@ export function BaseMap({
   mapPadding,
   showsUserLocation = false,
   center,
+  fitTo,
+  onRegionChangeComplete,
   children,
 }: BaseMapProps) {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
@@ -47,6 +56,26 @@ export function BaseMap({
       { duration: 600 },
     );
   }, [mapReady, center]);
+
+  // Clave por valor: un array nuevo con los mismos puntos no vuelve a mover la cámara.
+  const fitKey = fitTo?.map((p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join('|') ?? '';
+  const fitPoints = useMemo(
+    () =>
+      fitKey
+        ? fitKey.split('|').map((pair) => {
+            const [latitude, longitude] = pair.split(',').map(Number);
+            return { latitude: latitude!, longitude: longitude! };
+          })
+        : null,
+    [fitKey],
+  );
+  useEffect(() => {
+    if (!mapReady || !fitPoints) return;
+    mapRef.current?.fitToCoordinates(fitPoints, {
+      edgePadding: { top: 60, right: 50, bottom: 60, left: 50 },
+      animated: true,
+    });
+  }, [mapReady, fitPoints]);
 
   if (!enabled) {
     return (
@@ -68,6 +97,18 @@ export function BaseMap({
       initialRegion={INITIAL_REGION}
       mapPadding={mapReady ? mapPadding : undefined}
       onMapReady={() => setMapReady(true)}
+      onRegionChangeComplete={
+        onRegionChangeComplete
+          ? () => {
+              // El centro de la cámara respeta mapPadding; el de la región visible, no.
+              void mapRef.current?.getCamera().then(
+                ({ center }) =>
+                  onRegionChangeComplete({ lat: center.latitude, lng: center.longitude }),
+                () => undefined,
+              );
+            }
+          : undefined
+      }
       showsUserLocation={showsUserLocation}
       showsMyLocationButton={false}
       toolbarEnabled={false}

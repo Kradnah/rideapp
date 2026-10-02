@@ -38,6 +38,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'ACCESS_BACKGROUND_LOCATION',
       'FOREGROUND_SERVICE',
       'FOREGROUND_SERVICE_LOCATION',
+      // Vibración al llegar una oferta de viaje (10.3, paso 1).
+      'VIBRATE',
     ],
     // Las fotos de documentos se eligen con el selector del sistema: sin acceso a toda la galería.
     blockedPermissions: [

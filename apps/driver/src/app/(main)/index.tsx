@@ -1,10 +1,16 @@
 import { ApiClientError } from '@rideapp/api-client';
-import type { DriverAvailabilityV1 } from '@rideapp/contracts';
+import type {
+  DriverAvailabilityV1,
+  DriverOffer,
+  TripOfferCancelledV1,
+  TripStatusV1,
+} from '@rideapp/contracts';
 import { BaseMap, colors, radius, spacing, useSession } from '@rideapp/mobile-core';
-import { useQueryClient } from '@tanstack/react-query';
+import { Button } from '@rideapp/ui';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { Redirect, router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,9 +26,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { config } from '@/lib/config';
 import { DRIVER_ACCOUNT_KEY, driverError, useDriverAccount } from '@/lib/driver-account';
 import { locationReporter, type ReporterMode } from '@/lib/location-reporter';
+import { OfferCard } from '@/components/OfferCard';
+import { activeTripKey, TRIPS_KEY, tripKey } from '@/lib/trip-queries';
 import { useDriverSocket } from '@/lib/use-driver-socket';
 
 const INACTIVE_MESSAGE = 'Te desconectamos porque no recibimos tu ubicación. Vuelve a conectarte.';
+
+const OFFER_GONE: Record<TripOfferCancelledV1['reason'], string> = {
+  EXPIRED: 'La solicitud caducó sin respuesta.',
+  CANCELLED: 'El pasajero canceló la solicitud.',
+  TAKEN: 'Otro conductor tomó el viaje.',
+};
 
 /** Pide los permisos explicando antes para qué (9.2, paso 2; 10.2). */
 async function askLocationPermissions(): Promise<'background' | 'foreground' | 'denied'> {
@@ -91,7 +105,91 @@ export default function DriverHomeScreen() {
     [forceOffline],
   );
 
-  const { socket, connected } = useDriverSocket(online, onAvailability);
+  // ---------- Ofertas de viaje (10.3) ----------
+  const [offer, setOffer] = useState<DriverOffer | null>(null);
+  const [offerBusy, setOfferBusy] = useState<'accept' | 'reject' | null>(null);
+  const offerRef = useRef(offer);
+  useEffect(() => {
+    offerRef.current = offer;
+  }, [offer]);
+
+  const activeTrip = useQuery({
+    queryKey: activeTripKey,
+    queryFn: () => api.trips.active(),
+    enabled: account.data?.status === 'APPROVED',
+  });
+  const currentTrip = activeTrip.data?.trip ?? null;
+
+  const handlers = useMemo(
+    () => ({
+      onAvailability,
+      onOffer: (e: DriverOffer) => {
+        setMessage(null);
+        setOffer(e);
+      },
+      onOfferCancelled: (e: TripOfferCancelledV1) => {
+        if (offerRef.current?.tripId !== e.tripId) return;
+        setOffer(null);
+        setMessage(OFFER_GONE[e.reason]);
+      },
+      onTripStatus: (_e: TripStatusV1) => {
+        void queryClient.invalidateQueries({ queryKey: TRIPS_KEY });
+      },
+      // Al (re)conectar se recupera la oferta que pudo llegar mientras no había socket.
+      onConnect: () => {
+        void api.drivers.offer().then(
+          (res) => setOffer(res.offer),
+          () => undefined,
+        );
+        void queryClient.invalidateQueries({ queryKey: TRIPS_KEY });
+      },
+    }),
+    [api, onAvailability, queryClient],
+  );
+
+  const { socket, connected } = useDriverSocket(online, handlers);
+
+  // Si se perdió el aviso de caducidad, la oferta se retira sola poco después de vencer.
+  useEffect(() => {
+    if (!offer) return;
+    const ms = new Date(offer.expiresAt).getTime() - Date.now() + 3_000;
+    const timer = setTimeout(() => setOffer(null), Math.max(0, ms));
+    return () => clearTimeout(timer);
+  }, [offer]);
+
+  const acceptOffer = async () => {
+    if (!offer) return;
+    setOfferBusy('accept');
+    try {
+      const trip = await api.trips.accept(offer.tripId);
+      setOffer(null);
+      queryClient.setQueryData(tripKey(trip.id), trip);
+      void queryClient.invalidateQueries({ queryKey: activeTripKey });
+      router.push(`/trip/${trip.id}`);
+    } catch (err) {
+      setOffer(null);
+      setMessage(
+        err instanceof ApiClientError && err.status === 409
+          ? 'Este viaje ya no está disponible.'
+          : driverError(err),
+      );
+    } finally {
+      setOfferBusy(null);
+    }
+  };
+
+  const rejectOffer = async () => {
+    if (!offer) return;
+    setOfferBusy('reject');
+    try {
+      await api.trips.reject(offer.tripId);
+    } catch {
+      // Si ya caducó o se canceló, da igual: se retira de la pantalla.
+    } finally {
+      setOffer(null);
+      setOfferBusy(null);
+    }
+  };
 
   // Con el socket listo, se empieza a enviar la ubicación; al salir de línea, se para todo.
   useEffect(() => {
@@ -199,6 +297,20 @@ export default function DriverHomeScreen() {
           },
         ]}
       >
+        {offer && (
+          <OfferCard
+            offer={offer}
+            busy={offerBusy}
+            onAccept={() => void acceptOffer()}
+            onReject={() => void rejectOffer()}
+          />
+        )}
+        {currentTrip && (
+          <Button
+            label="Tienes un viaje en curso · Ver"
+            onPress={() => router.push(`/trip/${currentTrip.id}`)}
+          />
+        )}
         <View style={styles.row}>
           <View style={styles.flex}>
             <Text style={[styles.title, { color: palette.text }]}>

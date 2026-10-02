@@ -1,12 +1,13 @@
 import { GIRARDOT_CENTER } from '@rideapp/contracts';
 import { BaseMap, colors, radius, spacing, useSession } from '@rideapp/mobile-core';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
 import { Marker } from 'react-native-maps';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { config } from '@/lib/config';
+import { useTripDraft } from '@/lib/trip-draft';
 import { usePassengerLocation } from '@/lib/use-passenger-location';
 
 const PANEL_HEIGHT = 190;
@@ -18,7 +19,30 @@ export default function HomeScreen() {
   const { api } = useSession();
   const [panelHeight, setPanelHeight] = useState(PANEL_HEIGHT);
   const location = usePassengerLocation();
+  const draft = useTripDraft();
   const origin = location.position && location.inServiceArea ? location.position : GIRARDOT_CENTER;
+
+  // Al abrir la app con un viaje en curso, se retoma directamente (9.4, paso 3).
+  const active = useQuery({
+    queryKey: ['trips', 'active'],
+    queryFn: () => api.trips.active(),
+    staleTime: 0,
+  });
+  const activeTripId = active.data?.trip?.id;
+  useEffect(() => {
+    if (activeTripId) router.replace(`/trip/${activeTripId}`);
+  }, [activeTripId]);
+
+  const startSearch = () => {
+    // Recogida por defecto: donde está el pasajero. Sin GPS (o fuera de zona), la elige en el mapa.
+    draft.setOrigin(
+      location.position && location.inServiceArea
+        ? { location: location.position, address: null }
+        : null,
+    );
+    draft.setDestination(null);
+    router.push('/search');
+  };
 
   const health = useQuery({
     queryKey: ['health'],
@@ -133,8 +157,8 @@ export default function HomeScreen() {
         )}
         <Pressable
           accessibilityRole="button"
-          accessibilityState={{ disabled: true }}
-          accessibilityHint="Disponible en la Fase 3"
+          accessibilityHint="Busca tu destino"
+          onPress={startSearch}
           style={[styles.search, { borderColor: palette.border, backgroundColor: palette.bg }]}
         >
           <Text style={[styles.searchText, { color: palette.textMuted }]}>¿A dónde vas?</Text>
