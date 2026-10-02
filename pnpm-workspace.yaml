@@ -36,3 +36,6 @@ catalog:
 overrides:
   react: 'catalog:'
   react-dom: 'catalog:'
+  # Dependencias de la CLI de Prisma con avisos de seguridad (pnpm audit, 7.8).
+  mysql2: ^3.23.1
+  deepmerge-ts: ^8.0.0

@@ -1,0 +1,6 @@
+# Comprobaciones antes de subir (7.8). Un push a main despliega la demo (13.5).
+set -e
+pnpm install --frozen-lockfile
+pnpm turbo run lint typecheck test
+pnpm audit --prod --audit-level high
+sh scripts/gitleaks.sh history

@@ -1,6 +1,7 @@
 {
   "name": "rideapp",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@12.8.1",
   "engines": {
     "node": ">=22"
@@ -14,10 +15,16 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "infra:up": "docker compose -f infra/docker-compose.yml --env-file infra/.env up -d",
-    "infra:down": "docker compose -f infra/docker-compose.yml --env-file infra/.env down"
+    "infra:down": "docker compose -f infra/docker-compose.yml --env-file infra/.env down",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@rideapp/config": "workspace:*",
     "eslint": "^10.11.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
     "prettier": "^3.9.9",
     "turbo": "^2.11.6",
     "typescript": "~6.0.3"
