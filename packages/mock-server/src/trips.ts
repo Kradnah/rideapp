@@ -15,9 +15,13 @@ import {
   type LatLng,
   QuoteRequest,
   QuoteResponse,
+  RATING_WINDOW_DAYS,
+  RateTripRequest,
   type ServerToClientEvents,
   type TripDriverLocation,
   TripDriverLocationResponse,
+  TripHistory,
+  TripHistoryQuery,
   type TripStatus,
   Trip,
   VehicleCategory,
@@ -182,6 +186,9 @@ export class MockTrips {
         cancelReason: null,
         driver: null,
         passenger: null,
+        payment: null,
+        myRating: null,
+        rateableUntil: null,
       };
       this.trips.set(trip.id, trip);
       if (key) this.idempotent.set(`${user.id}:${key}`, trip.id);
@@ -194,6 +201,7 @@ export class MockTrips {
         trip.acceptedAt = new Date().toISOString();
         trip.driver = {
           fullName: 'Conductor Demo',
+          rating: 4.8,
           vehicle: {
             plate: trip.category === 'MOTO' ? 'XYZ12A' : 'GIR123',
             brand: trip.category === 'MOTO' ? 'Yamaha' : 'Chevrolet',
@@ -208,6 +216,48 @@ export class MockTrips {
       this.timers.add(timer);
 
       return reply.code(201).send(this.view(trip));
+    });
+
+    api.get('/trips', (req) => {
+      const user = requireUser(req);
+      const query = parse(TripHistoryQuery, req.query ?? {});
+      const mine = [...this.trips.values()]
+        .filter(
+          (t) =>
+            t.passengerId === user.id && (t.status === 'COMPLETED' || t.status === 'CANCELLED'),
+        )
+        .reverse();
+      const start = query.cursor ? mine.findIndex((t) => t.id === query.cursor) + 1 : 0;
+      const page = mine.slice(start, start + query.limit);
+      return send(TripHistory, {
+        items: page.map((t) => ({
+          id: t.id,
+          status: t.status,
+          category: t.category,
+          paymentMethod: t.paymentMethod,
+          originAddress: t.originAddress,
+          destinationAddress: t.destinationAddress,
+          amount: t.amount,
+          requestedAt: t.requestedAt,
+          completedAt: t.completedAt,
+          counterpartName: t.driver?.fullName ?? null,
+          myRating: t.myRating,
+        })),
+        nextCursor: start + query.limit < mine.length ? (page.at(-1)?.id ?? null) : null,
+      });
+    });
+
+    api.post<{ Params: { id: string } }>('/trips/:id/rating', (req) => {
+      const trip = ownTrip(req);
+      const body = parse(RateTripRequest, req.body ?? {});
+      if (trip.status !== 'COMPLETED') {
+        throw new HttpError(409, 'CONFLICT', 'Solo se califican viajes completados.');
+      }
+      if (trip.myRating !== null)
+        throw new HttpError(409, 'CONFLICT', 'Ya calificaste este viaje.');
+      trip.myRating = body.score;
+      trip.rateableUntil = null;
+      return this.view(trip);
     });
 
     api.get('/trips/active', (req) => {
@@ -312,6 +362,17 @@ export class MockTrips {
     const from = trip.status;
     trip.status = to;
     trip[at] = new Date().toISOString();
+    if (to === 'COMPLETED') {
+      // Tarjeta demo: cobrada al instante; efectivo: pendiente de que el conductor confirme.
+      const card = trip.paymentMethod === 'FAKE_CARD';
+      trip.payment = {
+        method: trip.paymentMethod,
+        status: card ? 'CAPTURED' : 'PENDING',
+        amount: trip.amount,
+        paidAt: card ? trip.completedAt : null,
+      };
+      trip.rateableUntil = new Date(Date.now() + RATING_WINDOW_DAYS * 86_400_000).toISOString();
+    }
     this.status(trip, from);
   }
 

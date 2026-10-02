@@ -14,6 +14,7 @@ import { QueueService } from '../../infra/queue/queue.service.js';
 import { RedisService } from '../../infra/redis/redis.service.js';
 import { DriversService } from '../drivers/drivers.service.js';
 import { LocationService } from '../location/location.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { RealtimeGateway, tripRoom } from '../realtime/realtime.gateway.js';
 import { isUniqueViolation, TripTransitions } from './trip-transitions.js';
 
@@ -81,6 +82,7 @@ export class MatchingService implements OnModuleInit {
     private readonly drivers: DriversService,
     private readonly realtime: RealtimeGateway,
     private readonly transitions: TripTransitions,
+    private readonly notifications: NotificationsService,
     @Inject(MATCHING_TIMINGS) private readonly timings: MatchingTimings,
   ) {}
 
@@ -190,6 +192,10 @@ export class MatchingService implements OnModuleInit {
     await this.location.markBusy(driverId, tripId);
     this.realtime.joinUser(driverId, tripRoom(tripId));
     this.transitions.publish(result.trip, result.from);
+    await this.notifications.push(result.trip.passengerId, 'trip.assigned', {
+      type: 'trip.status',
+      tripId,
+    });
     return result.trip;
   }
 
@@ -233,7 +239,13 @@ export class MatchingService implements OnModuleInit {
       actorId: null,
     });
     await this.stopSearch(tripId, 'CANCELLED');
-    if (result.ok) this.transitions.publish(result.trip, result.from);
+    if (result.ok) {
+      this.transitions.publish(result.trip, result.from);
+      await this.notifications.push(result.trip.passengerId, 'trip.no_drivers', {
+        type: 'trip.status',
+        tripId,
+      });
+    }
   }
 
   private async offer(
@@ -273,6 +285,13 @@ export class MatchingService implements OnModuleInit {
       return 'busy';
     }
     this.realtime.emitToUser(driverId, SocketEvent.TripOffer, payload);
+    // Por si la app está en segundo plano (8.9, paso 5). Caduca con la oferta.
+    await this.notifications.push(
+      driverId,
+      'trip.offer',
+      { type: 'trip.offer', tripId: trip.id },
+      { ttlSeconds: Math.ceil(offerTtlMs / 1000) },
+    );
     await this.queues.add(
       MATCHING_QUEUE,
       'offer-timeout',

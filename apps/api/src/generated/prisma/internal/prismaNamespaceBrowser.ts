@@ -66,7 +66,10 @@ export const ModelName = {
   FareQuote: 'FareQuote',
   Trip: 'Trip',
   TripRoutePoint: 'TripRoutePoint',
-  TripEvent: 'TripEvent'
+  TripEvent: 'TripEvent',
+  Payment: 'Payment',
+  Rating: 'Rating',
+  PushToken: 'PushToken'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -96,7 +99,10 @@ export const UserScalarFieldEnum = {
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
+  deletedAt: 'deletedAt',
+  statusReason: 'statusReason',
+  ratingSum: 'ratingSum',
+  ratingCount: 'ratingCount'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -342,6 +348,48 @@ export const TripEventScalarFieldEnum = {
 } as const
 
 export type TripEventScalarFieldEnum = (typeof TripEventScalarFieldEnum)[keyof typeof TripEventScalarFieldEnum]
+
+
+export const PaymentScalarFieldEnum = {
+  id: 'id',
+  tripId: 'tripId',
+  provider: 'provider',
+  providerRef: 'providerRef',
+  amountCents: 'amountCents',
+  currency: 'currency',
+  status: 'status',
+  capturedAt: 'capturedAt',
+  confirmedBy: 'confirmedBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PaymentScalarFieldEnum = (typeof PaymentScalarFieldEnum)[keyof typeof PaymentScalarFieldEnum]
+
+
+export const RatingScalarFieldEnum = {
+  id: 'id',
+  tripId: 'tripId',
+  fromUser: 'fromUser',
+  toUser: 'toUser',
+  score: 'score',
+  comment: 'comment',
+  createdAt: 'createdAt'
+} as const
+
+export type RatingScalarFieldEnum = (typeof RatingScalarFieldEnum)[keyof typeof RatingScalarFieldEnum]
+
+
+export const PushTokenScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  token: 'token',
+  platform: 'platform',
+  createdAt: 'createdAt',
+  lastSeenAt: 'lastSeenAt'
+} as const
+
+export type PushTokenScalarFieldEnum = (typeof PushTokenScalarFieldEnum)[keyof typeof PushTokenScalarFieldEnum]
 
 
 export const SortOrder = {

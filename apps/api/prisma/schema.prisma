@@ -53,6 +53,12 @@ model User {
   createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
   deletedAt     DateTime?  @map("deleted_at") @db.Timestamptz(3)
+  /// Motivo de la última suspensión (lo ve el admin; 11.1, paso 6).
+  statusReason  String?    @map("status_reason")
+  /// Calificación recibida (8.12): suma y número de votos, actualizados de forma incremental.
+  /// Vale para pasajeros y conductores; el promedio es suma / número.
+  ratingSum     Int        @default(0) @map("rating_sum")
+  ratingCount   Int        @default(0) @map("rating_count")
 
   identities    AuthIdentity[]
   refreshTokens RefreshToken[]
@@ -62,6 +68,7 @@ model User {
   driverProfile DriverProfile?
   fareQuotes    FareQuote[]
   trips         Trip[]         @relation("PassengerTrips")
+  pushTokens    PushToken[]
 
   @@map("users")
 }
@@ -410,6 +417,8 @@ model Trip {
   quote     FareQuote      @relation(fields: [quoteId], references: [id])
   events    TripEvent[]
   route     TripRoutePoint[]
+  payment   Payment?
+  ratings   Rating[]
 
   @@index([passengerId, requestedAt(sort: Desc)])
   @@index([driverId, requestedAt(sort: Desc)])
@@ -452,4 +461,73 @@ model TripEvent {
 
   @@index([tripId, at])
   @@map("trip_events")
+}
+
+
+// ---------------------------------------------------------------------------------------
+// Cierre del viaje (Fase 5, secciones 8.11–8.13)
+// ---------------------------------------------------------------------------------------
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+/// Pago de un viaje (8.11): uno por viaje. Nunca se guardan números de tarjeta ni CVV.
+/// Efectivo: PENDING hasta que el conductor confirma el cobro. Tarjeta demo: CAPTURED al terminar.
+model Payment {
+  id           String        @id @default(uuid(7)) @db.Uuid
+  tripId       String        @unique @map("trip_id") @db.Uuid
+  provider     PaymentMethod
+  /// Referencia del proveedor (la de la pasarela, a futuro).
+  providerRef  String?       @map("provider_ref")
+  amountCents  Int           @map("amount_cents")
+  currency     String
+  status       PaymentStatus @default(PENDING)
+  capturedAt   DateTime?     @map("captured_at") @db.Timestamptz(3)
+  /// Quién confirmó el cobro en efectivo (el conductor).
+  confirmedBy  String?       @map("confirmed_by") @db.Uuid
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  trip Trip @relation(fields: [tripId], references: [id])
+
+  @@index([status, createdAt])
+  @@map("payments")
+}
+
+/// Calificación de un participante al otro (8.12): una por viaje y usuario. `score` 1..5 (CHECK en
+/// la migración); el comentario es texto plano y se escapa al mostrarlo.
+model Rating {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  tripId    String   @map("trip_id") @db.Uuid
+  fromUser  String   @map("from_user") @db.Uuid
+  toUser    String   @map("to_user") @db.Uuid
+  score     Int      @db.SmallInt
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, fromUser])
+  @@index([toUser, createdAt])
+  @@map("ratings")
+}
+
+/// Tokens de Expo Push (8.13). Se borran al cerrar sesión o cuando Expo responde DeviceNotRegistered.
+model PushToken {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  token      String   @unique
+  platform   String
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastSeenAt DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_tokens")
 }

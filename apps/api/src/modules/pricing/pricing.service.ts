@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import {
+  type AdminFareRules,
   computeFare,
+  type CreateFareRuleRequest,
+  DEFAULT_CURRENCY,
   haversineMeters,
   type QuoteRequest,
   type QuoteResponse,
@@ -9,6 +12,7 @@ import {
 import { ApiException } from '../../common/errors/api.exception.js';
 import type { FareRule } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infra/prisma/prisma.service.js';
+import { AuditService } from '../audit/audit.service.js';
 import { GeoService } from '../geo/geo.service.js';
 
 /** Una cotización vale 5 minutos (8.7, paso 1). */
@@ -25,6 +29,7 @@ export class PricingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly geo: GeoService,
+    private readonly audit: AuditService,
   ) {}
 
   async quote(passengerId: string, req: QuoteRequest, now = new Date()): Promise<QuoteResponse> {
@@ -88,6 +93,80 @@ export class PricingService {
       if (!byCategory.has(rule.category)) byCategory.set(rule.category, rule);
     }
     return [...byCategory.values()];
+  }
+
+  /** Tarifas en el panel (11.1, paso 8): las vigentes, las programadas y el historial reciente. */
+  async adminList(now = new Date()): Promise<AdminFareRules> {
+    const [rules, current] = await Promise.all([
+      this.prisma.fareRule.findMany({ orderBy: { validFrom: 'desc' }, take: 100 }),
+      this.currentRules(now),
+    ]);
+    const currentIds = new Set(current.map((r) => r.id));
+    const creators = await this.prisma.user.findMany({
+      where: { id: { in: [...new Set(rules.flatMap((r) => (r.createdBy ? [r.createdBy] : [])))] } },
+      select: { id: true, fullName: true },
+    });
+    const names = new Map(creators.map((u) => [u.id, u.fullName]));
+    return {
+      rules: rules.map((r) => ({
+        id: r.id,
+        category: r.category,
+        baseCents: r.baseCents,
+        perKmCents: r.perKmCents,
+        perMinCents: r.perMinCents,
+        minFareCents: r.minFareCents,
+        currency: r.currency,
+        validFrom: r.validFrom.toISOString(),
+        validTo: r.validTo?.toISOString() ?? null,
+        createdAt: r.createdAt.toISOString(),
+        createdByName: r.createdBy ? (names.get(r.createdBy) ?? null) : null,
+        current: currentIds.has(r.id),
+      })),
+    };
+  }
+
+  /**
+   * Nueva versión de tarifa (8.14, paso 5): nunca se edita la vigente. Empieza ahora o en el
+   * futuro; las cotizaciones ya hechas conservan el precio con el que se cotizaron.
+   */
+  async createRule(
+    adminId: string,
+    body: CreateFareRuleRequest,
+    ip: string | null,
+    now = new Date(),
+  ): Promise<void> {
+    const validFrom = body.validFrom ? new Date(body.validFrom) : now;
+    // Un minuto de margen por la diferencia de reloj entre el navegador y el servidor.
+    if (validFrom.getTime() < now.getTime() - 60_000) {
+      throw new ApiException(422, 'VALIDATION_FAILED', 'La tarifa no puede empezar en el pasado.');
+    }
+    if (body.minFareCents < body.baseCents) {
+      throw new ApiException(
+        422,
+        'VALIDATION_FAILED',
+        'La tarifa mínima no puede ser menor que el banderazo.',
+      );
+    }
+    const rule = await this.prisma.fareRule.create({
+      data: {
+        category: body.category,
+        baseCents: body.baseCents,
+        perKmCents: body.perKmCents,
+        perMinCents: body.perMinCents,
+        minFareCents: body.minFareCents,
+        currency: DEFAULT_CURRENCY,
+        validFrom,
+        createdBy: adminId,
+      },
+    });
+    await this.audit.log({
+      actorId: adminId,
+      action: 'admin.fare_rule_created',
+      entity: 'fare_rule',
+      entityId: rule.id,
+      ip,
+      meta: { ...body, validFrom: validFrom.toISOString() },
+    });
   }
 
   /** Borra las cotizaciones caducadas que no acabaron en viaje (8.15, cada hora). */

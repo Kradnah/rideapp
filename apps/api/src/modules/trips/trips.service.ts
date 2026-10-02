@@ -7,9 +7,14 @@ import {
   type AdminTripListQuery,
   type CancelledBy,
   type CreateTripRequest,
+  DEFAULT_CURRENCY,
+  type DriverEarnings,
+  type DriverEarningsQuery,
   haversineMeters,
   type Trip as TripDto,
   type TripDriverLocation,
+  type TripHistory,
+  type TripHistoryQuery,
   type TripStatus,
   type UserRole,
 } from '@rideapp/contracts';
@@ -23,8 +28,11 @@ import { colombiaDay } from '../geo/geo.service.js';
 import { LocationService } from '../location/location.service.js';
 import { PricingService } from '../pricing/pricing.service.js';
 import { RealtimeGateway, tripRoom } from '../realtime/realtime.gateway.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
+import { PaymentsService } from '../payments/payments.service.js';
 import { LiveTripService } from './live-trip.service.js';
 import { MATCHING_TIMINGS, MatchingService, type MatchingTimings } from './matching.service.js';
+import { RATING_WINDOW_MS, ratingAverage } from './ratings.service.js';
 import { DRIVER_BUSY_STATUSES } from './trip-state.machine.js';
 import { isUniqueViolation, TripTransitions } from './trip-transitions.js';
 
@@ -48,10 +56,14 @@ export const START_RADIUS_METERS = 150;
 export const MAX_PIN_ATTEMPTS = 5;
 const pinAttemptsKey = (tripId: string) => `trip:${tripId}:pin-attempts`;
 
+const ratingFields = { fullName: true, ratingSum: true, ratingCount: true } as const;
+
 const tripInclude = {
-  passenger: { select: { fullName: true } },
-  driver: { select: { user: { select: { fullName: true } } } },
+  passenger: { select: ratingFields },
+  driver: { select: { user: { select: ratingFields } } },
   vehicle: true,
+  payment: true,
+  ratings: { select: { fromUser: true, score: true, comment: true, createdAt: true } },
 } satisfies Prisma.TripInclude;
 
 type TripWithParties = Prisma.TripGetPayload<{ include: typeof tripInclude }>;
@@ -61,9 +73,22 @@ export interface Viewer {
   role: UserRole;
 }
 
+/** Historial: solo viajes que llegaron a algo (los NO_DRIVERS no aportan nada al usuario). */
+const HISTORY_STATUSES = ['COMPLETED', 'CANCELLED'] as const;
+
 /** El viaje tal como lo ve uno de sus participantes (14.4: cada parte ve solo lo suyo). */
-export function toTripDto(trip: TripWithParties, viewer: 'PASSENGER' | 'DRIVER'): TripDto {
+export function toTripDto(
+  trip: TripWithParties,
+  viewer: 'PASSENGER' | 'DRIVER',
+  viewerId: string | null,
+  now = Date.now(),
+): TripDto {
   const assigned = trip.driver !== null && trip.vehicle !== null;
+  const myRating = trip.ratings.find((r) => r.fromUser === viewerId)?.score ?? null;
+  const rateableUntil =
+    trip.status === 'COMPLETED' && trip.completedAt && myRating === null && viewerId
+      ? new Date(trip.completedAt.getTime() + RATING_WINDOW_MS)
+      : null;
   return {
     id: trip.id,
     status: trip.status,
@@ -90,6 +115,7 @@ export function toTripDto(trip: TripWithParties, viewer: 'PASSENGER' | 'DRIVER')
       viewer === 'PASSENGER' && assigned
         ? {
             fullName: trip.driver!.user.fullName,
+            rating: ratingAverage(trip.driver!.user.ratingSum, trip.driver!.user.ratingCount),
             vehicle: {
               plate: trip.vehicle!.plate,
               brand: trip.vehicle!.brand,
@@ -99,7 +125,24 @@ export function toTripDto(trip: TripWithParties, viewer: 'PASSENGER' | 'DRIVER')
             },
           }
         : null,
-    passenger: viewer === 'DRIVER' ? { fullName: trip.passenger.fullName } : null,
+    passenger:
+      viewer === 'DRIVER'
+        ? {
+            fullName: trip.passenger.fullName,
+            rating: ratingAverage(trip.passenger.ratingSum, trip.passenger.ratingCount),
+          }
+        : null,
+    payment: trip.payment
+      ? {
+          method: trip.payment.provider,
+          status: trip.payment.status,
+          amount: { amountCents: trip.payment.amountCents, currency: trip.payment.currency },
+          paidAt: trip.payment.capturedAt?.toISOString() ?? null,
+        }
+      : null,
+    myRating,
+    rateableUntil:
+      rateableUntil && rateableUntil.getTime() > now ? rateableUntil.toISOString() : null,
   };
 }
 
@@ -122,6 +165,8 @@ export class TripsService implements OnModuleInit {
     private readonly queues: QueueService,
     private readonly live: LiveTripService,
     private readonly redis: RedisService,
+    private readonly payments: PaymentsService,
+    private readonly notifications: NotificationsService,
     @Inject(MATCHING_TIMINGS) private readonly timings: MatchingTimings,
   ) {}
 
@@ -226,7 +271,95 @@ export class TripsService implements OnModuleInit {
     const trip = await this.prisma.trip.findUnique({ where: { id: tripId }, include: tripInclude });
     const role = trip && this.participantRole(trip, viewer);
     if (!trip || !role) throw new ApiException(404, 'NOT_FOUND', 'Viaje no encontrado');
-    return toTripDto(trip, role);
+    return toTripDto(trip, role, viewer.id);
+  }
+
+  /** GET /trips: historial propio, del más reciente al más antiguo (9.5, paso 3). */
+  async history(viewer: Viewer, query: TripHistoryQuery): Promise<TripHistory> {
+    const own = viewer.role === 'DRIVER' ? { driverId: viewer.id } : { passengerId: viewer.id };
+    const rows = await this.prisma.trip.findMany({
+      where: { ...own, status: { in: [...HISTORY_STATUSES] } },
+      include: tripInclude,
+      // uuid v7: ordenar por id es ordenar por fecha de creación.
+      orderBy: { id: 'desc' },
+      take: query.limit + 1,
+      ...(query.cursor && { cursor: { id: query.cursor }, skip: 1 }),
+    });
+    const page = rows.slice(0, query.limit);
+    return {
+      items: page.map((t) => ({
+        id: t.id,
+        status: t.status,
+        category: t.category,
+        paymentMethod: t.paymentMethod,
+        originAddress: t.originAddress,
+        destinationAddress: t.destinationAddress,
+        amount: { amountCents: t.finalAmountCents ?? t.amountCents, currency: t.currency },
+        requestedAt: t.requestedAt.toISOString(),
+        completedAt: t.completedAt?.toISOString() ?? null,
+        counterpartName:
+          viewer.role === 'DRIVER' ? t.passenger.fullName : (t.driver?.user.fullName ?? null),
+        myRating: t.ratings.find((r) => r.fromUser === viewer.id)?.score ?? null,
+      })),
+      nextCursor: rows.length > query.limit ? (page.at(-1)?.id ?? null) : null,
+    };
+  }
+
+  /**
+   * GET /drivers/me/earnings (10.4): suma de los viajes completados entre dos días de Colombia,
+   * ambos incluidos. En la demo no hay liquidaciones: es solo informativo.
+   */
+  async earnings(driverId: string, query: DriverEarningsQuery): Promise<DriverEarnings> {
+    // Colombia es UTC−5 todo el año (sin horario de verano).
+    const from = new Date(`${query.from}T05:00:00.000Z`);
+    const to = new Date(Date.parse(`${query.to}T05:00:00.000Z`) + 86_400_000);
+    const [rows, user] = await Promise.all([
+      this.prisma.$queryRaw<
+        { day: string; method: 'CASH' | 'FAKE_CARD'; trips: number; amount: bigint }[]
+      >`
+        SELECT to_char(completed_at AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD') AS day,
+               payment_method::text AS method,
+               count(*)::int AS trips,
+               sum(coalesce(final_amount_cents, amount_cents))::bigint AS amount
+        FROM trips
+        WHERE driver_id = ${driverId}::uuid AND status = 'COMPLETED'
+          AND completed_at >= ${from} AND completed_at < ${to}
+        GROUP BY 1, 2
+        ORDER BY 1`,
+      this.prisma.user.findUniqueOrThrow({
+        where: { id: driverId },
+        select: { ratingSum: true, ratingCount: true },
+      }),
+    ]);
+
+    const days = new Map<string, { date: string; trips: number; amountCents: number }>();
+    let cash = 0;
+    let card = 0;
+    let trips = 0;
+    for (const row of rows) {
+      const amount = Number(row.amount);
+      const day = days.get(row.day) ?? { date: row.day, trips: 0, amountCents: 0 };
+      day.trips += row.trips;
+      day.amountCents += amount;
+      days.set(row.day, day);
+      trips += row.trips;
+      if (row.method === 'CASH') cash += amount;
+      else card += amount;
+    }
+    const money = (amountCents: number) => ({ amountCents, currency: DEFAULT_CURRENCY });
+    return {
+      from: query.from,
+      to: query.to,
+      trips,
+      total: money(cash + card),
+      cash: money(cash),
+      card: money(card),
+      days: [...days.values()],
+      rating: {
+        average: ratingAverage(user.ratingSum, user.ratingCount),
+        count: user.ratingCount,
+      },
+    };
   }
 
   /** GET /trips/active: el viaje en curso del usuario, para retomarlo (8.8, paso 3). */
@@ -257,6 +390,14 @@ export class TripsService implements OnModuleInit {
     }
     await this.afterEnd(result.trip.id, result.from, result.trip.driverId);
     this.transitions.publish(result.trip, result.from);
+    // Avisar a la otra parte, si la había (8.13).
+    if (result.trip.driverId) {
+      const [to, template] =
+        role === 'PASSENGER'
+          ? ([result.trip.driverId, 'trip.cancelled_by_passenger'] as const)
+          : ([result.trip.passengerId, 'trip.cancelled_by_driver'] as const);
+      await this.notifications.push(to, template, { type: 'trip.status', tripId });
+    }
     return this.get(viewer, tripId);
   }
 
@@ -287,6 +428,10 @@ export class TripsService implements OnModuleInit {
     }
     await this.live.onArrived(tripId);
     this.transitions.publish(result.trip, result.from);
+    await this.notifications.push(result.trip.passengerId, 'trip.arrived', {
+      type: 'trip.status',
+      tripId,
+    });
     return this.get({ id: driverId, role: 'DRIVER' }, tripId);
   }
 
@@ -358,6 +503,7 @@ export class TripsService implements OnModuleInit {
         });
         if (!result.ok) throw new ApiException(409, 'CONFLICT', 'Este viaje no está en curso.');
         await this.afterEnd(tripId, result.from, driverId);
+        await this.payments.settle(result.trip);
         this.transitions.publish(result.trip, result.from);
         return { result: await this.get(viewer, tripId), ref: tripId };
       },
@@ -424,7 +570,7 @@ export class TripsService implements OnModuleInit {
     if (!trip) throw new ApiException(404, 'NOT_FOUND', 'Viaje no encontrado');
     // parse() descarta lo que el panel no debe ver (el PIN del pasajero).
     return AdminTripDetail.parse({
-      ...toTripDto(trip, 'DRIVER'),
+      ...toTripDto(trip, 'DRIVER', null),
       passenger: { id: trip.passengerId, fullName: trip.passenger.fullName },
       driver:
         trip.driverId && trip.driver
@@ -450,6 +596,12 @@ export class TripsService implements OnModuleInit {
         toStatus: e.toStatus,
         actor: e.actor,
         at: e.at.toISOString(),
+      })),
+      ratings: trip.ratings.map((r) => ({
+        by: r.fromUser === trip.passengerId ? ('PASSENGER' as const) : ('DRIVER' as const),
+        score: r.score,
+        comment: r.comment,
+        at: r.createdAt.toISOString(),
       })),
     } satisfies AdminTripDetail);
   }

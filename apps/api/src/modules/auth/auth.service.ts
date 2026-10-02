@@ -14,6 +14,7 @@ import type { User } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infra/prisma/prisma.service.js';
 import { RedisService } from '../../infra/redis/redis.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { UsersService } from '../users/users.service.js';
 import { AccountEmailService } from './account-email.service.js';
 import { GOOGLE_VERIFIER, type GoogleTokenVerifier } from './google-verifier.js';
@@ -42,6 +43,7 @@ export class AuthService {
     private readonly audit: AuditService,
     @Inject(GOOGLE_VERIFIER) private readonly google: GoogleTokenVerifier,
     private readonly accountEmail: AccountEmailService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async register(body: RegisterRequest, ctx: RequestContext): Promise<TokenPair> {
@@ -269,6 +271,7 @@ export class AuthService {
 
   async logoutAll(user: AuthUser, ctx: RequestContext): Promise<void> {
     const count = await this.sessions.revokeAllForUser(user.id);
+    await this.notifications.forgetUser(user.id);
     await this.audit.log({
       actorId: user.id,
       action: 'auth.logout_all',

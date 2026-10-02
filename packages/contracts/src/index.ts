@@ -8,3 +8,5 @@ export * from './trips.js';
 export * from './events.js';
 export * from './polyline.js';
 export * from './route-progress.js';
+export * from './admin.js';
+export * from './notifications.js';

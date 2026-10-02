@@ -29,6 +29,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service.js';
 import { StorageService } from '../../infra/storage/storage.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { AVAILABLE_INTERVAL_SECONDS, LocationService } from '../location/location.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { UsersService } from '../users/users.service.js';
 import { sanitizeDocument } from './document-file.js';
 
@@ -98,6 +99,7 @@ export class DriversService {
     private readonly audit: AuditService,
     private readonly users: UsersService,
     private readonly location: LocationService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private findProfile(userId: string): Promise<ProfileWithRelations | null> {
@@ -499,6 +501,7 @@ export class DriversService {
       entityId: driverId,
       ip,
     });
+    await this.notifications.push(driverId, 'driver.approved', { type: 'driver.account' });
   }
 
   async reject(
@@ -531,6 +534,7 @@ export class DriversService {
       ip,
       meta: { reason },
     });
+    await this.notifications.push(driverId, 'driver.rejected', { type: 'driver.account' });
   }
 
   /** Suspende y lo saca de línea al instante (el controlador le avisa por el socket). */

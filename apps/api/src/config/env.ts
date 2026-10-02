@@ -99,6 +99,14 @@ export const EnvSchema = z
      */
     STORAGE_DIR: z.string().min(1).default('var/storage'),
 
+    /**
+     * Notificaciones push (8.13). expo: Expo Push API (gratis) · disabled: no envía (las apps
+     * siguen funcionando por el socket y la consulta periódica).
+     */
+    PUSH_PROVIDER: z.enum(['expo', 'disabled']).default('disabled'),
+    /** Opcional: solo si se activa "Enhanced Security for Push Notifications" en Expo. */
+    EXPO_ACCESS_TOKEN: z.string().min(1).optional(),
+
     MAPS_PROVIDER: z.enum(['fake', 'google']).default('fake'),
     GOOGLE_MAPS_SERVER_KEY: z.string().min(1).optional(),
   })

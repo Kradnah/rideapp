@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { LatLng, Money, Paginated } from './common.js';
-import { CancelledBy, PaymentMethod, TripStatus, VehicleCategory } from './enums.js';
+import { CancelledBy, PaymentMethod, PaymentStatus, TripStatus, VehicleCategory } from './enums.js';
 
 /**
  * Viajes (8.8) y emparejamiento (8.9). El precio nunca viaja del cliente al servidor:
@@ -27,9 +27,13 @@ export const StartTripRequest = z.strictObject({
 });
 export type StartTripRequest = z.infer<typeof StartTripRequest>;
 
+/** Promedio de calificaciones (8.12) con un decimal; null si aún no tiene ninguna. */
+export const RatingAverage = z.number().min(1).max(5).nullable();
+
 /** Lo que ve el pasajero de su conductor una vez asignado (9.4, paso 2). */
 export const TripDriverInfo = z.object({
   fullName: z.string(),
+  rating: RatingAverage,
   vehicle: z.object({
     plate: z.string(),
     brand: z.string(),
@@ -43,8 +47,22 @@ export type TripDriverInfo = z.infer<typeof TripDriverInfo>;
 /** Lo que ve el conductor de su pasajero, solo después de aceptar (14.4). */
 export const TripPassengerInfo = z.object({
   fullName: z.string(),
+  rating: RatingAverage,
 });
 export type TripPassengerInfo = z.infer<typeof TripPassengerInfo>;
+
+/** Plazo para calificar un viaje completado (8.12, paso 1). */
+export const RATING_WINDOW_DAYS = 7;
+export const RATING_COMMENT_MAX = 500;
+
+/** Pago del viaje (8.11). Efectivo: PENDING hasta que el conductor confirma el cobro. */
+export const TripPayment = z.object({
+  method: PaymentMethod,
+  status: PaymentStatus,
+  amount: Money,
+  paidAt: z.iso.datetime().nullable(),
+});
+export type TripPayment = z.infer<typeof TripPayment>;
 
 /**
  * Un viaje visto por uno de sus participantes. Los campos de la otra parte llegan solo
@@ -78,8 +96,94 @@ export const Trip = z.object({
   cancelReason: z.string().nullable(),
   driver: TripDriverInfo.nullable(),
   passenger: TripPassengerInfo.nullable(),
+  /** Existe desde que el viaje se completa. */
+  payment: TripPayment.nullable(),
+  /** La calificación que dio quien consulta; null si aún no calificó. */
+  myRating: z.number().int().min(1).max(5).nullable(),
+  /** Hasta cuándo puede calificar quien consulta; null si ya calificó o no corresponde. */
+  rateableUntil: z.iso.datetime().nullable(),
 });
 export type Trip = z.infer<typeof Trip>;
+
+/** POST /trips/:id/rating (8.12): una vez por participante, solo con el viaje completado. */
+export const RateTripRequest = z.strictObject({
+  score: z.number().int().min(1).max(5),
+  comment: z
+    .string()
+    .trim()
+    .max(RATING_COMMENT_MAX)
+    // Texto plano sin caracteres de control: se muestra al admin.
+    // eslint-disable-next-line no-control-regex
+    .transform((v) => v.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, ' '))
+    .optional(),
+});
+export type RateTripRequest = z.infer<typeof RateTripRequest>;
+
+// ---------------------------------------------------------------------------------------
+// Historial (9.5, paso 3) y ganancias del conductor (10.4)
+// ---------------------------------------------------------------------------------------
+
+export const TripHistoryQuery = z.object({
+  cursor: z.uuid().optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type TripHistoryQuery = z.infer<typeof TripHistoryQuery>;
+
+/** Un viaje terminado (completado o cancelado) en el historial propio. */
+export const TripHistoryItem = z.object({
+  id: z.uuid(),
+  status: TripStatus,
+  category: VehicleCategory,
+  paymentMethod: PaymentMethod,
+  originAddress: z.string().nullable(),
+  destinationAddress: z.string().nullable(),
+  amount: Money,
+  requestedAt: z.iso.datetime(),
+  completedAt: z.iso.datetime().nullable(),
+  /** El conductor (para el pasajero) o el pasajero (para el conductor). */
+  counterpartName: z.string().nullable(),
+  myRating: z.number().int().min(1).max(5).nullable(),
+});
+export type TripHistoryItem = z.infer<typeof TripHistoryItem>;
+
+export const TripHistory = Paginated(TripHistoryItem);
+export type TripHistory = z.infer<typeof TripHistory>;
+
+/** Día calendario (YYYY-MM-DD) en hora de Colombia. */
+export const CalendarDay = z.iso.date();
+
+export const EARNINGS_MAX_DAYS = 62;
+
+/** GET /drivers/me/earnings?from&to: días de Colombia, ambos incluidos. */
+export const DriverEarningsQuery = z
+  .object({ from: CalendarDay, to: CalendarDay })
+  .refine((q) => q.from <= q.to, { message: '`from` debe ser anterior o igual a `to`' })
+  .refine(
+    (q) => (Date.parse(q.to) - Date.parse(q.from)) / 86_400_000 < EARNINGS_MAX_DAYS,
+    `Como máximo ${EARNINGS_MAX_DAYS} días`,
+  );
+export type DriverEarningsQuery = z.infer<typeof DriverEarningsQuery>;
+
+export const DriverEarnings = z.object({
+  from: CalendarDay,
+  to: CalendarDay,
+  trips: z.number().int().nonnegative(),
+  total: Money,
+  /** Cobrado en efectivo por el conductor. */
+  cash: Money,
+  /** Pagado con tarjeta (demo): en producción lo liquidaría la plataforma. */
+  card: Money,
+  /** Solo los días con viajes. */
+  days: z.array(
+    z.object({
+      date: CalendarDay,
+      trips: z.number().int().nonnegative(),
+      amountCents: z.number().int().nonnegative(),
+    }),
+  ),
+  rating: z.object({ average: RatingAverage, count: z.number().int().nonnegative() }),
+});
+export type DriverEarnings = z.infer<typeof DriverEarnings>;
 
 /** GET /trips/active: para retomar el viaje al abrir la app o reconectar (8.8, paso 3). */
 export const ActiveTripResponse = z.object({ trip: Trip.nullable() });
@@ -165,7 +269,21 @@ export const AdminTripEvent = z.object({
 });
 export type AdminTripEvent = z.infer<typeof AdminTripEvent>;
 
-export const AdminTripDetail = Trip.omit({ driver: true, passenger: true, pin: true }).extend({
+export const AdminTripRating = z.object({
+  by: z.enum(['PASSENGER', 'DRIVER']),
+  score: z.number().int().min(1).max(5),
+  comment: z.string().nullable(),
+  at: z.iso.datetime(),
+});
+export type AdminTripRating = z.infer<typeof AdminTripRating>;
+
+export const AdminTripDetail = Trip.omit({
+  driver: true,
+  passenger: true,
+  pin: true,
+  myRating: true,
+  rateableUntil: true,
+}).extend({
   passenger: z.object({ id: z.uuid(), fullName: z.string() }),
   driver: z
     .object({
@@ -181,5 +299,7 @@ export const AdminTripDetail = Trip.omit({ driver: true, passenger: true, pin: t
   trace: z.array(LatLng),
   /** Posición en vivo del conductor mientras el viaje está activo (11.1: viaje en vivo). */
   live: TripDriverLocation.nullable(),
+  /** Calificaciones de ambos (el comentario es texto plano: se escapa al mostrarlo). */
+  ratings: z.array(AdminTripRating),
 });
 export type AdminTripDetail = z.infer<typeof AdminTripDetail>;

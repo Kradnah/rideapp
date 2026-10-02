@@ -1,4 +1,16 @@
 import {
+  AdminAuditList,
+  AdminFareRules,
+  AdminUserDetail,
+  AdminUserList,
+  DriverEarnings,
+  TripHistory,
+  type AdminAuditQuery,
+  type AdminUserListQuery,
+  type CreateFareRuleRequest,
+  type RateTripRequest,
+  type RegisterPushTokenRequest,
+  type TripHistoryQuery,
   ActiveTripResponse,
   AdminTripDetail,
   AdminTripList,
@@ -84,6 +96,12 @@ export function createApiClient(options: HttpClientOptions) {
     me: {
       get: () => http.request('GET', '/me', { schema: Me }),
       update: (body: UpdateMeRequest) => http.request('PATCH', '/me', { body, schema: Me }),
+      /** Token de Expo Push del teléfono (8.13). */
+      registerPushToken: (body: RegisterPushTokenRequest) =>
+        http.request('POST', '/me/push-tokens', { body }),
+      /** Al cerrar sesión: el teléfono deja de recibir avisos de esta cuenta. */
+      unregisterPushToken: (token: string) =>
+        http.request('DELETE', '/me/push-tokens', { body: { token } }),
     },
 
     geo: {
@@ -141,6 +159,12 @@ export function createApiClient(options: HttpClientOptions) {
         http.request('POST', '/drivers/me/offline', { schema: DriverAvailabilityResponse }),
       /** Oferta pendiente, por si la app perdió el evento `trip.offer.v1`. */
       offer: () => http.request('GET', '/drivers/me/offer', { schema: DriverOfferResponse }),
+      /** Ganancias entre dos días de Colombia (YYYY-MM-DD), ambos incluidos. */
+      earnings: (from: string, to: string) =>
+        http.request('GET', '/drivers/me/earnings', {
+          query: { from, to },
+          schema: DriverEarnings,
+        }),
     },
 
     /** Panel admin: sesión con cookie HttpOnly + CSRF (11.1). Solo para el navegador del panel. */
@@ -202,6 +226,32 @@ export function createApiClient(options: HttpClientOptions) {
         reactivate: (id: string) =>
           http.request('POST', `/admin/drivers/${encodeURIComponent(id)}/reactivate`),
       },
+      users: {
+        list: (query: Partial<AdminUserListQuery> = {}) =>
+          http.request('GET', '/admin/users', { query, schema: AdminUserList }),
+        detail: (id: string) =>
+          http.request('GET', `/admin/users/${encodeURIComponent(id)}`, {
+            schema: AdminUserDetail,
+          }),
+        revealPhone: (id: string) =>
+          http.request('POST', `/admin/users/${encodeURIComponent(id)}/reveal-phone`, {
+            schema: AdminRevealResponse,
+          }),
+        suspend: (id: string, reason: string) =>
+          http.request('POST', `/admin/users/${encodeURIComponent(id)}/suspend`, {
+            body: { reason },
+          }),
+        reactivate: (id: string) =>
+          http.request('POST', `/admin/users/${encodeURIComponent(id)}/reactivate`),
+      },
+      fares: {
+        list: () => http.request('GET', '/admin/fares', { schema: AdminFareRules }),
+        create: (body: CreateFareRuleRequest) => http.request('POST', '/admin/fares', { body }),
+      },
+      audit: {
+        list: (query: Partial<AdminAuditQuery> = {}) =>
+          http.request('GET', '/admin/audit', { query, schema: AdminAuditList }),
+      },
       trips: {
         list: (query: Partial<AdminTripListQuery> = {}) =>
           http.request('GET', '/admin/trips', { query, schema: AdminTripList }),
@@ -251,6 +301,17 @@ export function createApiClient(options: HttpClientOptions) {
           idempotencyKey,
         }),
       reject: (id: string) => http.request('POST', `/trips/${encodeURIComponent(id)}/reject`),
+      /** Historial propio de viajes terminados, del más reciente al más antiguo. */
+      history: (query: Partial<TripHistoryQuery> = {}) =>
+        http.request('GET', '/trips', { query, schema: TripHistory }),
+      /** Calificar a la otra parte (una vez, hasta 7 días después de completar). */
+      rate: (id: string, body: RateTripRequest) =>
+        http.request('POST', `/trips/${encodeURIComponent(id)}/rating`, { body, schema: Trip }),
+      /** El conductor confirma que recibió el efectivo. Repetirlo no hace nada. */
+      confirmCash: (id: string) =>
+        http.request('POST', `/trips/${encodeURIComponent(id)}/payment/cash-collected`, {
+          schema: Trip,
+        }),
     },
   };
 }

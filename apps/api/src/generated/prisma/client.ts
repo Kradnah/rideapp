@@ -129,3 +129,20 @@ export type TripRoutePoint = Prisma.TripRoutePointModel
  * Línea de tiempo del viaje: una fila por transición (8.8, paso 2).
  */
 export type TripEvent = Prisma.TripEventModel
+/**
+ * Model Payment
+ * Pago de un viaje (8.11): uno por viaje. Nunca se guardan números de tarjeta ni CVV.
+ * Efectivo: PENDING hasta que el conductor confirma el cobro. Tarjeta demo: CAPTURED al terminar.
+ */
+export type Payment = Prisma.PaymentModel
+/**
+ * Model Rating
+ * Calificación de un participante al otro (8.12): una por viaje y usuario. `score` 1..5 (CHECK en
+ * la migración); el comentario es texto plano y se escapa al mostrarlo.
+ */
+export type Rating = Prisma.RatingModel
+/**
+ * Model PushToken
+ * Tokens de Expo Push (8.13). Se borran al cerrar sesión o cuando Expo responde DeviceNotRegistered.
+ */
+export type PushToken = Prisma.PushTokenModel

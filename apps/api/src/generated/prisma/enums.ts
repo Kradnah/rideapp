@@ -119,3 +119,14 @@ export const TripEventActor = {
 } as const
 
 export type TripEventActor = (typeof TripEventActor)[keyof typeof TripEventActor]
+
+
+export const PaymentStatus = {
+  PENDING: 'PENDING',
+  AUTHORIZED: 'AUTHORIZED',
+  CAPTURED: 'CAPTURED',
+  FAILED: 'FAILED',
+  REFUNDED: 'REFUNDED'
+} as const
+
+export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]

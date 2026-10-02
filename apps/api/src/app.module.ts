@@ -19,6 +19,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { DriversModule } from './modules/drivers/drivers.module.js';
 import { GeoModule } from './modules/geo/geo.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { PricingModule } from './modules/pricing/pricing.module.js';
 import { RealtimeModule } from './modules/realtime/realtime.module.js';
 import { TripsModule } from './modules/trips/trips.module.js';
@@ -46,6 +47,7 @@ export class AppModule {
           }),
         }),
         AuditModule,
+        NotificationsModule,
         AuthModule,
         UsersModule,
         DriversModule,

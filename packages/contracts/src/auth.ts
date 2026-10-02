@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Money } from './common.js';
 import { SelfAssignableRole, UserRole, UserStatus } from './enums.js';
 
 export const PASSWORD_MIN_LENGTH = 10;
@@ -136,6 +137,12 @@ export const AdminOverview = z.object({
     today: z.number().int().nonnegative(),
     /** Buscando conductor o en curso. */
     active: z.number().int().nonnegative(),
+  }),
+  payments: z.object({
+    /** Viajes en efectivo cuyo cobro el conductor aún no confirmó. */
+    pendingCash: z.number().int().nonnegative(),
+    /** Cobrado hoy (hora de Colombia). */
+    capturedToday: Money,
   }),
   /** Llamadas de hoy al proveedor de mapas (12.4, paso 5), para vigilar el cupo gratis. */
   maps: z.object({
