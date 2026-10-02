@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { configureApp, createAdapter } from '../src/app.factory.js';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/infra/prisma/prisma.service.js';
+import { GOOGLE_VERIFIER, type GoogleTokenVerifier } from '../src/modules/auth/google-verifier.js';
 import { testEnv } from './helpers/test-env.js';
 
 /**
@@ -17,6 +18,27 @@ import { testEnv } from './helpers/test-env.js';
  * Necesita Docker en marcha. Cada petición usa una IP distinta salvo donde se prueba
  * el límite por IP, para no chocar con el throttler.
  */
+/**
+ * Verificador falso: el "idToken" es `google|<sub>|<email>|<verified>|<nonce>`.
+ * Así se prueba toda la lógica de cuentas sin llamar a Google.
+ */
+const fakeGoogle: GoogleTokenVerifier = {
+  enabled: true,
+  async verify(idToken) {
+    const [tag, sub, email, verified] = idToken.split('|');
+    if (tag !== 'google' || !sub || !email) return null;
+    return {
+      sub,
+      email,
+      emailVerified: verified === 'true',
+      name: 'Usuaria Google',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    };
+  },
+};
+const googleToken = (sub: string, email: string, verified = true) =>
+  `google|${sub}|${email}|${verified}|${randomUUID()}`;
+
 let pg: StartedPostgreSqlContainer;
 let redis: StartedRedisContainer;
 let app: NestFastifyApplication;
@@ -34,7 +56,10 @@ beforeAll(async () => {
     stdio: 'pipe',
   });
 
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(env)] }).compile();
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(env)] })
+    .overrideProvider(GOOGLE_VERIFIER)
+    .useValue(fakeGoogle)
+    .compile();
   app = moduleRef.createNestApplication<NestFastifyApplication>(createAdapter(env), {
     bufferLogs: true,
   });
@@ -319,5 +344,105 @@ describe('/me', () => {
       body: { phone: '3001234567' },
     });
     expect(phone.statusCode).toBe(400);
+  });
+});
+
+// ---------- Google ----------
+
+describe('login con Google', () => {
+  it('cuenta nueva: pide consentimiento y acepta reintentar con el mismo token', async () => {
+    const sub = randomUUID();
+    const email = `g-${sub}@gmail.com`;
+    const idToken = googleToken(sub, email);
+
+    const first = await call('POST', '/auth/google', { body: { idToken, role: 'DRIVER' } });
+    expect(first.statusCode).toBe(409);
+    expect(first.json()).toMatchObject({ code: 'CONSENT_REQUIRED' });
+
+    const second = await call('POST', '/auth/google', {
+      body: { idToken, role: 'DRIVER', consent },
+    });
+    expect(second.statusCode, second.body).toBe(200);
+    const pair = TokenPair.parse(second.json());
+    const claims = JSON.parse(Buffer.from(pair.accessToken.split('.')[1]!, 'base64url').toString());
+    expect(claims.amr).toEqual(['google']);
+
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { email },
+      include: { identities: true, consents: true },
+    });
+    expect(user).toMatchObject({ role: 'DRIVER', emailVerified: true, passwordHash: null });
+    expect(user.identities).toMatchObject([{ provider: 'GOOGLE', providerSubject: sub }]);
+    expect(user.consents[0]).toMatchObject({ channel: 'driver' });
+  });
+
+  it('el mismo idToken no abre dos sesiones (anti-replay)', async () => {
+    const sub = randomUUID();
+    const idToken = googleToken(sub, `r-${sub}@gmail.com`);
+    expect((await call('POST', '/auth/google', { body: { idToken, consent } })).statusCode).toBe(
+      200,
+    );
+    expect((await call('POST', '/auth/google', { body: { idToken, consent } })).statusCode).toBe(
+      401,
+    );
+  });
+
+  it('identifica por sub: el mismo usuario aunque cambie el email en Google', async () => {
+    const sub = randomUUID();
+    const a = await call('POST', '/auth/google', {
+      body: { idToken: googleToken(sub, `a-${sub}@gmail.com`), consent },
+    });
+    const b = await call('POST', '/auth/google', {
+      body: { idToken: googleToken(sub, `nuevo-${sub}@gmail.com`) },
+    });
+    const meA = Me.parse(
+      (await call('GET', '/me', { token: TokenPair.parse(a.json()).accessToken })).json(),
+    );
+    const meB = Me.parse(
+      (await call('GET', '/me', { token: TokenPair.parse(b.json()).accessToken })).json(),
+    );
+    expect(meB.id).toBe(meA.id);
+  });
+
+  it('rechaza cuentas de Google sin email verificado y tokens inválidos', async () => {
+    const sub = randomUUID();
+    const unverified = await call('POST', '/auth/google', {
+      body: { idToken: googleToken(sub, `u-${sub}@gmail.com`, false), consent },
+    });
+    expect(unverified.statusCode).toBe(401);
+    const invalid = await call('POST', '/auth/google', {
+      body: { idToken: 'no-es-de-google', consent },
+    });
+    expect(invalid.statusCode).toBe(401);
+  });
+
+  it('NO vincula una cuenta con contraseña y email sin verificar (toma de cuenta)', async () => {
+    const { email } = await register();
+    const res = await call('POST', '/auth/google', {
+      body: { idToken: googleToken(randomUUID(), email), consent },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toMatchObject({ code: 'CONFLICT' });
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { email },
+      include: { identities: true },
+    });
+    expect(user.identities).toHaveLength(0);
+  });
+
+  it('vincula una cuenta existente con email verificado y lo audita', async () => {
+    const { email } = await register();
+    const user = await prisma.user.update({ where: { email }, data: { emailVerified: true } });
+    const sub = randomUUID();
+    const res = await call('POST', '/auth/google', { body: { idToken: googleToken(sub, email) } });
+    expect(res.statusCode).toBe(200);
+    expect(
+      await prisma.authIdentity.count({
+        where: { userId: user.id, provider: 'GOOGLE', providerSubject: sub },
+      }),
+    ).toBe(1);
+    expect(
+      await prisma.auditLog.count({ where: { actorId: user.id, action: 'auth.google_linked' } }),
+    ).toBe(1);
   });
 });

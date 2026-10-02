@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   CURRENT_POLICY_VERSION,
+  type GoogleLoginRequest,
   type LoginRequest,
   type RegisterRequest,
   type TokenPair,
@@ -14,6 +15,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service.js';
 import { RedisService } from '../../infra/redis/redis.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { UsersService } from '../users/users.service.js';
+import { GOOGLE_VERIFIER, type GoogleTokenVerifier } from './google-verifier.js';
 import { PasswordService } from './password.service.js';
 import { SessionService } from './session.service.js';
 import { TokenService } from './token.service.js';
@@ -37,6 +39,7 @@ export class AuthService {
     private readonly sessions: SessionService,
     private readonly tokens: TokenService,
     private readonly audit: AuditService,
+    @Inject(GOOGLE_VERIFIER) private readonly google: GoogleTokenVerifier,
   ) {}
 
   async register(body: RegisterRequest, ctx: RequestContext): Promise<TokenPair> {
@@ -117,6 +120,115 @@ export class AuthService {
       meta: { method: 'password' },
     });
     return this.issue(user, ['pwd'], ctx);
+  }
+
+  /**
+   * Inicio de sesión con Google (8.2, flujo). El usuario se identifica por `sub`; el email solo
+   * sirve para vincular una cuenta existente cuyo email ya esté verificado.
+   */
+  async loginWithGoogle(body: GoogleLoginRequest, ctx: RequestContext): Promise<TokenPair> {
+    if (!this.google.enabled) {
+      throw new ApiException(404, 'NOT_FOUND', 'El inicio de sesión con Google no está disponible');
+    }
+    const identity = await this.google.verify(body.idToken);
+    if (!identity)
+      throw new ApiException(401, 'UNAUTHORIZED', 'No se pudo verificar la cuenta de Google');
+    if (!identity.emailVerified) {
+      throw new ApiException(
+        401,
+        'UNAUTHORIZED',
+        'La cuenta de Google no tiene el email verificado',
+      );
+    }
+
+    const linked = await this.prisma.authIdentity.findUnique({
+      where: { provider_providerSubject: { provider: 'GOOGLE', providerSubject: identity.sub } },
+      include: { user: true },
+    });
+
+    let user: User;
+    let event: 'login' | 'linked' | 'register';
+    if (linked && !linked.user.deletedAt) {
+      user = linked.user;
+      event = 'login';
+    } else {
+      const byEmail = await this.users.findByEmail(identity.email);
+      if (byEmail) {
+        // Vincular solo si el email de la cuenta existente ya está verificado: si no, alguien pudo
+        // registrarse con un email ajeno y quedarse con la cuenta del dueño real (toma de cuenta).
+        if (!byEmail.emailVerified) {
+          throw new ApiException(
+            409,
+            'CONFLICT',
+            'Ya existe una cuenta con este email. Inicia sesión con tu contraseña.',
+          );
+        }
+        await this.prisma.authIdentity.create({
+          data: { userId: byEmail.id, provider: 'GOOGLE', providerSubject: identity.sub },
+        });
+        user = byEmail;
+        event = 'linked';
+      } else {
+        if (body.consent?.policyVersion !== CURRENT_POLICY_VERSION) {
+          throw new ApiException(
+            409,
+            'CONSENT_REQUIRED',
+            'Acepta la política para crear tu cuenta',
+          );
+        }
+        const role = body.role ?? 'PASSENGER';
+        user = await this.prisma.user.create({
+          data: {
+            email: identity.email,
+            emailVerified: true,
+            fullName: identity.name ?? identity.email.split('@')[0] ?? 'Usuario',
+            role,
+            identities: { create: { provider: 'GOOGLE', providerSubject: identity.sub } },
+            consents: {
+              create: {
+                policyVersion: body.consent.policyVersion,
+                ip: ctx.ip,
+                channel: role === 'DRIVER' ? 'driver' : 'passenger',
+              },
+            },
+          },
+        });
+        event = 'register';
+      }
+    }
+
+    if (user.role === 'ADMIN') throw invalidCredentials();
+    if (user.status !== 'ACTIVE') {
+      throw new ApiException(403, 'ACCOUNT_DISABLED', 'Tu cuenta no está activa');
+    }
+
+    // Anti-replay (8.2, paso 3): cada idToken abre como máximo una sesión. Se marca aquí, al
+    // emitir, para que la app pueda reintentar con el mismo token tras aceptar el consentimiento.
+    const ttl = Math.max(identity.exp - Math.floor(Date.now() / 1000), 1);
+    const fresh = await this.redis.client.set(
+      `google:idtoken:${createHash('sha256').update(body.idToken).digest('hex')}`,
+      '1',
+      'EX',
+      ttl,
+      'NX',
+    );
+    if (fresh !== 'OK') throw new ApiException(401, 'UNAUTHORIZED', 'Token de Google ya utilizado');
+
+    await this.audit.log({
+      actorId: user.id,
+      action:
+        event === 'register'
+          ? 'auth.register'
+          : event === 'linked'
+            ? 'auth.google_linked'
+            : 'auth.login',
+      entity: 'user',
+      entityId: user.id,
+      ip: ctx.ip,
+      meta: { method: 'google' },
+    });
+    // TODO(1b): avisar por correo "se vinculó Google a tu cuenta" cuando event === 'linked'.
+    return this.issue(user, ['google'], ctx);
   }
 
   async refresh(refreshToken: string, ctx: RequestContext): Promise<TokenPair> {

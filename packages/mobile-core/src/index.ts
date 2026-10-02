@@ -1,6 +1,7 @@
 export { BaseMap, type BaseMapProps } from './BaseMap';
 export { friendlyError } from './auth/errors';
 export { FormError, FormScreen } from './auth/FormScreen';
+export { GoogleSignInButton } from './auth/GoogleSignInButton';
 export { LoginScreen } from './auth/LoginScreen';
 export { PrivacyPolicyScreen } from './auth/PrivacyPolicyScreen';
 export { PRIVACY_POLICY } from './auth/privacy-policy';

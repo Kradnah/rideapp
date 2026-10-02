@@ -18,7 +18,8 @@
     "react-native": "*",
     "react-native-maps": "*",
     "expo-secure-store": "*",
-    "react-native-safe-area-context": "*"
+    "react-native-safe-area-context": "*",
+    "@react-native-google-signin/google-signin": "*"
   },
   "devDependencies": {
     "@rideapp/config": "workspace:*",
@@ -30,7 +31,8 @@
     "react-native-maps": "1.27.2",
     "typescript": "catalog:",
     "expo-secure-store": "~57.0.4",
-    "react-native-safe-area-context": "~5.7.0"
+    "react-native-safe-area-context": "~5.7.0",
+    "@react-native-google-signin/google-signin": "^16.1.5"
   },
   "exports": {
     ".": "./src/index.ts",

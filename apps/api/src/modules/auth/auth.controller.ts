@@ -1,6 +1,12 @@
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { LoginRequest, RefreshRequest, RegisterRequest, type TokenPair } from '@rideapp/contracts';
+import {
+  GoogleLoginRequest,
+  LoginRequest,
+  RefreshRequest,
+  RegisterRequest,
+  type TokenPair,
+} from '@rideapp/contracts';
 import {
   type AuthUser,
   CurrentUser,
@@ -14,6 +20,7 @@ import { AuthService } from './auth.service.js';
 class RegisterDto extends createZodDto(RegisterRequest) {}
 class LoginDto extends createZodDto(LoginRequest) {}
 class RefreshDto extends createZodDto(RefreshRequest) {}
+class GoogleLoginDto extends createZodDto(GoogleLoginRequest) {}
 
 /** Límite estricto por IP en las rutas de credenciales (8.2, paso 5). */
 const STRICT = { default: { limit: 5, ttl: 60_000 } };
@@ -35,6 +42,14 @@ export class AuthController {
   @Post('login')
   login(@Body() body: LoginDto, @ReqContext() ctx: RequestContext): Promise<TokenPair> {
     return this.auth.login(body, ctx);
+  }
+
+  @Public()
+  @Throttle(STRICT)
+  @HttpCode(200)
+  @Post('google')
+  google(@Body() body: GoogleLoginDto, @ReqContext() ctx: RequestContext): Promise<TokenPair> {
+    return this.auth.loginWithGoogle(body, ctx);
   }
 
   @Public()

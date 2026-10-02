@@ -1,3 +1,4 @@
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { ApiClientError, type ApiClient, createApiClient } from '@rideapp/api-client';
 import type { TokenPair } from '@rideapp/contracts';
 import * as SecureStore from 'expo-secure-store';
@@ -139,10 +140,13 @@ export function SessionProvider({ apiUrl, appVersion, children }: SessionProvide
       },
       signOut: async () => {
         await api.auth.logout().catch(() => undefined);
+        // Si entró con Google, también se cierra allí para poder elegir otra cuenta (9.1).
+        await GoogleSignin.signOut().catch(() => undefined);
         await clear();
       },
       signOutAll: async () => {
         await api.auth.logoutAll();
+        await GoogleSignin.signOut().catch(() => undefined);
         await clear();
       },
     }),

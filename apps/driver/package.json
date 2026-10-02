@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@react-native-google-signin/google-signin": "^16.1.5",
     "@rideapp/api-client": "workspace:*",
     "@rideapp/contracts": "workspace:*",
     "@rideapp/mobile-core": "workspace:*",

@@ -68,6 +68,12 @@ export const EnvSchema = z
     ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(900).default(900),
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
 
+    /** Client ID "Aplicación web" de Google: audience del idToken (8.2). Sin él, /auth/google responde 404. */
+    GOOGLE_WEB_CLIENT_ID: z
+      .string()
+      .regex(/^[\w-]+\.apps\.googleusercontent\.com$/, 'Client ID de Google no válido')
+      .optional(),
+
     MAPS_PROVIDER: z.enum(['fake', 'google']).default('fake'),
     GOOGLE_MAPS_SERVER_KEY: z.string().min(1).optional(),
   })

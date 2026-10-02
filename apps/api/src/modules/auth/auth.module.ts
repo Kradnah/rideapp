@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { UsersModule } from '../users/users.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { GOOGLE_VERIFIER, GoogleAuthLibraryVerifier } from './google-verifier.js';
 import { PasswordService } from './password.service.js';
 import { SessionRevocationService } from './session-revocation.service.js';
 import { SessionService } from './session.service.js';
@@ -12,7 +13,14 @@ import { TokenService } from './token.service.js';
 @Module({
   imports: [UsersModule],
   controllers: [AuthController],
-  providers: [AuthService, PasswordService, SessionService, SessionRevocationService, TokenService],
+  providers: [
+    AuthService,
+    PasswordService,
+    SessionService,
+    SessionRevocationService,
+    TokenService,
+    { provide: GOOGLE_VERIFIER, useClass: GoogleAuthLibraryVerifier },
+  ],
   exports: [TokenService, SessionRevocationService, SessionService],
 })
 export class AuthModule {}
