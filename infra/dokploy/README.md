@@ -20,21 +20,23 @@ Dominios (Let's Encrypt): `rideapp-api.julian-lizcano.com` → API · `rideapp-a
 - El usuario `rideapp` de Postgres lo crea Dokploy como superusuario (13.5 C1). Desde el 2026-10-02 el API usa **`rideapp_app`** (sin superusuario; dueño del esquema `public`). `rideapp` queda solo para administración. Consecuencia: una migración futura que necesite `CREATE EXTENSION` debe ejecutarla antes un superusuario.
 - Las contraseñas de Postgres y Redis se generaron en el VPS y solo viven en Dokploy.
 
-## Activar el correo (cuando exista el SMTP del dominio)
+## Activar el correo (SMTP de Hostinger)
 
-Hoy `MAIL_TRANSPORT=disabled`: verificación de email y recuperación de contraseña existen pero no envían nada (la app muestra "el envío de correos aún no está disponible"). Para activarlo, en Dokploy → `rideapp-api` → Environment, sin tocar código:
+Hasta activarlo, `MAIL_TRANSPORT=disabled`: verificación de email y recuperación de contraseña existen pero no envían nada (la app muestra "el envío de correos aún no está disponible"). El buzón es `no-reply@nortaestudio.com` (correo de Hostinger). En Dokploy → `rideapp-api` → Environment, sin tocar código:
 
 ```
 MAIL_TRANSPORT=smtp
-SMTP_HOST=<servidor SMTP del proveedor del dominio>
-SMTP_PORT=587            # 465 si el proveedor usa TLS implícito (entonces SMTP_SECURE=true)
-SMTP_SECURE=false
-SMTP_USER=no-reply@<dominio>
-SMTP_PASSWORD=<contraseña>   # guardarla con `read -rsp` en el VPS y pasarla desde allí, nunca por chat
-MAIL_FROM=rideapp <no-reply@<dominio>>
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=465
+SMTP_SECURE=true             # TLS implícito; si el VPS no llega al 465: SMTP_PORT=587 y SMTP_SECURE=false (STARTTLS)
+SMTP_USER=no-reply@nortaestudio.com
+SMTP_PASSWORD=<contraseña>   # solo en Dokploy, nunca en el repo ni por chat
+MAIL_FROM=rideapp <no-reply@nortaestudio.com>
 ```
 
-Y redesplegar. Comprobar que el VPS llega al puerto (`timeout 8 bash -c "exec 3<>/dev/tcp/<host>/587"`) y configurar SPF/DKIM del dominio para que los correos no acaben en spam. En producción el STARTTLS es obligatorio.
+Y redesplegar. Comprobar antes que el VPS llega al puerto (`timeout 8 bash -c "exec 3<>/dev/tcp/smtp.hostinger.com/465" && echo ok`).
+
+DNS de `nortaestudio.com` (revisado el 2026-10-02, gestionado en Hostinger): SPF `include:_spf.mail.hostinger.com`, DKIM con los CNAME `hostingermail-{a,b,c}._domainkey`, DMARC `p=none`. Cuando los envíos lleguen bien, endurecer DMARC a `p=quarantine`.
 
 ## Volumen de documentos de conductores (Fase 2)
 
