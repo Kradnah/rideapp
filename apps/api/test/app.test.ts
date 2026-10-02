@@ -3,20 +3,27 @@ import { Body, Controller, Get, Module, Post } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import { getStorageToken } from '@nestjs/throttler';
-import { ApiError, HealthResponse, RegisterRequest } from '@rideapp/contracts';
+import {
+  ApiError,
+  CURRENT_POLICY_VERSION,
+  HealthResponse,
+  RegisterRequest,
+} from '@rideapp/contracts';
 import { afterEach, describe, expect, it } from 'vitest';
 import { configureApp, createAdapter } from '../src/app.factory.js';
 import { AppModule } from '../src/app.module.js';
 import { ApiException } from '../src/common/errors/api.exception.js';
+import { Public } from '../src/common/auth/auth.decorators.js';
 import { createZodDto } from '../src/common/zod/zod-dto.js';
-import { parseEnv } from '../src/config/env.js';
 import { PrismaService } from '../src/infra/prisma/prisma.service.js';
 import { RedisService } from '../src/infra/redis/redis.service.js';
+import { testEnv } from './helpers/test-env.js';
 
 // ---------- Controlador de prueba para ejercitar pipe y filtro ----------
 
 class RegisterDto extends createZodDto(RegisterRequest) {}
 
+@Public()
 @Controller('test')
 class ProbeController {
   @Post('register')
@@ -78,14 +85,7 @@ async function startApp(
   opts = { dbUp: true, redisUp: true },
   envOverrides: Record<string, string> = {},
 ) {
-  const env = parseEnv({
-    NODE_ENV: 'test',
-    LOG_LEVEL: 'fatal',
-    DATABASE_URL: 'postgresql://u:p@127.0.0.1:1/x',
-    REDIS_URL: 'redis://127.0.0.1:1',
-    CORS_ORIGINS: 'http://localhost:5173',
-    ...envOverrides,
-  });
+  const env = testEnv(envOverrides);
   const deps = fakeDeps(opts);
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule.forRoot(env), ProbeModule],
@@ -141,6 +141,7 @@ describe('validación y errores', () => {
     password: 'una-clave-larga',
     fullName: 'Ana',
     role: 'PASSENGER',
+    consent: { acceptTerms: true, policyVersion: CURRENT_POLICY_VERSION },
   };
 
   it('acepta un cuerpo válido', async () => {

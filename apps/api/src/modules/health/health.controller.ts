@@ -2,6 +2,7 @@ import { Controller, Get, HttpCode, Res } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import type { HealthResponse } from '@rideapp/contracts';
 import type { FastifyReply } from 'fastify';
+import { Public } from '../../common/auth/auth.decorators.js';
 import { PrismaService } from '../../infra/prisma/prisma.service.js';
 import { RedisService } from '../../infra/redis/redis.service.js';
 
@@ -25,6 +26,7 @@ async function check(fn: () => Promise<unknown>): Promise<'up' | 'down'> {
 }
 
 /** Sondas para Dokploy/Traefik (7.5, paso 4). */
+@Public()
 @SkipThrottle()
 @Controller('health')
 export class HealthController {

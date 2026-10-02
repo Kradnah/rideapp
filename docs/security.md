@@ -18,6 +18,23 @@ Checklist completa en la sección 14 del plan. Aquí se registran las decisiones
 | Imagen Docker con usuario no root; `.env*` excluidos del contexto y del paquete desplegado                                              | `apps/api/Dockerfile`, `.dockerignore`, `files` en `package.json` |
 | Postgres y Redis locales solo en `127.0.0.1`; usuario de BD sin superusuario                                                            | `infra/docker-compose.yml`                                        |
 
+## Autenticación (Fase 1)
+
+| Control (14.2)                                                   | Implementación                                                                                    |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Argon2id (19 MiB, t=2, p=1)                                      | `@node-rs/argon2` (binarios precompilados para Alpine y Windows)                                  |
+| Política de contraseñas                                          | ≥ 10 caracteres + lista local de 9.077 contraseñas comunes + no contener el email + no repetitiva |
+| Errores de login genéricos y tiempo constante                    | Verificación contra un hash ficticio si el email no existe                                        |
+| Access token ≤ 15 min, ES256, `kid`, sin datos personales        | `TokenService` (`sub`, `role`, `sid`, `amr`)                                                      |
+| Refresh token rotativo, solo hash SHA-256 en BD                  | `SessionService`; reutilizar uno rotado revoca la familia (sesión)                                |
+| Logout / logout-all invalidan también los access tokens vigentes | `auth:revoked-sid:*` en Redis durante el TTL del access token                                     |
+| Rate limiting                                                    | 5/min por IP en registro y login; 10 intentos por email cada 15 min desde cualquier IP            |
+| Rutas privadas por defecto                                       | `AuthGuard` global; las públicas se marcan con `@Public()`                                        |
+| Consentimiento (Ley 1581)                                        | Tabla `consents` con versión de política, fecha, IP y canal                                       |
+| Auditoría                                                        | `audit_logs`: registro, login, login fallido (con hash del email), logout, reutilización de token |
+
+Clave JWT de producción: generada en el VPS con openssl y guardada solo en Dokploy (`JWT_KID=2026-10`).
+
 ## Pendiente o a vigilar
 
 - **Postgres en producción:** el API usa el rol `rideapp_app` (sin superusuario, dueño del esquema `public`). PostGIS no es una extensión _trusted_: si una migración futura necesita otra extensión, la crea antes el superusuario `rideapp`.

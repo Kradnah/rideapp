@@ -5,3 +5,4 @@ coverage
 PLAN_DE_TRABAJO.md
 AGENTS.md
 **/src/generated
+apps/api/src/modules/auth/common-passwords.data.ts

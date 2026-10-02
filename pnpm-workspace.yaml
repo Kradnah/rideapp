@@ -8,8 +8,11 @@ allowBuilds:
   '@prisma/engines': true
   '@scarf/scarf': false
   '@swc/core': true
+  cpu-features: false
   esbuild: true
   prisma: true
+  protobufjs: false
+  ssh2: false
 minimumReleaseAgeExclude:
   - '@turbo/darwin-64@2.11.6'
   - '@turbo/darwin-arm64@2.11.6'

@@ -1,5 +1,29 @@
+import { createPrivateKey } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { z } from 'zod';
+
+/**
+ * Clave PEM en la variable de entorno: admite el PEM tal cual, con saltos de línea escapados
+ * (`\n` literal) o codificado en base64 (más cómodo en paneles como Dokploy).
+ */
+const pemKey = z
+  .string()
+  .min(1)
+  .transform((v) => {
+    const raw = v.trim();
+    if (raw.startsWith('-----BEGIN')) return raw.replace(/\\n/g, '\n');
+    return Buffer.from(raw, 'base64').toString('utf8');
+  })
+  .refine((pem) => {
+    try {
+      const key = createPrivateKey(pem);
+      return (
+        key.asymmetricKeyType === 'ec' && key.asymmetricKeyDetails?.namedCurve === 'prime256v1'
+      );
+    } catch {
+      return false;
+    }
+  }, 'Debe ser una clave privada EC P-256 (ES256) en PEM o base64');
 
 const booleanString = z
   .enum(['true', 'false', '1', '0'])
@@ -35,6 +59,14 @@ export const EnvSchema = z
     REDIS_URL: z.url().refine((u) => /^rediss?:\/\//.test(u), 'Debe ser una URL de Redis'),
 
     CORS_ORIGINS: commaList,
+
+    /** Clave privada ES256 de los access tokens; la pública se deriva de ella (8.2, paso 2). */
+    JWT_PRIVATE_KEY: pemKey,
+    /** Identificador de la clave (cabecera `kid`), para poder rotarla. */
+    JWT_KID: z.string().regex(/^[A-Za-z0-9._-]{1,64}$/),
+    /** 10–15 minutos como máximo (8.2). */
+    ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(900).default(900),
+    REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
 
     MAPS_PROVIDER: z.enum(['fake', 'google']).default('fake'),
     GOOGLE_MAPS_SERVER_KEY: z.string().min(1).optional(),

@@ -11,3 +11,116 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// ---------------------------------------------------------------------------------------
+// Identidad (Fase 1, sección 8.0)
+// ---------------------------------------------------------------------------------------
+
+enum UserRole {
+  PASSENGER
+  DRIVER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum AuthProvider {
+  PASSWORD
+  GOOGLE
+  APPLE
+}
+
+model User {
+  id            String     @id @default(uuid(7)) @db.Uuid
+  /// citext: único sin distinguir mayúsculas. Null para cuentas anonimizadas (8.3).
+  email         String?    @unique @db.Citext
+  emailVerified Boolean    @default(false) @map("email_verified")
+  /// Argon2id. Null si la cuenta solo entra con Google/Apple.
+  passwordHash  String?    @map("password_hash")
+  fullName      String     @map("full_name")
+  phone         String?
+  role          UserRole
+  status        UserStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt     DateTime?  @map("deleted_at") @db.Timestamptz(3)
+
+  identities    AuthIdentity[]
+  refreshTokens RefreshToken[]
+  consents      Consent[]
+
+  @@map("users")
+}
+
+/// Identidades externas (Google, Apple). El usuario se identifica por `sub`, nunca por el email (8.2).
+model AuthIdentity {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  userId          String       @map("user_id") @db.Uuid
+  provider        AuthProvider
+  providerSubject String       @map("provider_subject")
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSubject])
+  @@index([userId])
+  @@map("auth_identities")
+}
+
+/// Refresh tokens rotativos. Solo se guarda el hash SHA-256 (8.2, paso 3).
+/// Una familia = una sesión (`sid` del access token); si se reutiliza un token ya rotado,
+/// se revoca la familia entera.
+model RefreshToken {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  familyId   String    @map("family_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash")
+  userAgent  String?   @map("user_agent")
+  ip         String?
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+  replacedBy String?   @map("replaced_by") @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+/// Prueba de la autorización de tratamiento de datos (Ley 1581, sección 15).
+model Consent {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  policyVersion String   @map("policy_version")
+  acceptedAt    DateTime @default(now()) @map("accepted_at") @db.Timestamptz(3)
+  ip            String?
+  /// Canal: passenger, driver, admin...
+  channel       String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("consents")
+}
+
+/// Auditoría (8.15). Sin FK a users: los registros sobreviven al borrado de la cuenta.
+model AuditLog {
+  id       String   @id @default(uuid(7)) @db.Uuid
+  actorId  String?  @map("actor_id") @db.Uuid
+  action   String
+  entity   String
+  entityId String?  @map("entity_id")
+  ip       String?
+  at       DateTime @default(now()) @db.Timestamptz(3)
+  meta     Json?
+
+  @@index([actorId, at])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}

@@ -17,4 +17,30 @@ import * as Prisma from './internal/prismaNamespaceBrowser.js'
 export { Prisma }
 export * as $Enums from './enums.js'
 export * from './enums.js';
-
+/**
+ * Model User
+ * 
+ */
+export type User = Prisma.UserModel
+/**
+ * Model AuthIdentity
+ * Identidades externas (Google, Apple). El usuario se identifica por `sub`, nunca por el email (8.2).
+ */
+export type AuthIdentity = Prisma.AuthIdentityModel
+/**
+ * Model RefreshToken
+ * Refresh tokens rotativos. Solo se guarda el hash SHA-256 (8.2, paso 3).
+ * Una familia = una sesión (`sid` del access token); si se reutiliza un token ya rotado,
+ * se revoca la familia entera.
+ */
+export type RefreshToken = Prisma.RefreshTokenModel
+/**
+ * Model Consent
+ * Prueba de la autorización de tratamiento de datos (Ley 1581, sección 15).
+ */
+export type Consent = Prisma.ConsentModel
+/**
+ * Model AuditLog
+ * Auditoría (8.15). Sin FK a users: los registros sobreviven al borrado de la cuenta.
+ */
+export type AuditLog = Prisma.AuditLogModel
