@@ -1,5 +1,5 @@
 import { GIRARDOT_CENTER } from '@rideapp/contracts';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View, useColorScheme } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, type EdgePadding } from 'react-native-maps';
 import { colors } from './theme';
@@ -32,6 +32,9 @@ export function BaseMap({
 }: BaseMapProps) {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const palette = colors[scheme];
+  // react-native-maps 1.27 se cierra en Android si mapPadding cambia antes de que el mapa de
+  // Google esté listo (GoogleMap todavía null). Por eso el padding se aplica tras onMapReady.
+  const [mapReady, setMapReady] = useState(false);
 
   if (!enabled) {
     return (
@@ -50,7 +53,8 @@ export function BaseMap({
       style={StyleSheet.absoluteFill}
       provider={PROVIDER_GOOGLE}
       initialRegion={INITIAL_REGION}
-      mapPadding={mapPadding}
+      mapPadding={mapReady ? mapPadding : undefined}
+      onMapReady={() => setMapReady(true)}
       showsUserLocation={showsUserLocation}
       showsMyLocationButton={false}
       toolbarEnabled={false}

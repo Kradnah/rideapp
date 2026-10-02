@@ -26,5 +26,9 @@
     "react-native": "0.86.3",
     "react-native-maps": "1.27.2",
     "typescript": "catalog:"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./plugins/with-windows-cmake": "./plugins/with-windows-cmake.js"
   }
 }

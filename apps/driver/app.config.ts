@@ -41,6 +41,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-router',
+    // Solo Windows: CMake con ninja que soporta rutas largas (ver el propio plugin).
+    '@rideapp/mobile-core/plugins/with-windows-cmake',
     [
       'expo-location',
       {

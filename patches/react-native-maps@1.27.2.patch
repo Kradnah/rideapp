@@ -1,0 +1,24 @@
+diff --git a/android/src/main/java/com/rnmaps/maps/MapView.java b/android/src/main/java/com/rnmaps/maps/MapView.java
+index ebf87802160a201504a277fff47b7a3801c075b8..748f517d1b1d3673110759d5f4484a5a6b6b9473 100644
+--- a/android/src/main/java/com/rnmaps/maps/MapView.java
++++ b/android/src/main/java/com/rnmaps/maps/MapView.java
+@@ -1325,7 +1325,7 @@ public class MapView extends com.google.android.gms.maps.MapView implements Goog
+     }
+ 
+     public void updateExtraData(Object extraData) {
+-        if (setPaddingDeferred && super.getHeight() > 0 && super.getWidth() > 0) {
++        if (setPaddingDeferred && map != null && super.getHeight() > 0 && super.getWidth() > 0) {
+             CameraUpdate cu = CameraUpdateFactory.newCameraPosition(map.getCameraPosition());
+ 
+             map.setPadding(edgeLeftPadding + baseLeftMapPadding,
+@@ -1492,7 +1492,9 @@ public class MapView extends com.google.android.gms.maps.MapView implements Goog
+     int edgeBottomPadding;
+ 
+     public void applyBaseMapPadding(int left, int top, int right, int bottom) {
+-        if (super.getHeight() <= 0 || super.getWidth() <= 0) {
++        // rideapp: with Fabric, mapPadding can arrive before onMapReady (map == null), which
++        // crashed with a NullPointerException. Defer it: onMapReady applies deferred paddings.
++        if (map == null || super.getHeight() <= 0 || super.getWidth() <= 0) {
+             // the map is not laid out yet and calling setPadding() now has no effect
+             baseLeftMapPadding = left;
+             baseRightMapPadding = right;
