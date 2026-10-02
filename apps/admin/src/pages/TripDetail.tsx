@@ -18,6 +18,9 @@ import {
 
 const isActive = (status: TripStatus) =>
   (ACTIVE_TRIP_STATUSES as readonly TripStatus[]).includes(status);
+/** Con conductor asignado se sigue en vivo; buscando conductor basta con algo más lento. */
+const isLive = (status: TripStatus) =>
+  status === 'DRIVER_ASSIGNED' || status === 'DRIVER_ARRIVED' || status === 'IN_PROGRESS';
 
 const time = new Intl.DateTimeFormat('es-CO', { timeStyle: 'medium' });
 
@@ -53,8 +56,12 @@ export function TripDetail() {
   const query = useQuery({
     queryKey: ['admin', 'trips', id],
     queryFn: () => api.admin.trips.detail(id),
-    // Mientras el viaje sigue en curso se refresca solo.
-    refetchInterval: (q) => (q.state.data && isActive(q.state.data.status) ? 10_000 : false),
+    // Mientras el viaje sigue en curso se refresca solo; con conductor, al ritmo de su GPS.
+    refetchInterval: (q) => {
+      const status = q.state.data?.status;
+      if (!status || !isActive(status)) return false;
+      return isLive(status) ? 5_000 : 10_000;
+    },
   });
 
   if (query.isPending) return <p className="muted">Cargando…</p>;
@@ -137,19 +144,52 @@ export function TripDetail() {
               </dd>
               <dt>Aceptado</dt>
               <dd>{formatDate(trip.acceptedAt)}</dd>
+              {trip.arrivedAt && (
+                <>
+                  <dt>Llegó a recoger</dt>
+                  <dd>{formatDate(trip.arrivedAt)}</dd>
+                </>
+              )}
+              {trip.startedAt && (
+                <>
+                  <dt>Inició</dt>
+                  <dd>{formatDate(trip.startedAt)}</dd>
+                </>
+              )}
+              {trip.completedAt && (
+                <>
+                  <dt>Finalizó</dt>
+                  <dd>{formatDate(trip.completedAt)}</dd>
+                </>
+              )}
             </dl>
           </section>
           <Timeline trip={trip} />
         </div>
 
         <section className="card">
-          <h2>Ruta cotizada</h2>
+          <h2>{trip.live ? 'Viaje en vivo' : 'Recorrido'}</h2>
           <ServiceAreaMap
             route={{ polyline: trip.polyline, origin: trip.origin, destination: trip.destination }}
+            trace={trip.trace}
+            liveDriver={trip.live?.position ?? null}
           />
-          <p className="muted">
-            La traza real del recorrido se guarda desde la Fase 4 (viaje en vivo).
-          </p>
+          <ul className="legend">
+            <li>
+              <span className="legend__line legend__line--route" /> Ruta cotizada
+            </li>
+            <li>
+              <span className="legend__line legend__line--trace" /> Recorrido del conductor
+              {trip.trace.length === 0 && ' (sin puntos todavía)'}
+            </li>
+            {trip.live && (
+              <li>
+                <span className="legend__dot" /> Conductor ahora
+                {trip.live.etaSeconds !== null &&
+                  ` · ${trip.status === 'IN_PROGRESS' ? 'llega al destino' : 'llega a recoger'} en ${formatDuration(trip.live.etaSeconds)}`}
+              </li>
+            )}
+          </ul>
         </section>
       </div>
     </>

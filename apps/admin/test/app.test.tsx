@@ -251,6 +251,9 @@ const tripDetail = {
   polyline: '_p~iF~ps|U',
   requestedAt: '2026-10-02T15:00:00.000Z',
   acceptedAt: '2026-10-02T15:00:20.000Z',
+  arrivedAt: null,
+  startedAt: null,
+  completedAt: null,
   cancelledAt: '2026-10-02T15:03:00.000Z',
   cancelledBy: 'PASSENGER',
   cancelReason: 'Me demoré',
@@ -267,6 +270,8 @@ const tripDetail = {
     },
   },
   offersDeclined: 1,
+  trace: [],
+  live: null,
   events: [
     { fromStatus: null, toStatus: 'REQUESTED', actor: 'PASSENGER', at: '2026-10-02T15:00:00.000Z' },
     {

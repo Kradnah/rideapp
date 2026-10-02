@@ -1,7 +1,7 @@
 import type { AdminLiveDriver, LatLng } from '@rideapp/contracts';
 import { decodePolyline, GIRARDOT_CENTER, SERVICE_AREA_BOUNDS } from '@rideapp/contracts';
 import { APIProvider, Map, useMap } from '@vis.gl/react-google-maps';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
 
@@ -107,12 +107,73 @@ function RouteLine({ route }: { route: TripRoute }) {
   return null;
 }
 
+const TRACE_COLOR = '#1d4ed8';
+
+/** Recorrido real del conductor (`trip_route_points`, Fase 4), encima de la ruta cotizada. */
+function TraceLine({ trace }: { trace: LatLng[] }) {
+  const map = useMap();
+  // Clave por valor: el detalle se refresca con arrays nuevos aunque la traza no cambie.
+  const key = trace.map((p) => `${p.lat},${p.lng}`).join(';');
+  useEffect(() => {
+    if (!map || !key) return;
+    const path = key.split(';').map((pair) => {
+      const [lat, lng] = pair.split(',').map(Number);
+      return { lat: lat!, lng: lng! };
+    });
+    const line = new google.maps.Polyline({
+      map,
+      path,
+      strokeColor: TRACE_COLOR,
+      strokeOpacity: 0.85,
+      strokeWeight: 4,
+      clickable: false,
+    });
+    return () => line.setMap(null);
+  }, [map, key]);
+  return null;
+}
+
+/** Posición en vivo del conductor del viaje; se mueve sin volver a crear el círculo. */
+function LiveDriver({ position }: { position: LatLng }) {
+  const map = useMap();
+  const circle = useRef<google.maps.Circle | null>(null);
+  useEffect(() => {
+    if (!map) return;
+    const c = new google.maps.Circle({
+      map,
+      radius: 55,
+      strokeColor: '#ffffff',
+      strokeWeight: 3,
+      fillColor: TRACE_COLOR,
+      fillOpacity: 1,
+      clickable: false,
+      zIndex: 10,
+    });
+    circle.current = c;
+    return () => {
+      c.setMap(null);
+      circle.current = null;
+    };
+  }, [map]);
+  const { lat, lng } = position;
+  useEffect(() => {
+    circle.current?.setCenter({ lat, lng });
+  }, [map, lat, lng]);
+  return null;
+}
+
 export function ServiceAreaMap({
   drivers = [],
   route,
+  trace = [],
+  liveDriver = null,
 }: {
   drivers?: AdminLiveDriver[];
   route?: TripRoute;
+  /** Recorrido real del viaje. */
+  trace?: LatLng[];
+  /** Conductor del viaje ahora mismo (solo con el viaje activo). */
+  liveDriver?: LatLng | null;
 }) {
   if (!MAPS_KEY) {
     return (
@@ -138,6 +199,8 @@ export function ServiceAreaMap({
           <ServiceAreaRectangle />
           <DriverDots drivers={drivers} />
           {route && <RouteLine route={route} />}
+          {trace.length > 1 && <TraceLine trace={trace} />}
+          {liveDriver && <LiveDriver position={liveDriver} />}
         </Map>
       </APIProvider>
     </div>
