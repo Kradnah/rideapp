@@ -62,3 +62,16 @@ Y redesplegar. El panel muestra en el dashboard las llamadas del día por SKU. S
 La migración de la Fase 3 (`trips`) no crea extensiones: la puede aplicar `rideapp_app`. BullMQ usa el mismo Redis y necesita `maxmemory-policy noeviction` (13.5 C2).
 
 Socket.IO usa el mismo dominio del API (`wss://rideapp-api.julian-lizcano.com/socket.io`); Traefik reenvía WebSocket sin configuración extra.
+
+## Notificaciones push y backups (Fase 5)
+
+**Push.** El API envía por Expo Push solo con `PUSH_PROVIDER=expo` (por defecto `disabled`). Mientras tanto todo funciona por el socket y la consulta periódica de las apps; solo se pierden los avisos con la app cerrada. Para activarlo:
+
+1. Crear los proyectos en [expo.dev](https://expo.dev) (gratis) para `rideapp-passenger` y `rideapp-driver`, y un proyecto de Firebase con las dos apps Android (`com.norta.rideapp.passenger` y `.driver`).
+2. Descargar cada `google-services.json` (no se versiona) y subir la clave de cuenta de servicio de FCM V1 a Expo (`eas credentials` → Android → FCM V1).
+3. Compilar las APK con `EAS_PROJECT_ID` y `GOOGLE_SERVICES_FILE` en el `.env.local` de cada app.
+4. En Dokploy → `rideapp-api` → Environment: `PUSH_PROVIDER=expo` (y `EXPO_ACCESS_TOKEN` solo si se activa la seguridad mejorada de push en Expo).
+
+**Recibos.** Con `MAIL_TRANSPORT=smtp`, al quedar cobrado un viaje se envía el recibo al pasajero (cola `notifications` de BullMQ, uno por viaje).
+
+**Backups.** Ver `infra/backups/README.md`: cron nocturno en el VPS con `pg_dump` + documentos, cifrados con `age` (la clave privada no vive en el VPS).
