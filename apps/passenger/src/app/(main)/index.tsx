@@ -7,15 +7,18 @@ import { Marker } from 'react-native-maps';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { config } from '@/lib/config';
+import { usePassengerLocation } from '@/lib/use-passenger-location';
 
 const PANEL_HEIGHT = 190;
 
-/** Mapa principal + "¿A dónde vas?" (9.2). Los conductores cercanos llegan del mock hasta la Fase 2. */
+/** Mapa principal + "¿A dónde vas?" (9.2), con los conductores libres cerca (aproximados, sin ID). */
 export default function HomeScreen() {
   const palette = colors[useColorScheme() === 'dark' ? 'dark' : 'light'];
   const insets = useSafeAreaInsets();
   const { api } = useSession();
   const [panelHeight, setPanelHeight] = useState(PANEL_HEIGHT);
+  const location = usePassengerLocation();
+  const origin = location.position && location.inServiceArea ? location.position : GIRARDOT_CENTER;
 
   const health = useQuery({
     queryKey: ['health'],
@@ -24,11 +27,12 @@ export default function HomeScreen() {
   });
 
   // Conductores cercanos cada 10 s mientras la pantalla está visible (9.2, paso 3).
+  // La clave usa la posición redondeada (~100 m): moverse unos metros no dispara otra consulta.
   const nearby = useQuery({
-    queryKey: ['drivers', 'nearby'],
-    queryFn: () => api.drivers.nearby(GIRARDOT_CENTER),
+    queryKey: ['drivers', 'nearby', origin.lat.toFixed(3), origin.lng.toFixed(3)],
+    queryFn: () => api.drivers.nearby(origin),
     retry: false,
-    // Si el API aún no tiene este endpoint (producción antes de la Fase 2), deja de insistir.
+    placeholderData: (previous) => previous,
     refetchInterval: (query) => (query.state.status === 'error' ? false : 10_000),
   });
 
@@ -40,6 +44,8 @@ export default function HomeScreen() {
       <BaseMap
         enabled={config.mapsEnabled}
         mapPadding={{ top: insets.top, right: 0, bottom: panelHeight, left: 0 }}
+        showsUserLocation={location.permission === 'granted'}
+        center={location.position}
       >
         {drivers.map((d, i) => (
           <Marker
@@ -70,6 +76,25 @@ export default function HomeScreen() {
         <Text style={[styles.profileIcon, { color: palette.text }]}>☰</Text>
       </Pressable>
 
+      {location.permission === 'granted' && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Centrar en mi ubicación"
+          onPress={() => void location.locate()}
+          style={[
+            styles.profileButton,
+            styles.locateButton,
+            {
+              top: insets.top + spacing.md,
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+            },
+          ]}
+        >
+          <Text style={[styles.profileIcon, { color: palette.accent }]}>◎</Text>
+        </Pressable>
+      )}
+
       <View
         onLayout={(e) => setPanelHeight(e.nativeEvent.layout.height)}
         style={[
@@ -82,6 +107,30 @@ export default function HomeScreen() {
         ]}
       >
         <Text style={[styles.title, { color: palette.text }]}>Hola 👋</Text>
+        {location.permission === 'undetermined' && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void location.request()}
+            style={[styles.locationCard, { borderColor: palette.accent }]}
+          >
+            <Text style={[styles.locationTitle, { color: palette.text }]}>Usar mi ubicación</Text>
+            <Text style={[styles.status, { color: palette.textMuted }]}>
+              Para mostrarte los conductores cerca de ti y recogerte donde estás. Solo mientras usas
+              la app.
+            </Text>
+          </Pressable>
+        )}
+        {location.permission === 'denied' && (
+          <Text style={[styles.status, { color: palette.textMuted }]}>
+            Sin acceso a tu ubicación: te mostramos el centro de Girardot. Puedes activarla en los
+            ajustes.
+          </Text>
+        )}
+        {location.inServiceArea === false && (
+          <Text style={[styles.status, { color: palette.pending }]}>
+            Estás fuera de la zona de servicio (Girardot, Ricaurte y Flandes).
+          </Text>
+        )}
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ disabled: true }}
@@ -129,6 +178,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   profileIcon: { fontSize: 20, fontWeight: '600' },
+  locateButton: { left: undefined, right: spacing.lg },
+  locationCard: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, gap: 2 },
+  locationTitle: { fontSize: 15, fontWeight: '600' },
   panel: {
     position: 'absolute',
     left: 0,

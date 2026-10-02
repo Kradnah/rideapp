@@ -12,6 +12,8 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { config } from '@/lib/config';
+// Registra la tarea de ubicación en segundo plano al arrancar (expo-task-manager lo exige).
+import '@/lib/location-reporter';
 
 // En móvil, "foco" = app en primer plano: las consultas periódicas se pausan en segundo plano (9.2).
 function useAppStateFocus() {

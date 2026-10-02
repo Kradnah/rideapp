@@ -30,10 +30,22 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       monochromeImage: './assets/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
-    // La ubicación en segundo plano (10.2) se activa en la Fase 2, junto con el servicio en primer
-    // plano y la declaración para Google Play. Hasta entonces, solo mientras la app está abierta.
-    permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION'],
-    blockedPermissions: ['ACCESS_BACKGROUND_LOCATION'],
+    // Ubicación en segundo plano solo mientras está en línea (10.2), con servicio en primer plano
+    // y notificación fija. Google Play exige declararla y justificarla (formulario y vídeo).
+    permissions: [
+      'ACCESS_COARSE_LOCATION',
+      'ACCESS_FINE_LOCATION',
+      'ACCESS_BACKGROUND_LOCATION',
+      'FOREGROUND_SERVICE',
+      'FOREGROUND_SERVICE_LOCATION',
+    ],
+    // Las fotos de documentos se eligen con el selector del sistema: sin acceso a toda la galería.
+    blockedPermissions: [
+      'READ_MEDIA_IMAGES',
+      'READ_MEDIA_VIDEO',
+      'READ_EXTERNAL_STORAGE',
+      'RECORD_AUDIO',
+    ],
   },
   ios: {
     bundleIdentifier: APP_ID,
@@ -48,8 +60,19 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         locationWhenInUsePermission:
           'rideapp Conductor usa tu ubicación para recibir solicitudes de viaje cercanas mientras estás en línea.',
-        isAndroidBackgroundLocationEnabled: false,
-        isIosBackgroundLocationEnabled: false,
+        locationAlwaysAndWhenInUsePermission:
+          'Mientras estás en línea, rideapp Conductor usa tu ubicación aunque la app esté en segundo plano, para ofrecerte viajes cercanos. Al desconectarte deja de usarla.',
+        isAndroidBackgroundLocationEnabled: true,
+        isAndroidForegroundServiceEnabled: true,
+        isIosBackgroundLocationEnabled: true,
+      },
+    ],
+    [
+      'expo-image-picker',
+      {
+        cameraPermission: 'rideapp Conductor usa la cámara para fotografiar tus documentos.',
+        photosPermission: 'rideapp Conductor accede a las fotos que elijas de tus documentos.',
+        microphonePermission: false,
       },
     ],
     [

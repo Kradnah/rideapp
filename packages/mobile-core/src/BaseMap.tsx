@@ -1,5 +1,5 @@
-import { GIRARDOT_CENTER } from '@rideapp/contracts';
-import { useState, type ReactNode } from 'react';
+import { GIRARDOT_CENTER, type LatLng } from '@rideapp/contracts';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View, useColorScheme } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, type EdgePadding } from 'react-native-maps';
 import { colors } from '@rideapp/ui';
@@ -13,6 +13,8 @@ export interface BaseMapProps {
   /** Espacio reservado para paneles inferiores. El logo de Google debe seguir visible (9.2). */
   mapPadding?: EdgePadding;
   showsUserLocation?: boolean;
+  /** Si cambia, la cámara se mueve hasta ese punto (p. ej. la ubicación del usuario). */
+  center?: LatLng | null;
   children?: ReactNode;
 }
 
@@ -28,6 +30,7 @@ export function BaseMap({
   enabled,
   mapPadding,
   showsUserLocation = false,
+  center,
   children,
 }: BaseMapProps) {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
@@ -35,6 +38,15 @@ export function BaseMap({
   // react-native-maps 1.27 se cierra en Android si mapPadding cambia antes de que el mapa de
   // Google esté listo (GoogleMap todavía null). Por eso el padding se aplica tras onMapReady.
   const [mapReady, setMapReady] = useState(false);
+  const mapRef = useRef<MapView>(null);
+
+  useEffect(() => {
+    if (!mapReady || !center) return;
+    mapRef.current?.animateCamera(
+      { center: { latitude: center.lat, longitude: center.lng }, zoom: 15 },
+      { duration: 600 },
+    );
+  }, [mapReady, center]);
 
   if (!enabled) {
     return (
@@ -50,6 +62,7 @@ export function BaseMap({
 
   return (
     <MapView
+      ref={mapRef}
       style={StyleSheet.absoluteFill}
       provider={PROVIDER_GOOGLE}
       initialRegion={INITIAL_REGION}

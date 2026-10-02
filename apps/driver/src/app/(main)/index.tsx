@@ -1,35 +1,174 @@
+import { ApiClientError } from '@rideapp/api-client';
+import type { DriverAvailabilityV1 } from '@rideapp/contracts';
 import { BaseMap, colors, radius, spacing, useSession } from '@rideapp/mobile-core';
-import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View, useColorScheme } from 'react-native';
-import { router } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
+import * as Location from 'expo-location';
+import { Redirect, router } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  useColorScheme,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { config } from '@/lib/config';
+import { DRIVER_ACCOUNT_KEY, driverError, useDriverAccount } from '@/lib/driver-account';
+import { locationReporter, type ReporterMode } from '@/lib/location-reporter';
+import { useDriverSocket } from '@/lib/use-driver-socket';
 
-/**
- * Mapa + interruptor En línea / Fuera de línea (10.2).
- * Fase 0: el interruptor solo cambia el estado local. En la Fase 2 llamará a
- * POST /drivers/me/online y arrancará el envío de ubicación (y lo detendrá por completo al salir).
- */
+const INACTIVE_MESSAGE = 'Te desconectamos porque no recibimos tu ubicación. Vuelve a conectarte.';
+
+/** Pide los permisos explicando antes para qué (9.2, paso 2; 10.2). */
+async function askLocationPermissions(): Promise<'background' | 'foreground' | 'denied'> {
+  const fg = await Location.requestForegroundPermissionsAsync();
+  if (!fg.granted) return 'denied';
+  const bg = await Location.getBackgroundPermissionsAsync();
+  if (bg.granted) return 'background';
+  if (!bg.canAskAgain) return 'foreground';
+  const wants = await new Promise<boolean>((resolve) =>
+    Alert.alert(
+      'Seguir en línea con la pantalla apagada',
+      'Para recibir viajes aunque uses otra app o bloquees el teléfono, permite la ubicación "Todo el tiempo". Solo la usamos mientras estás en línea y verás una notificación fija.',
+      [
+        { text: 'Ahora no', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'Permitir', onPress: () => resolve(true) },
+      ],
+    ),
+  );
+  if (!wants) return 'foreground';
+  return (await Location.requestBackgroundPermissionsAsync()).granted ? 'background' : 'foreground';
+}
+
+/** Mapa + interruptor En línea / Fuera de línea (10.2). */
 export default function DriverHomeScreen() {
   const palette = colors[useColorScheme() === 'dark' ? 'dark' : 'light'];
   const insets = useSafeAreaInsets();
   const { api } = useSession();
-  const [online, setOnline] = useState(false);
-  const [panelHeight, setPanelHeight] = useState(160);
+  const queryClient = useQueryClient();
+  const account = useDriverAccount();
+  const [panelHeight, setPanelHeight] = useState(180);
 
-  const health = useQuery({
-    queryKey: ['health'],
-    queryFn: () => api.health.ready(),
-    refetchInterval: 15_000,
-  });
+  /** null = seguir lo que diga el servidor (al abrir la app se retoma si quedó en línea). */
+  const [wantOnline, setWantOnline] = useState<boolean | null>(null);
+  const [interval, setIntervalSeconds] = useState(12);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [mode, setMode] = useState<ReporterMode | null>(null);
+  const [lastSent, setLastSent] = useState<number | null>(null);
 
-  const apiUp = health.data?.status === 'ok';
+  const serverOnline = account.data !== undefined && account.data.availability !== 'OFFLINE';
+  const online = wantOnline ?? serverOnline;
+
+  const forceOffline = useCallback(
+    (text: string) => {
+      setWantOnline(false);
+      setMessage(text);
+      void locationReporter.stop();
+      // Si el servidor aún nos tiene en línea (p. ej. faltó el permiso al retomar), se corrige.
+      void api.drivers
+        .goOffline()
+        .catch(() => undefined)
+        .finally(() => void queryClient.invalidateQueries({ queryKey: DRIVER_ACCOUNT_KEY }));
+    },
+    [api, queryClient],
+  );
+
+  const onAvailability = useCallback(
+    (e: DriverAvailabilityV1) => {
+      if (e.availability !== 'OFFLINE') return;
+      forceOffline(
+        e.reason === 'SUSPENDED'
+          ? 'Tu cuenta fue suspendida. Revisa el motivo en tu registro.'
+          : INACTIVE_MESSAGE,
+      );
+    },
+    [forceOffline],
+  );
+
+  const { socket, connected } = useDriverSocket(online, onAvailability);
+
+  // Con el socket listo, se empieza a enviar la ubicación; al salir de línea, se para todo.
+  useEffect(() => {
+    if (!socket) return;
+    let cancelled = false;
+    locationReporter.start(socket, interval).then(
+      (m) => !cancelled && setMode(m),
+      () => !cancelled && forceOffline('Sin permiso de ubicación no puedes estar en línea.'),
+    );
+    const unsubscribe = locationReporter.subscribe((e) => {
+      if (e.type === 'sent') setLastSent(e.at);
+      if (e.type === 'offline') forceOffline(INACTIVE_MESSAGE);
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+      void locationReporter.stop();
+      setMode(null);
+    };
+  }, [socket, interval, forceOffline]);
+
+  const goOnline = async () => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const permission = await askLocationPermissions();
+      if (permission === 'denied') {
+        setMessage('Necesitamos tu ubicación para ofrecerte viajes cercanos.');
+        Alert.alert('Ubicación desactivada', 'Actívala en los ajustes para ponerte en línea.', [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Abrir ajustes', onPress: () => void Linking.openSettings() },
+        ]);
+        return;
+      }
+      const res = await api.drivers.goOnline();
+      setIntervalSeconds(res.locationIntervalSeconds);
+      setWantOnline(true);
+    } catch (err) {
+      setMessage(driverError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const goOffline = async () => {
+    setBusy(true);
+    setMessage(null);
+    await locationReporter.stop();
+    setWantOnline(false);
+    try {
+      await api.drivers.goOffline();
+    } catch (err) {
+      setMessage(driverError(err));
+    } finally {
+      setBusy(false);
+      void queryClient.invalidateQueries({ queryKey: DRIVER_ACCOUNT_KEY });
+    }
+  };
+
+  const notDriver = account.error instanceof ApiClientError && account.error.status === 403;
+  if (notDriver || (account.data && account.data.status !== 'APPROVED')) {
+    return <Redirect href="/onboarding" />;
+  }
+
+  const status = !online
+    ? null
+    : !connected
+      ? 'Conectando con el servidor…'
+      : lastSent
+        ? `Ubicación enviada a las ${new Date(lastSent).toLocaleTimeString('es-CO')}`
+        : 'Esperando tu ubicación…';
 
   return (
     <View style={[styles.root, { backgroundColor: palette.bg }]}>
       <BaseMap
         enabled={config.mapsEnabled}
+        showsUserLocation={online}
         mapPadding={{ top: insets.top, right: 0, bottom: panelHeight, left: 0 }}
       />
 
@@ -71,31 +210,36 @@ export default function DriverHomeScreen() {
                 : 'Conéctate para empezar a recibir viajes.'}
             </Text>
           </View>
-          <Switch
-            accessibilityLabel="En línea"
-            value={online}
-            onValueChange={setOnline}
-            disabled={!apiUp}
-            trackColor={{ true: palette.accent, false: palette.border }}
-          />
+          {busy || account.isPending ? (
+            <ActivityIndicator color={palette.accent} />
+          ) : (
+            <Switch
+              accessibilityLabel="En línea"
+              value={online}
+              onValueChange={(v) => void (v ? goOnline() : goOffline())}
+              trackColor={{ true: palette.accent, false: palette.border }}
+            />
+          )}
         </View>
-        <View style={styles.row}>
-          <View
-            style={[
-              styles.dot,
-              {
-                backgroundColor: health.isPending
-                  ? palette.pending
-                  : apiUp
-                    ? palette.ok
-                    : palette.down,
-              },
-            ]}
-          />
-          <Text style={[styles.status, { color: palette.textMuted }]}>
-            {health.isPending ? 'Conectando…' : apiUp ? 'Conectado al servidor' : 'Sin conexión'}
+        {status && (
+          <View style={styles.row}>
+            <View
+              style={[styles.dot, { backgroundColor: connected ? palette.ok : palette.pending }]}
+            />
+            <Text style={[styles.status, { color: palette.textMuted }]}>{status}</Text>
+          </View>
+        )}
+        {online && mode === 'foreground' && (
+          <Text style={[styles.notice, { color: palette.pending }]}>
+            Mantén la app abierta: sin permiso de ubicación "Todo el tiempo" dejamos de recibirla al
+            salir de la app.
           </Text>
-        </View>
+        )}
+        {message && (
+          <Text accessibilityLiveRegion="polite" style={[styles.notice, { color: palette.down }]}>
+            {message}
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -123,7 +267,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xl,
-    gap: spacing.lg,
+    gap: spacing.md,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -133,4 +277,5 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, marginTop: 2 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   status: { fontSize: 13 },
+  notice: { fontSize: 13, lineHeight: 18 },
 });

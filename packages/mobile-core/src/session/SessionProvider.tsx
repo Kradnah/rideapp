@@ -18,15 +18,19 @@ const REFRESH_KEY = 'rideapp.session.refreshToken';
 class SessionTokens {
   access: string | null = null;
   refresh: string | null = null;
+  /** Momento (ms) en que caduca el access token. */
+  accessExpiresAt = 0;
 
   set(pair: TokenPair) {
     this.access = pair.accessToken;
     this.refresh = pair.refreshToken;
+    this.accessExpiresAt = Date.now() + pair.expiresIn * 1000;
   }
 
   reset() {
     this.access = null;
     this.refresh = null;
+    this.accessExpiresAt = 0;
   }
 
   /** Refresh token recuperado del almacenamiento seguro al abrir la app. */
@@ -47,6 +51,11 @@ export interface SessionContextValue {
   signOut: () => Promise<void>;
   /** "Cerrar sesión en todos los dispositivos". */
   signOutAll: () => Promise<void>;
+  /**
+   * Access token vigente para el socket (8.10, paso 5): si falta o caduca en menos de 30 s,
+   * lo renueva por el mismo camino único que el cliente HTTP. `force` lo renueva siempre.
+   */
+  getAccessToken: (force?: boolean) => Promise<string | null>;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -149,8 +158,14 @@ export function SessionProvider({ apiUrl, appVersion, children }: SessionProvide
         await GoogleSignin.signOut().catch(() => undefined);
         await clear();
       },
+      getAccessToken: async (force = false) => {
+        if (!force && tokens.access && tokens.accessExpiresAt - Date.now() > 30_000) {
+          return tokens.access;
+        }
+        return api.http.refreshOnce();
+      },
     }),
-    [status, api, store, clear],
+    [status, api, store, clear, tokens],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
