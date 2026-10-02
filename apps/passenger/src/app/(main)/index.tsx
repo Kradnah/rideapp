@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   profileButton: {
     position: 'absolute',
-    right: spacing.lg,
+    left: spacing.lg,
     width: 48,
     height: 48,
     borderRadius: 24,
