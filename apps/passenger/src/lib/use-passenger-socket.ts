@@ -1,23 +1,27 @@
 import { createRealtime } from '@rideapp/api-client';
-import type { TripStatusV1 } from '@rideapp/contracts';
+import type { TripDriverLocationV1, TripStatusV1 } from '@rideapp/contracts';
 import { useSession } from '@rideapp/mobile-core';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { config } from './config';
 
 /**
- * Socket del pasajero mientras sigue un viaje (8.10): solo escucha `trip.status.v1`. El servidor
- * lo mete en la sala del viaje; la app no elige salas. Si el token caducó, se renueva y reintenta.
+ * Socket del pasajero mientras sigue un viaje (8.10): escucha `trip.status.v1` y la posición de su
+ * conductor (`trip.driverLocation.v1`). El servidor lo mete en la sala del viaje; la app no elige
+ * salas. Si el token caducó, se renueva y reintenta.
  */
 export function usePassengerSocket(
   active: boolean,
   onStatus: (event: TripStatusV1) => void,
+  onDriverLocation?: (event: TripDriverLocationV1) => void,
 ): { connected: boolean } {
   const { getAccessToken, signOut } = useSession();
   const [connected, setConnected] = useState(false);
   const onStatusRef = useRef(onStatus);
+  const onLocationRef = useRef(onDriverLocation);
   useEffect(() => {
     onStatusRef.current = onStatus;
-  }, [onStatus]);
+    onLocationRef.current = onDriverLocation;
+  }, [onStatus, onDriverLocation]);
 
   const socket = useMemo(
     () =>
@@ -43,6 +47,7 @@ export function usePassengerSocket(
       });
     });
     socket.on('trip.status.v1', (e) => onStatusRef.current(e));
+    socket.on('trip.driverLocation.v1', (e) => onLocationRef.current?.(e));
     socket.on('session.revoked.v1', () => void signOut());
     socket.connect();
     return () => {

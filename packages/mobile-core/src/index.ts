@@ -2,6 +2,7 @@ export { BaseMap, type BaseMapProps } from './BaseMap';
 export { friendlyError } from './auth/errors';
 export { formatDistance, formatDuration, formatMoney } from './format';
 export { randomId } from './random-id';
+export { useSmoothPosition } from './use-smooth-position';
 export { ForgotPasswordScreen } from './auth/ForgotPasswordScreen';
 export { FormError, FormScreen } from './auth/FormScreen';
 export { GoogleSignInButton } from './auth/GoogleSignInButton';

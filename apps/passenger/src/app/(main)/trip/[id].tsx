@@ -1,5 +1,20 @@
-import { decodePolyline, type Trip, type TripStatusV1 } from '@rideapp/contracts';
-import { BaseMap, formatMoney, useSession } from '@rideapp/mobile-core';
+import {
+  type ActiveTripResponse,
+  decodePolyline,
+  type LatLng,
+  remainingPath,
+  routeProgress,
+  type Trip,
+  type TripDriverLocation,
+  type TripStatusV1,
+} from '@rideapp/contracts';
+import {
+  BaseMap,
+  formatDuration,
+  formatMoney,
+  useSession,
+  useSmoothPosition,
+} from '@rideapp/mobile-core';
 import { Button, radius, spacing, usePalette } from '@rideapp/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -18,6 +33,8 @@ const ACTIVE = new Set<Trip['status']>([
   'DRIVER_ARRIVED',
   'IN_PROGRESS',
 ]);
+/** Con conductor asignado: hay posición en vivo. */
+const BUSY = new Set<Trip['status']>(['DRIVER_ASSIGNED', 'DRIVER_ARRIVED', 'IN_PROGRESS']);
 const CANCELLABLE = new Set<Trip['status']>([
   'REQUESTED',
   'SEARCHING',
@@ -39,6 +56,8 @@ const TITLE: Record<Trip['status'], string> = {
 /**
  * Viaje en curso (9.4). Se pinta siempre con el estado del servidor: el socket avisa del cambio
  * (`trip.status.v1`) y la app vuelve a leer el viaje; sin socket, consulta cada pocos segundos.
+ * Con conductor asignado, su posición llega por el socket (`trip.driverLocation.v1`) con el ETA
+ * ya calculado en el servidor, y el marcador se interpola entre actualizaciones.
  */
 export default function TripScreen() {
   const p = usePalette();
@@ -59,6 +78,23 @@ export default function TripScreen() {
   });
   const status = trip.data?.status;
   const active = !!status && ACTIVE.has(status);
+  const busy = !!status && BUSY.has(status);
+
+  // Última posición del conductor: la del socket o, al abrir la pantalla, la que guarda el API.
+  const [socketLocation, setSocketLocation] = useState<TripDriverLocation | null>(null);
+  const savedLocation = useQuery({
+    queryKey: ['trips', id, 'driver-location'],
+    queryFn: () => api.trips.driverLocation(id),
+    enabled: busy,
+    staleTime: Infinity,
+  });
+  const live = busy ? newest(socketLocation, savedLocation.data?.location ?? null) : null;
+
+  // Dónde estaba el conductor al cambiar de estado: encuadre del mapa (no se mueve con cada posición).
+  const [anchor, setAnchor] = useState<{ status: Trip['status']; position: LatLng } | null>(null);
+  if (live && status && anchor?.status !== status) {
+    setAnchor({ status, position: live.position });
+  }
 
   const onStatus = useCallback(
     (e: TripStatusV1) => {
@@ -68,7 +104,13 @@ export default function TripScreen() {
     },
     [id, queryClient],
   );
-  usePassengerSocket(active, onStatus);
+  const onDriverLocation = useCallback(
+    (e: TripDriverLocation) => {
+      if (e.tripId === id) setSocketLocation(e);
+    },
+    [id],
+  );
+  usePassengerSocket(active, onStatus, onDriverLocation);
 
   const cancel = useMutation({
     mutationFn: () => api.trips.cancel(id),
@@ -91,6 +133,8 @@ export default function TripScreen() {
     );
 
   const goHome = () => {
+    // Este viaje ya terminó: si el inicio leyera el "viaje activo" viejo de la caché, volvería aquí.
+    queryClient.setQueryData<ActiveTripResponse>(['trips', 'active'], { trip: null });
     void queryClient.invalidateQueries({ queryKey: ['trips', 'active'] });
     router.replace('/');
   };
@@ -103,6 +147,31 @@ export default function TripScreen() {
       return [trip.data.origin, trip.data.destination];
     }
   }, [trip.data]);
+
+  // En viaje, solo la parte de la ruta que falta (cambia con cada posición, cada ~5 s).
+  const livePosition = live?.position ?? null;
+  const pending =
+    route && status === 'IN_PROGRESS' && livePosition && route.length > 0
+      ? remainingPath(route, routeProgress(route, livePosition))
+      : route;
+
+  const originLat = trip.data?.origin.lat;
+  const originLng = trip.data?.origin.lng;
+  const pickup = useMemo(
+    () =>
+      originLat === undefined || originLng === undefined
+        ? null
+        : { lat: originLat, lng: originLng },
+    [originLat, originLng],
+  );
+  const fitTo = useMemo(() => {
+    if (status === 'DRIVER_ASSIGNED' && pickup && anchor?.status === status) {
+      return [anchor.position, pickup];
+    }
+    // Al llegar se conserva el encuadre del acercamiento (conductor y recogida).
+    if (status === 'DRIVER_ARRIVED') return null;
+    return route;
+  }, [status, pickup, anchor, route]);
 
   if (trip.isPending) {
     return (
@@ -126,11 +195,19 @@ export default function TripScreen() {
       <BaseMap
         enabled={config.mapsEnabled}
         mapPadding={{ top: insets.top, right: 0, bottom: panelHeight, left: 0 }}
-        fitTo={route}
+        fitTo={fitTo}
       >
-        {route && <Polyline coordinates={toCoords(route)} strokeColor={p.accent} strokeWidth={5} />}
-        <Marker coordinate={toCoord(t.origin)} title="Recogida" pinColor="green" />
+        {pending && (
+          <Polyline coordinates={toCoords(pending)} strokeColor={p.accent} strokeWidth={5} />
+        )}
+        {t.status !== 'IN_PROGRESS' && (
+          <Marker coordinate={toCoord(t.origin)} title="Recogida" pinColor="green" />
+        )}
         <Marker coordinate={toCoord(t.destination)} title="Destino" />
+        <DriverMarker
+          target={livePosition}
+          title={t.driver ? `${t.driver.fullName} · ${t.driver.vehicle.plate}` : 'Tu conductor'}
+        />
       </BaseMap>
 
       <View
@@ -155,6 +232,24 @@ export default function TripScreen() {
           <Text style={[styles.text, { color: p.textMuted }]}>
             Estamos ofreciendo tu viaje a los conductores más cercanos. Suele tardar menos de un
             minuto.
+          </Text>
+        )}
+
+        {t.status === 'DRIVER_ASSIGNED' && (
+          <Text style={[styles.eta, { color: p.text }]}>
+            {live?.etaSeconds != null
+              ? `Llega en ${formatDuration(live.etaSeconds)}`
+              : 'Calculando cuándo llega…'}
+          </Text>
+        )}
+        {t.status === 'DRIVER_ARRIVED' && (
+          <Text style={[styles.text, { color: p.textMuted }]}>
+            Te está esperando en el punto de recogida. Busca la placa del vehículo.
+          </Text>
+        )}
+        {t.status === 'IN_PROGRESS' && live?.etaSeconds != null && (
+          <Text style={[styles.eta, { color: p.text }]}>
+            Llegas en {formatDuration(live.etaSeconds)}
           </Text>
         )}
 
@@ -186,6 +281,18 @@ export default function TripScreen() {
           </View>
         )}
 
+        {t.status === 'COMPLETED' && (
+          <View style={[styles.receipt, { borderColor: p.border }]}>
+            <Text style={[styles.text, { color: p.textMuted }]}>Total del viaje</Text>
+            <Text style={[styles.total, { color: p.text }]}>{formatMoney(t.amount)}</Text>
+            <Text style={[styles.text, { color: p.textMuted }]}>
+              {t.paymentMethod === 'CASH'
+                ? 'Paga en efectivo a tu conductor.'
+                : 'Se cobra a tu tarjeta demo (no es un cobro real).'}
+            </Text>
+          </View>
+        )}
+
         {t.status === 'NO_DRIVERS' && (
           <Text style={[styles.text, { color: p.textMuted }]}>
             Todos los conductores cercanos están ocupados. Inténtalo de nuevo en unos minutos.
@@ -201,9 +308,11 @@ export default function TripScreen() {
           </Text>
         )}
 
-        <Text style={[styles.text, { color: p.textMuted }]} numberOfLines={1}>
-          ■ {t.destinationAddress ?? 'Destino en el mapa'} · {formatMoney(t.amount)}
-        </Text>
+        {t.status !== 'COMPLETED' && (
+          <Text style={[styles.text, { color: p.textMuted }]} numberOfLines={1}>
+            ■ {t.destinationAddress ?? 'Destino en el mapa'} · {formatMoney(t.amount)}
+          </Text>
+        )}
 
         {cancel.isError && (
           <Text style={[styles.error, { color: p.down }]}>{tripError(cancel.error)}</Text>
@@ -232,6 +341,26 @@ export default function TripScreen() {
       </View>
     </View>
   );
+}
+
+/**
+ * Marcador del conductor, interpolado entre posiciones. Va en su propio componente para que solo
+ * él se vuelva a pintar en cada fotograma, no toda la pantalla (ni el mapa).
+ */
+function DriverMarker({ target, title }: { target: LatLng | null; title: string }) {
+  const position = useSmoothPosition(target);
+  if (!position) return null;
+  return <Marker coordinate={toCoord(position)} title={title} pinColor="azure" />;
+}
+
+/** La posición más reciente (por la hora del GPS) entre la del socket y la guardada. */
+function newest(
+  a: TripDriverLocation | null,
+  b: TripDriverLocation | null,
+): TripDriverLocation | null {
+  if (!a) return b;
+  if (!b) return a;
+  return a.ts >= b.ts ? a : b;
 }
 
 const toCoord = ({ lat, lng }: { lat: number; lng: number }) => ({
@@ -278,6 +407,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
   },
+  eta: { fontSize: 17, fontWeight: '600' },
+  receipt: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, gap: 2 },
+  total: { fontSize: 28, fontWeight: '800' },
   pinRow: { gap: 2 },
   pin: { fontSize: 32, fontWeight: '800', letterSpacing: 8 },
 });

@@ -1,9 +1,10 @@
 import { ApiClientError } from '@rideapp/api-client';
-import type {
-  DriverAvailabilityV1,
-  DriverOffer,
-  TripOfferCancelledV1,
-  TripStatusV1,
+import {
+  type DriverAvailabilityV1,
+  type DriverOffer,
+  LOCATION_INTERVAL_SECONDS,
+  type TripOfferCancelledV1,
+  type TripStatusV1,
 } from '@rideapp/contracts';
 import { BaseMap, colors, radius, spacing, useSession } from '@rideapp/mobile-core';
 import { Button } from '@rideapp/ui';
@@ -192,10 +193,12 @@ export default function DriverHomeScreen() {
   };
 
   // Con el socket listo, se empieza a enviar la ubicación; al salir de línea, se para todo.
+  // En viaje, más a menudo: el pasajero lo sigue en el mapa (10.2, paso 3).
+  const reportEvery = currentTrip ? LOCATION_INTERVAL_SECONDS.inTrip : interval;
   useEffect(() => {
     if (!socket) return;
     let cancelled = false;
-    locationReporter.start(socket, interval).then(
+    locationReporter.start(socket, reportEvery).then(
       (m) => !cancelled && setMode(m),
       () => !cancelled && forceOffline('Sin permiso de ubicación no puedes estar en línea.'),
     );
@@ -209,7 +212,7 @@ export default function DriverHomeScreen() {
       void locationReporter.stop();
       setMode(null);
     };
-  }, [socket, interval, forceOffline]);
+  }, [socket, reportEvery, forceOffline]);
 
   const goOnline = async () => {
     setBusy(true);

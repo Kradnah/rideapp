@@ -1,6 +1,6 @@
 import type { LatLng, Trip } from '@rideapp/contracts';
-import { BaseMap, formatMoney, useSession } from '@rideapp/mobile-core';
-import { Button, radius, spacing, usePalette } from '@rideapp/ui';
+import { BaseMap, formatMoney, randomId, useSession } from '@rideapp/mobile-core';
+import { Button, radius, spacing, TextField, usePalette } from '@rideapp/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
@@ -31,9 +31,15 @@ async function navigateTo({ lat, lng }: LatLng): Promise<void> {
   }
 }
 
+const TITLE: Partial<Record<Trip['status'], string>> = {
+  DRIVER_ARRIVED: 'Esperando al pasajero',
+  IN_PROGRESS: 'En viaje',
+  COMPLETED: 'Viaje terminado',
+};
+
 /**
- * Viaje asignado (10.3). Desde aquí el conductor ve a quién recoge y dónde, y abre la navegación.
- * Llegué → PIN → Iniciar → Finalizar llegan en la Fase 4 (viaje en vivo).
+ * Viaje asignado (10.3). Flujo de botones: Llegué → PIN del pasajero → Iniciar → Finalizar. Cada
+ * paso lo valida el servidor (cerca de la recogida, PIN correcto, orden de la máquina de estados).
  */
 export default function DriverTripScreen() {
   const p = usePalette();
@@ -50,6 +56,31 @@ export default function DriverTripScreen() {
     queryFn: () => api.trips.get(id),
     refetchInterval: (q) => (q.state.data && ASSIGNED.has(q.state.data.status) ? 15_000 : false),
   });
+
+  const [pin, setPin] = useState('');
+  // Una clave por pantalla: si "Finalizar" se reintenta por mala conexión, no se repite (8.8, paso 5).
+  const [completeKey] = useState(randomId);
+
+  const onUpdated = (updated: Trip) => {
+    queryClient.setQueryData(tripKey(id), updated);
+    void queryClient.invalidateQueries({ queryKey: activeTripKey });
+  };
+  const arrived = useMutation({ mutationFn: () => api.trips.arrived(id), onSuccess: onUpdated });
+  const start = useMutation({
+    mutationFn: () => api.trips.start(id, pin),
+    onSuccess: onUpdated,
+    onError: () => setPin(''),
+  });
+  const complete = useMutation({
+    mutationFn: () => api.trips.complete(id, completeKey),
+    onSuccess: onUpdated,
+  });
+
+  const askComplete = () =>
+    Alert.alert('¿Finalizar el viaje?', 'Hazlo cuando el pasajero se haya bajado.', [
+      { text: 'Todavía no', style: 'cancel' },
+      { text: 'Finalizar', onPress: () => complete.mutate() },
+    ]);
 
   const cancel = useMutation({
     mutationFn: () => api.trips.cancel(id, 'Cancelado por el conductor'),
@@ -92,7 +123,9 @@ export default function DriverTripScreen() {
   }
   const t = trip.data;
   const assigned = ASSIGNED.has(t.status);
+  const riding = t.status === 'IN_PROGRESS';
   const toCoord = ({ lat, lng }: LatLng) => ({ latitude: lat, longitude: lng });
+  const actionError = [arrived, start, complete, cancel].find((m) => m.isError)?.error;
 
   return (
     <View style={[styles.root, { backgroundColor: p.bg }]}>
@@ -102,7 +135,7 @@ export default function DriverTripScreen() {
         mapPadding={{ top: insets.top, right: 0, bottom: panelHeight, left: 0 }}
         fitTo={[t.origin, t.destination]}
       >
-        <Marker coordinate={toCoord(t.origin)} title="Recogida" pinColor="green" />
+        {!riding && <Marker coordinate={toCoord(t.origin)} title="Recogida" pinColor="green" />}
         <Marker coordinate={toCoord(t.destination)} title="Destino" />
       </BaseMap>
 
@@ -118,48 +151,100 @@ export default function DriverTripScreen() {
         ]}
       >
         <Text accessibilityLiveRegion="polite" style={[styles.title, { color: p.text }]}>
-          {assigned
-            ? `Recoge a ${t.passenger?.fullName ?? 'tu pasajero'}`
-            : t.status === 'CANCELLED'
-              ? t.cancelledBy === 'PASSENGER'
-                ? 'El pasajero canceló el viaje'
-                : 'Viaje cancelado'
-              : 'Este viaje ya terminó'}
+          {TITLE[t.status] ??
+            (assigned
+              ? `Recoge a ${t.passenger?.fullName ?? 'tu pasajero'}`
+              : t.status === 'CANCELLED'
+                ? t.cancelledBy === 'PASSENGER'
+                  ? 'El pasajero canceló el viaje'
+                  : 'Viaje cancelado'
+                : 'Este viaje ya terminó')}
         </Text>
 
-        <View style={styles.places}>
-          <Text style={[styles.text, { color: p.text }]}>
-            ● {t.originAddress ?? 'Punto de recogida en el mapa'}
-          </Text>
-          <Text style={[styles.text, { color: p.textMuted }]}>
-            ■ {t.destinationAddress ?? 'Destino en el mapa'}
-          </Text>
-        </View>
-        <Text style={[styles.price, { color: p.text }]}>
-          {formatMoney(t.amount)} · {PAYMENT[t.paymentMethod]}
-        </Text>
-
-        {cancel.isError && (
-          <Text style={[styles.text, { color: p.down }]}>{driverError(cancel.error)}</Text>
+        {t.status === 'COMPLETED' ? (
+          <View style={[styles.receipt, { borderColor: p.border }]}>
+            <Text style={[styles.text, { color: p.textMuted }]}>
+              {t.paymentMethod === 'CASH' ? 'Cobra en efectivo' : 'Pagado con tarjeta (demo)'}
+            </Text>
+            <Text style={[styles.total, { color: p.text }]}>{formatMoney(t.amount)}</Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.places}>
+              <Text style={[styles.text, { color: riding ? p.textMuted : p.text }]}>
+                ● {t.originAddress ?? 'Punto de recogida en el mapa'}
+              </Text>
+              <Text style={[styles.text, { color: riding ? p.text : p.textMuted }]}>
+                ■ {t.destinationAddress ?? 'Destino en el mapa'}
+              </Text>
+            </View>
+            <Text style={[styles.price, { color: p.text }]}>
+              {formatMoney(t.amount)} · {PAYMENT[t.paymentMethod]}
+            </Text>
+          </>
         )}
 
-        {assigned ? (
+        {actionError && (
+          <Text accessibilityLiveRegion="polite" style={[styles.text, { color: p.down }]}>
+            {driverError(actionError)}
+          </Text>
+        )}
+
+        {t.status === 'DRIVER_ASSIGNED' && (
           <>
-            <Button label="Navegar a la recogida" onPress={() => void navigateTo(t.origin)} />
-            <Text style={[styles.note, { color: p.textMuted }]}>
-              Al llegar, el pasajero te dirá su PIN para empezar (Fase 4).
-            </Text>
-            {t.status !== 'IN_PROGRESS' && (
-              <Button
-                label="Cancelar viaje"
-                variant="danger"
-                onPress={askCancel}
-                loading={cancel.isPending}
-              />
-            )}
+            <Button label="Llegué" onPress={() => arrived.mutate()} loading={arrived.isPending} />
+            <Button
+              label="Navegar a la recogida"
+              variant="secondary"
+              onPress={() => void navigateTo(t.origin)}
+            />
           </>
-        ) : (
-          <Button label="Volver" variant="secondary" onPress={goHome} />
+        )}
+        {t.status === 'DRIVER_ARRIVED' && (
+          <>
+            <TextField
+              label={`PIN de ${t.passenger?.fullName ?? 'tu pasajero'}`}
+              hint="Pídele los 4 dígitos que ve en su app"
+              value={pin}
+              onChangeText={(v) => setPin(v.replace(/\D/g, '').slice(0, 4))}
+              keyboardType="number-pad"
+              maxLength={4}
+              autoComplete="off"
+              textContentType="oneTimeCode"
+              style={styles.pinInput}
+            />
+            <Button
+              label="Iniciar viaje"
+              onPress={() => start.mutate()}
+              disabled={pin.length !== 4}
+              loading={start.isPending}
+            />
+          </>
+        )}
+        {riding && (
+          <>
+            <Button label="Finalizar viaje" onPress={askComplete} loading={complete.isPending} />
+            <Button
+              label="Navegar al destino"
+              variant="secondary"
+              onPress={() => void navigateTo(t.destination)}
+            />
+          </>
+        )}
+        {(t.status === 'DRIVER_ASSIGNED' || t.status === 'DRIVER_ARRIVED') && (
+          <Button
+            label={t.status === 'DRIVER_ARRIVED' ? 'El pasajero no llegó' : 'Cancelar viaje'}
+            variant="ghost"
+            onPress={askCancel}
+            loading={cancel.isPending}
+          />
+        )}
+        {!assigned && (
+          <Button
+            label={t.status === 'COMPLETED' ? 'Listo' : 'Volver'}
+            variant="secondary"
+            onPress={goHome}
+          />
         )}
       </View>
     </View>
@@ -185,5 +270,7 @@ const styles = StyleSheet.create({
   places: { gap: 4 },
   text: { fontSize: 15, lineHeight: 21 },
   price: { fontSize: 18, fontWeight: '700' },
-  note: { fontSize: 13 },
+  receipt: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, gap: 2 },
+  total: { fontSize: 28, fontWeight: '800' },
+  pinInput: { fontSize: 24, letterSpacing: 8, textAlign: 'center' },
 });
