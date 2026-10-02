@@ -1,14 +1,6 @@
 import { spacing, usePalette } from '@rideapp/ui';
 import type { ReactNode } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export interface FormScreenProps {
@@ -28,7 +20,9 @@ export function FormScreen({ title, subtitle, children, footer, onBack }: FormSc
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor: p.bg }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      // Android 15+ dibuja de borde a borde y ya no encoge la ventana con el teclado: hay que
+      // compensarlo aquí también (si no, el teclado tapa los campos de abajo).
+      behavior="padding"
     >
       <ScrollView
         contentContainerStyle={[

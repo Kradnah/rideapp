@@ -25,3 +25,7 @@ src/generated/
 
 # Archivos subidos en desarrollo (documentos cifrados)
 apps/api/var/
+
+# Firebase (FCM) de las apps: se configura por EAS_PROJECT_ID / GOOGLE_SERVICES_FILE
+google-services.json
+GoogleService-Info.plist

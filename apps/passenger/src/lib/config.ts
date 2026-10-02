@@ -7,4 +7,7 @@ export const config = {
   googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? null,
   mapsEnabled: Constants.expoConfig?.extra?.['mapsEnabled'] === true,
   appVersion: Constants.expoConfig?.version ?? '0.0.0',
+  /** Sin proyecto de EAS no hay token de push (la app funciona igual por el socket). */
+  easProjectId:
+    (Constants.expoConfig?.extra?.['eas'] as { projectId?: string } | undefined)?.projectId ?? null,
 } as const;

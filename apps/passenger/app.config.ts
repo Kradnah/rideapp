@@ -7,6 +7,10 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
  */
 const ANDROID_MAPS_KEY = process.env.GOOGLE_MAPS_ANDROID_KEY;
 const IOS_MAPS_KEY = process.env.GOOGLE_MAPS_IOS_KEY;
+// Push (8.13): proyecto de EAS (gratis) y, en Android, el google-services.json de Firebase para
+// FCM. Sin ellos la app compila igual y simplemente no recibe notificaciones.
+const EAS_PROJECT_ID = process.env.EAS_PROJECT_ID;
+const GOOGLE_SERVICES_FILE = process.env.GOOGLE_SERVICES_FILE;
 
 // Identificador base de las apps. Debe quedar fijo antes de registrar las claves de Google
 // (Maps y OAuth se restringen por nombre de paquete + SHA-1).
@@ -23,6 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'automatic',
   android: {
     package: APP_ID,
+    ...(GOOGLE_SERVICES_FILE ? { googleServicesFile: GOOGLE_SERVICES_FILE } : {}),
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
       foregroundImage: './assets/android-icon-foreground.png',
@@ -42,6 +47,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-router',
     // Solo Windows: CMake con ninja que soporta rutas largas (ver el propio plugin).
     '@rideapp/mobile-core/plugins/with-windows-cmake',
+    ['expo-notifications', { color: '#0f766e' }],
     [
       'expo-location',
       {
@@ -61,6 +67,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ],
   experiments: { typedRoutes: true },
   extra: {
+    ...(EAS_PROJECT_ID ? { eas: { projectId: EAS_PROJECT_ID } } : {}),
     // Sin clave, el SDK de Google se cierra al crear el mapa: la app muestra un aviso en su lugar.
     mapsEnabled: Boolean(ANDROID_MAPS_KEY),
   },

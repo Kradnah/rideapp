@@ -10,6 +10,7 @@ export default function ProfileRoute() {
     <ProfileScreen
       key={visit}
       onBack={() => router.back()}
+      shortcuts={[{ label: 'Mis viajes', onPress: () => router.push('/history') }]}
       onOpenPolicy={() => router.push('/privacy')}
       onVerifyEmail={() => router.push('/verify-email')}
     />

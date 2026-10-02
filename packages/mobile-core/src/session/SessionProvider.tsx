@@ -13,6 +13,8 @@ import {
 } from 'react';
 
 const REFRESH_KEY = 'rideapp.session.refreshToken';
+/** El mismo que usa usePushNotifications (no se importa para no cargar expo-notifications aquí). */
+const PUSH_TOKEN_KEY = 'rideapp.push.token';
 
 /** Tokens de la sesión. No forman parte del render: solo los leen el cliente HTTP y los efectos. */
 class SessionTokens {
@@ -80,6 +82,7 @@ export function SessionProvider({ apiUrl, appVersion, children }: SessionProvide
   const clear = useCallback(async () => {
     tokens.reset();
     await SecureStore.deleteItemAsync(REFRESH_KEY);
+    await SecureStore.deleteItemAsync(PUSH_TOKEN_KEY);
     setStatus('signedOut');
   }, [tokens]);
 
@@ -148,6 +151,9 @@ export function SessionProvider({ apiUrl, appVersion, children }: SessionProvide
         setStatus('signedIn');
       },
       signOut: async () => {
+        // Primero el push: el teléfono deja de recibir avisos de esta cuenta (8.13).
+        const pushToken = await SecureStore.getItemAsync(PUSH_TOKEN_KEY);
+        if (pushToken) await api.me.unregisterPushToken(pushToken).catch(() => undefined);
         await api.auth.logout().catch(() => undefined);
         // Si entró con Google, también se cierra allí para poder elegir otra cuenta (9.1).
         await GoogleSignin.signOut().catch(() => undefined);

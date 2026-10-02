@@ -12,6 +12,7 @@ import {
   BaseMap,
   formatDuration,
   formatMoney,
+  formatRating,
   useSession,
   useSmoothPosition,
 } from '@rideapp/mobile-core';
@@ -256,7 +257,14 @@ export default function TripScreen() {
         {t.driver && ACTIVE.has(t.status) && (
           <View style={[styles.driver, { borderColor: p.border }]}>
             <View style={styles.flex}>
-              <Text style={[styles.driverName, { color: p.text }]}>{t.driver.fullName}</Text>
+              <Text style={[styles.driverName, { color: p.text }]}>
+                {t.driver.fullName}
+                {t.driver.rating !== null && (
+                  <Text style={[styles.rating, { color: p.textMuted }]}>
+                    {'  '}★ {formatRating(t.driver.rating)}
+                  </Text>
+                )}
+              </Text>
               <Text style={[styles.text, { color: p.textMuted }]}>
                 {t.driver.vehicle.brand} {t.driver.vehicle.model} · {t.driver.vehicle.color}
               </Text>
@@ -286,11 +294,19 @@ export default function TripScreen() {
             <Text style={[styles.text, { color: p.textMuted }]}>Total del viaje</Text>
             <Text style={[styles.total, { color: p.text }]}>{formatMoney(t.amount)}</Text>
             <Text style={[styles.text, { color: p.textMuted }]}>
-              {t.paymentMethod === 'CASH'
-                ? 'Paga en efectivo a tu conductor.'
-                : 'Se cobra a tu tarjeta demo (no es un cobro real).'}
+              {t.paymentMethod === 'FAKE_CARD'
+                ? 'Cobrado a tu tarjeta demo (no es un cobro real).'
+                : t.payment?.status === 'CAPTURED'
+                  ? 'Pagado en efectivo. Te enviamos el recibo por correo.'
+                  : 'Paga en efectivo a tu conductor.'}
             </Text>
           </View>
+        )}
+        {t.status === 'COMPLETED' && (
+          <Button
+            label={t.rateableUntil ? 'Calificar y ver el recibo' : 'Ver el recibo'}
+            onPress={() => router.push(`/history/${t.id}`)}
+          />
         )}
 
         {t.status === 'NO_DRIVERS' && (
@@ -398,6 +414,7 @@ const styles = StyleSheet.create({
   },
   flex: { flex: 1 },
   driverName: { fontSize: 17, fontWeight: '700' },
+  rating: { fontSize: 15, fontWeight: '500' },
   plate: {
     fontSize: 16,
     fontWeight: '700',

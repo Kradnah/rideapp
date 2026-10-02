@@ -6,14 +6,26 @@ import { useSession } from '../session/SessionProvider';
 import { friendlyError } from './errors';
 import { FormError, FormScreen } from './FormScreen';
 
+export interface ProfileShortcut {
+  label: string;
+  onPress: () => void;
+}
+
 export interface ProfileScreenProps {
   onBack?: () => void;
+  /** Accesos de la app (Mis viajes, Ganancias…), arriba del formulario. */
+  shortcuts?: ProfileShortcut[];
   onOpenPolicy: () => void;
   onVerifyEmail: () => void;
 }
 
 /** Perfil (9.6): editar nombre y teléfono, política y cerrar sesión. */
-export function ProfileScreen({ onBack, onOpenPolicy, onVerifyEmail }: ProfileScreenProps) {
+export function ProfileScreen({
+  onBack,
+  shortcuts = [],
+  onOpenPolicy,
+  onVerifyEmail,
+}: ProfileScreenProps) {
   const p = usePalette();
   const { api, signOut, signOutAll } = useSession();
   const [me, setMe] = useState<Me | null>(null);
@@ -105,6 +117,13 @@ export function ProfileScreen({ onBack, onOpenPolicy, onVerifyEmail }: ProfileSc
         </>
       }
     >
+      {shortcuts.length > 0 && (
+        <View style={{ gap: spacing.sm }}>
+          {shortcuts.map((s) => (
+            <Button key={s.label} label={s.label} variant="secondary" onPress={s.onPress} />
+          ))}
+        </View>
+      )}
       {me?.email && !me.emailVerified ? (
         <View
           style={{

@@ -1,5 +1,5 @@
 import type { LatLng, Trip } from '@rideapp/contracts';
-import { BaseMap, formatMoney, randomId, useSession } from '@rideapp/mobile-core';
+import { BaseMap, formatMoney, formatRating, randomId, useSession } from '@rideapp/mobile-core';
 import { Button, radius, spacing, TextField, usePalette } from '@rideapp/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -82,6 +82,12 @@ export default function DriverTripScreen() {
       { text: 'Finalizar', onPress: () => complete.mutate() },
     ]);
 
+  // "Confirmar cobro" (10.3, paso 4). Repetirlo no hace nada en el servidor.
+  const collect = useMutation({
+    mutationFn: () => api.trips.confirmCash(id),
+    onSuccess: onUpdated,
+  });
+
   const cancel = useMutation({
     mutationFn: () => api.trips.cancel(id, 'Cancelado por el conductor'),
     onSuccess: (updated) => {
@@ -125,7 +131,10 @@ export default function DriverTripScreen() {
   const assigned = ASSIGNED.has(t.status);
   const riding = t.status === 'IN_PROGRESS';
   const toCoord = ({ lat, lng }: LatLng) => ({ latitude: lat, longitude: lng });
-  const actionError = [arrived, start, complete, cancel].find((m) => m.isError)?.error;
+  const actionError = [arrived, start, complete, collect, cancel].find((m) => m.isError)?.error;
+  const cashPending = t.paymentMethod === 'CASH' && t.payment?.status !== 'CAPTURED';
+  const passengerRating =
+    t.passenger?.rating != null ? ` · ★ ${formatRating(t.passenger.rating)}` : '';
 
   return (
     <View style={[styles.root, { backgroundColor: p.bg }]}>
@@ -153,7 +162,7 @@ export default function DriverTripScreen() {
         <Text accessibilityLiveRegion="polite" style={[styles.title, { color: p.text }]}>
           {TITLE[t.status] ??
             (assigned
-              ? `Recoge a ${t.passenger?.fullName ?? 'tu pasajero'}`
+              ? `Recoge a ${t.passenger?.fullName ?? 'tu pasajero'}${passengerRating}`
               : t.status === 'CANCELLED'
                 ? t.cancelledBy === 'PASSENGER'
                   ? 'El pasajero canceló el viaje'
@@ -162,9 +171,13 @@ export default function DriverTripScreen() {
         </Text>
 
         {t.status === 'COMPLETED' ? (
-          <View style={[styles.receipt, { borderColor: p.border }]}>
+          <View style={[styles.receipt, { borderColor: cashPending ? p.pending : p.border }]}>
             <Text style={[styles.text, { color: p.textMuted }]}>
-              {t.paymentMethod === 'CASH' ? 'Cobra en efectivo' : 'Pagado con tarjeta (demo)'}
+              {t.paymentMethod === 'FAKE_CARD'
+                ? 'Pagado con tarjeta (demo)'
+                : cashPending
+                  ? 'Cobra en efectivo'
+                  : 'Cobro en efectivo confirmado ✓'}
             </Text>
             <Text style={[styles.total, { color: p.text }]}>{formatMoney(t.amount)}</Text>
           </View>
@@ -237,6 +250,21 @@ export default function DriverTripScreen() {
             variant="ghost"
             onPress={askCancel}
             loading={cancel.isPending}
+          />
+        )}
+        {t.status === 'COMPLETED' && cashPending && (
+          <Button
+            label="Confirmar cobro"
+            onPress={() => collect.mutate()}
+            loading={collect.isPending}
+            accessibilityHint="Marca que recibiste el efectivo del pasajero"
+          />
+        )}
+        {t.status === 'COMPLETED' && t.rateableUntil && (
+          <Button
+            label="Calificar al pasajero"
+            variant={cashPending ? 'secondary' : 'primary'}
+            onPress={() => router.push(`/history/${t.id}`)}
           />
         )}
         {!assigned && (
