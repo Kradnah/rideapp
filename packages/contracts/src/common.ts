@@ -60,3 +60,10 @@ export const ApiError = z.object({
   requestId: z.string().optional(),
 });
 export type ApiError = z.infer<typeof ApiError>;
+
+/** Respuesta de `/health/live` y `/health/ready`. */
+export const HealthResponse = z.object({
+  status: z.enum(['ok', 'error']),
+  checks: z.record(z.string(), z.enum(['up', 'down'])).optional(),
+});
+export type HealthResponse = z.infer<typeof HealthResponse>;
