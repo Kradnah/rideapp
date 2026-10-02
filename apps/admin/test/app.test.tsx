@@ -162,7 +162,11 @@ describe('Usuarios, tarifas y auditoría', () => {
     );
     renderAt('/fares');
     // 4.000 + 4 km × 1.500 + 12 min × 300 = 13.600
-    expect(await screen.findByText(/13\.600/)).toBeTruthy();
+    expect(
+      await screen.findByText('$ 13.600', { normalizer: (t) => t.replace(/\s/g, ' ') }),
+    ).toBeTruthy();
+    // El formulario parte de la vigente: el ejemplo coincide.
+    expect(screen.getByText(/costaría \$\s13\.600/)).toBeTruthy();
     expect(screen.getByText('Vigente')).toBeTruthy();
     fireEvent.click(screen.getByRole('radio', { name: 'Carro' }));
     expect((screen.getByLabelText('Banderazo (COP)') as HTMLInputElement).value).toBe('4000');
