@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Girardot + Ricaurte + Flandes",
+        "note": "Rectángulo aproximado para la demo (7.4). Ajustar luego al límite real de los cascos urbanos."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-74.88, 4.22],
+            [-74.7, 4.22],
+            [-74.7, 4.36],
+            [-74.88, 4.36],
+            [-74.88, 4.22]
+          ]
+        ]
+      }
+    }
+  ]
+}

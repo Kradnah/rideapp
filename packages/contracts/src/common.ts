@@ -1,0 +1,62 @@
+import { z } from 'zod';
+
+export const Uuid = z.uuid();
+
+export const LatLng = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+});
+export type LatLng = z.infer<typeof LatLng>;
+
+/** Código de moneda ISO 4217 (tres letras mayúsculas). */
+export const CurrencyCode = z.string().regex(/^[A-Z]{3}$/);
+
+/**
+ * Dinero siempre como entero en la unidad mínima ISO 4217 (para COP, centavos).
+ * Nunca float (7.2).
+ */
+export const Money = z.object({
+  amountCents: z.number().int().nonnegative(),
+  currency: CurrencyCode,
+});
+export type Money = z.infer<typeof Money>;
+
+export const DEFAULT_CURRENCY = 'COP';
+
+export const PaginationQuery = z.object({
+  cursor: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+export type PaginationQuery = z.infer<typeof PaginationQuery>;
+
+export const Paginated = <T extends z.ZodType>(item: T) =>
+  z.object({
+    items: z.array(item),
+    nextCursor: z.string().nullable(),
+  });
+export type Paginated<T> = { items: T[]; nextCursor: string | null };
+
+export const ErrorCode = z.enum([
+  'VALIDATION_FAILED',
+  'UNAUTHORIZED',
+  'FORBIDDEN',
+  'NOT_FOUND',
+  'CONFLICT',
+  'RATE_LIMITED',
+  'UPGRADE_REQUIRED',
+  'OUT_OF_SERVICE_AREA',
+  'INVALID_CREDENTIALS',
+  'QUOTE_EXPIRED',
+  'ACTIVE_TRIP_EXISTS',
+  'INTERNAL',
+]);
+export type ErrorCode = z.infer<typeof ErrorCode>;
+
+/** Forma única de todos los errores del API (7.5, paso 7). */
+export const ApiError = z.object({
+  code: ErrorCode,
+  message: z.string(),
+  details: z.unknown().optional(),
+  requestId: z.string().optional(),
+});
+export type ApiError = z.infer<typeof ApiError>;

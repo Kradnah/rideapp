@@ -1,0 +1,25 @@
+{
+  "name": "rideapp",
+  "private": true,
+  "packageManager": "pnpm@12.8.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "infra:up": "docker compose -f infra/docker-compose.yml --env-file infra/.env up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml --env-file infra/.env down"
+  },
+  "devDependencies": {
+    "eslint": "^10.11.0",
+    "prettier": "^3.9.9",
+    "turbo": "^2.11.6",
+    "typescript": "~6.0.3"
+  }
+}

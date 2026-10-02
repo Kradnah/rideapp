@@ -1,0 +1,5 @@
+pnpm-lock.yaml
+dist
+.turbo
+coverage
+PLAN_DE_TRABAJO.md

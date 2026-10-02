@@ -1,0 +1,23 @@
+node_modules/
+dist/
+build/
+.turbo/
+coverage/
+*.log
+
+# Secretos: nunca en Git
+.env*
+!.env.example
+*.pem
+*.key
+
+# Expo / React Native
+.expo/
+android/
+ios/
+*.apk
+*.aab
+
+# Sistema
+.DS_Store
+Thumbs.db

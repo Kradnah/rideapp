@@ -1,0 +1,60 @@
+# Entorno de desarrollo local (7.4). Solo para tu PC, nunca para el VPS.
+# Uso: copia infra/.env.example a infra/.env y ejecuta `pnpm infra:up` desde la raíz.
+name: rideapp
+
+services:
+  postgres:
+    # Misma versión mayor que en Dokploy (13.5 C1).
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_USER: ${POSTGRES_SUPERUSER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?define POSTGRES_SUPERUSER_PASSWORD en infra/.env}
+      POSTGRES_DB: rideapp
+      # Usuario de la app, sin privilegios de superusuario (lo crea postgres-init/).
+      APP_DB_USER: ${APP_DB_USER:-rideapp}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?define APP_DB_PASSWORD en infra/.env}
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d rideapp']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD:?define REDIS_PASSWORD en infra/.env}
+      - --maxmemory
+      - 192mb
+      - --maxmemory-policy
+      - noeviction
+      - --appendonly
+      - 'yes'
+    ports:
+      - '127.0.0.1:6379:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -a "$$REDIS_PASSWORD" --no-auth-warning ping | grep PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '127.0.0.1:1025:1025' # SMTP
+      - '127.0.0.1:8025:8025' # Web
+    profiles: ['mail']
+
+volumes:
+  pgdata:
+  redisdata:

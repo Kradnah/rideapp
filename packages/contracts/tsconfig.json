@@ -1,0 +1,10 @@
+{
+  "extends": "@rideapp/config/tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": ".",
+    "noEmit": true
+  },
+  "include": ["src", "test", "vitest.config.ts"]
+}
