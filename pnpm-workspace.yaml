@@ -39,3 +39,11 @@ overrides:
   # Dependencias de la CLI de Prisma con avisos de seguridad (pnpm audit, 7.8).
   mysql2: ^3.23.1
   deepmerge-ts: ^8.0.0
+
+# Excepciones de `pnpm audit` (pre-push, 7.8). Cada una con motivo y fecha de revisión.
+auditConfig:
+  ignoreGhsas:
+    # node-forge (vía @expo/cli): verificación de firmas RSA PKCS#1. Solo se usa en la CLI de
+    # Expo en el PC del desarrollador (code signing de updates, que no usamos); no llega al APK
+    # ni al servidor. Sin versión corregida a 2026-10-02. Revisar al actualizar Expo.
+    - GHSA-86w9-cpqp-85rv

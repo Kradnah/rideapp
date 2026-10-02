@@ -38,3 +38,11 @@ Checklist completa en la sección 14 del plan. Aquí se registran las decisiones
 - El pasajero tiene bloqueado `ACCESS_BACKGROUND_LOCATION`. El conductor también, hasta la Fase 2 (10.2).
 - **Keystore de depuración:** `expo prebuild` usa el keystore público de React Native (SHA-1 `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`). Vale para restringir las claves de **desarrollo**, pero cualquiera puede firmar con él. Antes de distribuir APKs: keystore propio de release (fuera de Git) y su SHA-1 en las claves de Maps y OAuth.
 - La "sesión de demo" (`EXPO_PUBLIC_DEMO_SESSION`) solo funciona contra el mock-server y se elimina en la Fase 1.
+
+## Excepciones de auditoría de dependencias
+
+| Aviso                      | Paquete                      | Motivo                                                                                  | Revisar            |
+| -------------------------- | ---------------------------- | --------------------------------------------------------------------------------------- | ------------------ |
+| GHSA-86w9-cpqp-85rv (alta) | `node-forge` vía `@expo/cli` | Solo en la CLI de Expo en el PC; no llega al APK ni al servidor. Sin versión corregida. | Al actualizar Expo |
+
+Configuradas en `auditConfig.ignoreGhsas` de `pnpm-workspace.yaml`.
