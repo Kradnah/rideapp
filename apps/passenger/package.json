@@ -1,0 +1,39 @@
+{
+  "name": "@rideapp/passenger",
+  "version": "0.0.0",
+  "main": "expo-router/entry",
+  "dependencies": {
+    "@rideapp/api-client": "workspace:*",
+    "@rideapp/contracts": "workspace:*",
+    "@rideapp/mobile-core": "workspace:*",
+    "@tanstack/react-query": "^5.104.0",
+    "expo": "~57.0.26",
+    "expo-constants": "~57.0.20",
+    "expo-dev-client": "~57.0.19",
+    "expo-linking": "~57.0.11",
+    "expo-location": "~57.0.20",
+    "expo-router": "~57.0.24",
+    "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "~57.0.4",
+    "react": "catalog:",
+    "react-native": "0.86.3",
+    "react-native-maps": "1.27.2",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.2"
+  },
+  "devDependencies": {
+    "@rideapp/config": "workspace:*",
+    "@types/react": "catalog:",
+    "eslint": "^10.0.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "typescript": "catalog:"
+  },
+  "scripts": {
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "doctor": "expo-doctor"
+  },
+  "private": true
+}
