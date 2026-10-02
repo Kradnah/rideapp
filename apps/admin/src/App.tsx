@@ -4,7 +4,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Placeholder } from './pages/Placeholder';
 
 /** Menú del panel (11.1, paso 3). */
-export const NAV = [
+const NAV = [
   { to: '/', label: 'Dashboard' },
   { to: '/drivers', label: 'Conductores', phase: 'Fase 2' },
   { to: '/users', label: 'Usuarios', phase: 'Fase 5' },
