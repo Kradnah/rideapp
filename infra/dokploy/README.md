@@ -42,6 +42,8 @@ Los documentos que suben los conductores se guardan cifrados en `STORAGE_DIR` (p
 
 - Tipo **Volume mount**, nombre `rideapp-api-storage`, ruta `/app/var/storage`.
 
+**Creado el 2026-10-02** con la API (`mounts.create`, `mountId` `FBICxdXxWjfASur9hb3D_`). El primer despliegue que lo monte debe usar ya la imagen de la Fase 2 (con `/app/var/storage` del usuario `app`): un volumen nuevo copia el propietario de la carpeta de la imagen, y con una imagen anterior quedaría de `root` y el API no podría escribir.
+
 Docker inicializa el volumen nuevo con el propietario de la carpeta de la imagen (usuario `app`, permisos 700). La clave de cifrado se deriva de `FIELD_ENCRYPTION_KEY`: **si se pierde esa variable, los archivos no se pueden recuperar**; incluir el volumen y la variable en los backups (13.6).
 
 Socket.IO usa el mismo dominio del API (`wss://rideapp-api.julian-lizcano.com/socket.io`); Traefik reenvía WebSocket sin configuración extra.
