@@ -10,12 +10,15 @@
   },
   "dependencies": {
     "@rideapp/api-client": "workspace:*",
-    "@rideapp/contracts": "workspace:*"
+    "@rideapp/contracts": "workspace:*",
+    "@rideapp/ui": "workspace:*"
   },
   "peerDependencies": {
     "react": "*",
     "react-native": "*",
-    "react-native-maps": "*"
+    "react-native-maps": "*",
+    "expo-secure-store": "*",
+    "react-native-safe-area-context": "*"
   },
   "devDependencies": {
     "@rideapp/config": "workspace:*",
@@ -25,7 +28,9 @@
     "react": "catalog:",
     "react-native": "0.86.3",
     "react-native-maps": "1.27.2",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "expo-secure-store": "~57.0.4",
+    "react-native-safe-area-context": "~5.7.0"
   },
   "exports": {
     ".": "./src/index.ts",

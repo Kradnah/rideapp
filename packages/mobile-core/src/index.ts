@@ -1,2 +1,17 @@
 export { BaseMap, type BaseMapProps } from './BaseMap';
-export { colors, radius, spacing, type Palette } from './theme';
+export { friendlyError } from './auth/errors';
+export { FormError, FormScreen } from './auth/FormScreen';
+export { LoginScreen } from './auth/LoginScreen';
+export { PrivacyPolicyScreen } from './auth/PrivacyPolicyScreen';
+export { PRIVACY_POLICY } from './auth/privacy-policy';
+export { ProfileScreen } from './auth/ProfileScreen';
+export { RegisterScreen } from './auth/RegisterScreen';
+export { WelcomeScreen } from './auth/WelcomeScreen';
+export {
+  SessionProvider,
+  type SessionContextValue,
+  type SessionStatus,
+  useSession,
+} from './session/SessionProvider';
+// Compatibilidad: el tema vive en @rideapp/ui.
+export { colors, radius, spacing, type Palette } from '@rideapp/ui';

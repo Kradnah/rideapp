@@ -2,7 +2,7 @@ import { GIRARDOT_CENTER } from '@rideapp/contracts';
 import { useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View, useColorScheme } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, type EdgePadding } from 'react-native-maps';
-import { colors } from './theme';
+import { colors } from '@rideapp/ui';
 
 export interface BaseMapProps {
   /**

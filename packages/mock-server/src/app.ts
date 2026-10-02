@@ -218,6 +218,11 @@ export function buildMockServer(options: MockServerOptions = {}) {
         void reply.status(204).send();
       });
 
+      api.post('/auth/logout-all', (req, reply) => {
+        requireUser(req);
+        void reply.status(204).send();
+      });
+
       api.get('/me', (req) => toMe(requireUser(req)));
 
       api.patch('/me', (req) => {

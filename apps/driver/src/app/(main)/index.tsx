@@ -1,9 +1,9 @@
-import { BaseMap, colors, radius, spacing } from '@rideapp/mobile-core';
+import { BaseMap, colors, radius, spacing, useSession } from '@rideapp/mobile-core';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { StyleSheet, Switch, Text, View, useColorScheme } from 'react-native';
+import { Pressable, StyleSheet, Switch, Text, View, useColorScheme } from 'react-native';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { api, ensureDemoSession } from '@/lib/api';
 import { config } from '@/lib/config';
 
 /**
@@ -14,6 +14,7 @@ import { config } from '@/lib/config';
 export default function DriverHomeScreen() {
   const palette = colors[useColorScheme() === 'dark' ? 'dark' : 'light'];
   const insets = useSafeAreaInsets();
+  const { api } = useSession();
   const [online, setOnline] = useState(false);
   const [panelHeight, setPanelHeight] = useState(160);
 
@@ -22,7 +23,6 @@ export default function DriverHomeScreen() {
     queryFn: () => api.health.ready(),
     refetchInterval: 15_000,
   });
-  useQuery({ queryKey: ['demo-session'], queryFn: ensureDemoSession });
 
   const apiUp = health.data?.status === 'ok';
 
@@ -32,6 +32,22 @@ export default function DriverHomeScreen() {
         enabled={config.mapsEnabled}
         mapPadding={{ top: insets.top, right: 0, bottom: panelHeight, left: 0 }}
       />
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Perfil"
+        onPress={() => router.push('/profile')}
+        style={[
+          styles.profileButton,
+          {
+            top: insets.top + spacing.md,
+            backgroundColor: palette.surface,
+            borderColor: palette.border,
+          },
+        ]}
+      >
+        <Text style={[styles.profileIcon, { color: palette.text }]}>☰</Text>
+      </Pressable>
 
       <View
         onLayout={(e) => setPanelHeight(e.nativeEvent.layout.height)}
@@ -87,6 +103,18 @@ export default function DriverHomeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  profileButton: {
+    position: 'absolute',
+    right: spacing.lg,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+  },
+  profileIcon: { fontSize: 20, fontWeight: '600' },
   flex: { flex: 1 },
   panel: {
     position: 'absolute',

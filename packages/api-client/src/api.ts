@@ -42,6 +42,7 @@ export function createApiClient(options: HttpClientOptions) {
           auth: false,
         }),
       logout: () => http.request('POST', '/auth/logout'),
+      logoutAll: () => http.request('POST', '/auth/logout-all'),
     },
 
     me: {

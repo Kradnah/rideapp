@@ -1,19 +1,20 @@
 import { GIRARDOT_CENTER } from '@rideapp/contracts';
-import { BaseMap, colors, radius, spacing } from '@rideapp/mobile-core';
+import { BaseMap, colors, radius, spacing, useSession } from '@rideapp/mobile-core';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
 import { Marker } from 'react-native-maps';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { api, ensureDemoSession } from '@/lib/api';
 import { config } from '@/lib/config';
 
 const PANEL_HEIGHT = 190;
 
-/** Mapa principal + "¿A dónde vas?" (9.2). En la Fase 0 muestra el mapa y los conductores del mock. */
+/** Mapa principal + "¿A dónde vas?" (9.2). Los conductores cercanos llegan del mock hasta la Fase 2. */
 export default function HomeScreen() {
   const palette = colors[useColorScheme() === 'dark' ? 'dark' : 'light'];
   const insets = useSafeAreaInsets();
+  const { api } = useSession();
   const [panelHeight, setPanelHeight] = useState(PANEL_HEIGHT);
 
   const health = useQuery({
@@ -22,14 +23,13 @@ export default function HomeScreen() {
     refetchInterval: 15_000,
   });
 
-  const session = useQuery({ queryKey: ['demo-session'], queryFn: ensureDemoSession });
-
   // Conductores cercanos cada 10 s mientras la pantalla está visible (9.2, paso 3).
   const nearby = useQuery({
     queryKey: ['drivers', 'nearby'],
     queryFn: () => api.drivers.nearby(GIRARDOT_CENTER),
-    enabled: session.data === true,
-    refetchInterval: 10_000,
+    retry: false,
+    // Si el API aún no tiene este endpoint (producción antes de la Fase 2), deja de insistir.
+    refetchInterval: (query) => (query.state.status === 'error' ? false : 10_000),
   });
 
   const apiUp = health.data?.status === 'ok';
@@ -53,6 +53,22 @@ export default function HomeScreen() {
           />
         ))}
       </BaseMap>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Perfil"
+        onPress={() => router.push('/profile')}
+        style={[
+          styles.profileButton,
+          {
+            top: insets.top + spacing.md,
+            backgroundColor: palette.surface,
+            borderColor: palette.border,
+          },
+        ]}
+      >
+        <Text style={[styles.profileIcon, { color: palette.text }]}>☰</Text>
+      </Pressable>
 
       <View
         onLayout={(e) => setPanelHeight(e.nativeEvent.layout.height)}
@@ -89,7 +105,7 @@ export default function HomeScreen() {
           />
           <Text style={[styles.status, { color: palette.textMuted }]}>
             {health.isPending ? 'Conectando…' : apiUp ? 'Conectado al servidor' : 'Sin conexión'}
-            {apiUp && session.data
+            {apiUp && nearby.isSuccess
               ? ` · ${drivers.length} conductor${drivers.length === 1 ? '' : 'es'} cerca`
               : ''}
           </Text>
@@ -101,6 +117,18 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  profileButton: {
+    position: 'absolute',
+    right: spacing.lg,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+  },
+  profileIcon: { fontSize: 20, fontWeight: '600' },
   panel: {
     position: 'absolute',
     left: 0,
