@@ -1,0 +1,61 @@
+#!/bin/bash
+# Despliega en Dokploy las aplicaciones de rideapp afectadas por un push a main.
+#   API key:       ~/.dokploy-api-key       (la misma de casazhef)
+#   Aplicaciones:  rideapp.git/dokploy-apps (nombre, applicationId y rutas)
+
+DOKPLOY_URL="${DOKPLOY_URL:-https://dokploy.julian-lizcano.com}"
+KEY_FILE="${HOME:-/home/admin}/.dokploy-api-key"
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+APPS_FILE="$REPO_DIR/dokploy-apps"
+LOG="$REPO_DIR/dokploy-hook.log"
+ZERO="0000000000000000000000000000000000000000"
+
+deploy() {
+  local name="$1" app_id="$2" body code
+  body="$(mktemp)"
+  code="$(curl -sS -o "$body" -w '%{http_code}' -m 30 -X POST \
+    "$DOKPLOY_URL/api/application.deploy" \
+    -H 'Content-Type: application/json' \
+    -H "x-api-key: $(head -n1 "$KEY_FILE")" \
+    -d "{\"applicationId\": \"$app_id\"}" 2>>"$LOG")"
+  echo "$(date -Is) $name ${newrev:0:8} -> HTTP $code $(head -c 200 "$body")" >> "$LOG"
+  rm -f "$body"
+  case "$code" in
+    2??) echo "remote: Dokploy: $name desplegando (HTTP $code)" ;;
+    *)   echo "remote: Dokploy: ERROR en $name (HTTP $code), ver dokploy-hook.log" ;;
+  esac
+}
+
+while read -r oldrev newrev ref; do
+  [ "$ref" = "refs/heads/main" ] || continue
+  [ "$newrev" != "$ZERO" ] || continue
+
+  if [ ! -s "$KEY_FILE" ] || [ ! -s "$APPS_FILE" ]; then
+    echo "$(date -Is) falta $KEY_FILE o $APPS_FILE" >> "$LOG"
+    echo "remote: Dokploy: hook sin configurar, no se despliega"
+    continue
+  fi
+
+  if [ "$oldrev" = "$ZERO" ]; then
+    changed="*"
+  else
+    changed="$(git diff --name-only "$oldrev" "$newrev")"
+  fi
+
+  while read -r name app_id paths; do
+    [ -z "$name" ] || [ "${name:0:1}" = "#" ] && continue
+    hit=no
+    if [ "$changed" = "*" ]; then
+      hit=yes
+    else
+      for p in $paths; do
+        if grep -qF -- "$p" <<< "$(cut -c1-${#p} <<< "$changed")"; then hit=yes; break; fi
+      done
+    fi
+    if [ "$hit" = yes ]; then
+      deploy "$name" "$app_id"
+    else
+      echo "remote: Dokploy: $name sin cambios, no se despliega"
+    fi
+  done < "$APPS_FILE"
+done
