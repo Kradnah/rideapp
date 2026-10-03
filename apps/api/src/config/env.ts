@@ -73,6 +73,15 @@ export const EnvSchema = z
       .string()
       .refine((v) => Buffer.from(v, 'base64').length === 32, 'Deben ser 32 bytes en base64'),
 
+    /**
+     * Versión mínima de las apps móviles (14.5). Si la app envía `X-App-Version` menor, el API
+     * responde 426 y la app pide actualizar. Sin valor, no se comprueba.
+     */
+    MIN_APP_VERSION: z
+      .string()
+      .regex(/^\d{1,4}\.\d{1,4}\.\d{1,4}$/, 'Versión x.y.z')
+      .optional(),
+
     /** Client ID "Aplicación web" de Google: audience del idToken (8.2). Sin él, /auth/google responde 404. */
     GOOGLE_WEB_CLIENT_ID: z
       .string()

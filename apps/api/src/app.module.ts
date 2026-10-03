@@ -2,6 +2,7 @@ import { type DynamicModule, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
+import { AppVersionGuard } from './common/auth/app-version.guard.js';
 import { AuthGuard } from './common/auth/auth.guard.js';
 import { loggerOptions } from './common/logging/logger.options.js';
 import { ConfigModule } from './config/config.module.js';
@@ -21,6 +22,7 @@ import { GeoModule } from './modules/geo/geo.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { PricingModule } from './modules/pricing/pricing.module.js';
+import { PrivacyModule } from './modules/privacy/privacy.module.js';
 import { RealtimeModule } from './modules/realtime/realtime.module.js';
 import { TripsModule } from './modules/trips/trips.module.js';
 import { UsersModule } from './modules/users/users.module.js';
@@ -57,9 +59,12 @@ export class AppModule {
         GeoModule,
         PricingModule,
         TripsModule,
+        PrivacyModule,
       ],
-      // Orden: primero el límite de peticiones (corta el abuso sin verificar tokens), luego la auth.
+      // Orden: versión mínima de la app (14.5), límite de peticiones (corta el abuso sin verificar
+      // tokens) y, por último, la auth.
       providers: [
+        { provide: APP_GUARD, useClass: AppVersionGuard },
         { provide: APP_GUARD, useClass: ThrottlerGuard },
         { provide: APP_GUARD, useClass: AuthGuard },
       ],

@@ -9,11 +9,13 @@ import type {
 import {
   AutocompleteQuery,
   AutocompleteResponse,
+  DeleteMeRequest,
   CURRENT_POLICY_VERSION,
   GoogleLoginRequest,
   haversineMeters,
   HealthResponse,
   LoginRequest,
+  MeExport,
   Me as MeSchema,
   NearbyDriversQuery,
   NearbyDriversResponse,
@@ -123,7 +125,8 @@ export function buildMockServer(options: MockServerOptions = {}) {
     return user;
   };
 
-  const toMe = ({ password: _password, ...me }: MockUser) => send(MeSchema, me);
+  const toMe = ({ password, ...me }: MockUser) =>
+    send(MeSchema, { ...me, hasPassword: password !== null });
 
   // ---------- Errores ----------
 
@@ -242,6 +245,45 @@ export function buildMockServer(options: MockServerOptions = {}) {
         if (body.fullName !== undefined) user.fullName = body.fullName;
         if (body.phone !== undefined) user.phone = body.phone;
         return toMe(user);
+      });
+
+      // Derechos del titular (8.3): exportación mínima y borrado inmediato.
+      api.get('/me/export', (req) => {
+        const user = requireUser(req);
+        const { password, ...me } = user;
+        return send(MeExport, {
+          format: 'rideapp-export-v1',
+          generatedAt: new Date().toISOString(),
+          profile: {
+            id: me.id,
+            email: me.email,
+            emailVerified: me.emailVerified,
+            fullName: me.fullName,
+            phone: me.phone,
+            role: me.role,
+            createdAt: me.createdAt,
+            loginMethods: password === null ? ['google'] : ['password'],
+            rating: { sum: 0, count: 0 },
+          },
+          consents: [],
+          sessions: [],
+          driver: null,
+          trips: [],
+          ratingsGiven: [],
+          ratingsReceived: [],
+          pushDevices: [],
+          activity: [],
+        });
+      });
+
+      api.delete('/me', (req, reply) => {
+        const user = requireUser(req);
+        const body = parse(DeleteMeRequest, req.body);
+        if (user.password !== null && body.password !== user.password) {
+          throw new HttpError(403, 'FORBIDDEN', 'La contraseña no es correcta.');
+        }
+        usersById.delete(user.id);
+        void reply.status(204).send();
       });
 
       api.get('/geo/autocomplete', (req) => {

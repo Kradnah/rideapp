@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Paginated } from './common.js';
 import { UserRole, UserStatus, VehicleCategory } from './enums.js';
-import { RatingAverage } from './trips.js';
+import { CalendarDay, RatingAverage } from './trips.js';
 
 /**
  * Panel admin, Fase 5 (11.1, pasos 6, 8 y 9): usuarios, tarifas y auditoría.
@@ -152,3 +152,60 @@ export type AdminAuditEntry = z.infer<typeof AdminAuditEntry>;
 
 export const AdminAuditList = Paginated(AdminAuditEntry);
 export type AdminAuditList = z.infer<typeof AdminAuditList>;
+
+// ---------- Informes básicos (Fase 6) ----------
+
+export const REPORT_MAX_DAYS = 62;
+
+/** GET /admin/reports?from&to: días de Colombia, ambos incluidos. */
+export const AdminReportQuery = z
+  .object({ from: CalendarDay, to: CalendarDay })
+  .refine((q) => q.from <= q.to, { message: '`from` debe ser anterior o igual a `to`' })
+  .refine(
+    (q) => (Date.parse(q.to) - Date.parse(q.from)) / 86_400_000 < REPORT_MAX_DAYS,
+    `Como máximo ${REPORT_MAX_DAYS} días`,
+  );
+export type AdminReportQuery = z.infer<typeof AdminReportQuery>;
+
+const Count = z.number().int().nonnegative();
+
+export const AdminReportDay = z.object({
+  date: CalendarDay,
+  requested: Count,
+  completed: Count,
+  cancelled: Count,
+  noDrivers: Count,
+  revenueCents: Count,
+});
+export type AdminReportDay = z.infer<typeof AdminReportDay>;
+
+/** Agregados sin datos personales: sirven para operar, no para vigilar a nadie (15.2). */
+export const AdminReport = z.object({
+  from: CalendarDay,
+  to: CalendarDay,
+  currency: z.string(),
+  trips: z.object({
+    requested: Count,
+    completed: Count,
+    cancelledByPassenger: Count,
+    cancelledByDriver: Count,
+    cancelledBySystem: Count,
+    noDrivers: Count,
+  }),
+  revenue: z.object({ totalCents: Count, cashCents: Count, cardCents: Count }),
+  /** Promedios de los viajes completados; null si no hubo. */
+  averages: z.object({
+    fareCents: z.number().int().nullable(),
+    distanceM: z.number().int().nullable(),
+    durationS: z.number().int().nullable(),
+    /** De la solicitud a que un conductor acepta. */
+    waitToAssignS: z.number().int().nullable(),
+    rating: z.number().nullable(),
+  }),
+  users: z.object({ newPassengers: Count, newDrivers: Count, driversApproved: Count }),
+  /** Una fila por día del rango, aunque no haya viajes. */
+  days: z.array(AdminReportDay),
+  /** Viajes pedidos por hora del día (0–23, hora de Colombia). */
+  requestsByHour: z.array(Count).length(24),
+});
+export type AdminReport = z.infer<typeof AdminReport>;

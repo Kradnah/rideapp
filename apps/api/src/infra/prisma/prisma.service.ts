@@ -11,7 +11,16 @@ import { PrismaClient } from '../../generated/prisma/client.js';
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleDestroy {
   constructor(@InjectEnv() env: Env) {
-    super({ adapter: new PrismaPg({ connectionString: env.DATABASE_URL, max: 10 }) });
+    super({
+      adapter: new PrismaPg({
+        connectionString: env.DATABASE_URL,
+        max: 10,
+        // 14.1: tiempos de espera en la BD. Una consulta colgada no retiene la conexión.
+        connectionTimeoutMillis: 5_000,
+        statement_timeout: 10_000,
+        idle_in_transaction_session_timeout: 15_000,
+      }),
+    });
   }
 
   async ping(): Promise<void> {

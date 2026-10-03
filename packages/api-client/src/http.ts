@@ -27,6 +27,8 @@ export interface HttpClientOptions {
   refreshSession?: () => Promise<string | null>;
   /** Versión de la app, enviada en `X-App-Version` (5.5). */
   appVersion?: string;
+  /** Se llama cuando el API responde 426: la app es más antigua que la mínima (14.5). */
+  onUpgradeRequired?: (minVersion: string | null) => void;
   /** El admin usa cookies: `include`. Las apps móviles usan Bearer. */
   credentials?: RequestCredentials;
   timeoutMs?: number;
@@ -170,6 +172,10 @@ export class HttpClient {
       const err = ApiError.safeParse(json);
       if (err.success) {
         const { code, message, details, requestId } = err.data;
+        if (res.status === 426) {
+          const min = (details as { minVersion?: unknown } | undefined)?.minVersion;
+          this.options.onUpgradeRequired?.(typeof min === 'string' ? min : null);
+        }
         throw new ApiClientError(res.status, code, message, details, requestId);
       }
       throw new ApiClientError(res.status, 'INVALID_RESPONSE', `Error HTTP ${res.status}`);

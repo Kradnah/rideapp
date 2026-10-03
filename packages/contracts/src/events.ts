@@ -62,7 +62,7 @@ export const DriverAvailabilityV1 = z.object({
 export type DriverAvailabilityV1 = z.infer<typeof DriverAvailabilityV1>;
 
 export const SessionRevokedV1 = z.object({
-  reason: z.enum(['LOGOUT_ALL', 'SUSPENDED', 'TOKEN_REUSE']),
+  reason: z.enum(['LOGOUT_ALL', 'SUSPENDED', 'TOKEN_REUSE', 'ACCOUNT_DELETED']),
 });
 export type SessionRevokedV1 = z.infer<typeof SessionRevokedV1>;
 

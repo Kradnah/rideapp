@@ -13,6 +13,7 @@ export function toMe(user: User): Me {
     phone: user.phone,
     role: user.role,
     status: user.status,
+    hasPassword: user.passwordHash !== null,
     createdAt: user.createdAt.toISOString(),
   };
 }

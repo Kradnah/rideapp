@@ -36,6 +36,6 @@ import { TokenService } from './token.service.js';
     TokenService,
     { provide: GOOGLE_VERIFIER, useClass: GoogleAuthLibraryVerifier },
   ],
-  exports: [TokenService, SessionRevocationService, SessionService, FieldCrypto],
+  exports: [TokenService, SessionRevocationService, SessionService, FieldCrypto, PasswordService],
 })
 export class AuthModule {}

@@ -31,7 +31,8 @@ export function createAdapter(env: Env): FastifyAdapter {
   return new FastifyAdapter({
     trustProxy: env.TRUST_PROXY,
     genReqId,
-    bodyLimit: 1024 * 1024,
+    // 14.1: JSON pequeño. Las subidas (multipart) tienen su propio límite más abajo.
+    bodyLimit: 100 * 1024,
   });
 }
 

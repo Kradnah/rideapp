@@ -1,5 +1,7 @@
 import {
   AdminAuditList,
+  AdminReport,
+  type AdminReportQuery,
   AdminFareRules,
   AdminUserDetail,
   AdminUserList,
@@ -35,6 +37,8 @@ import {
   CSRF_HEADER,
   HealthResponse,
   Me,
+  MeExport,
+  type DeleteMeRequest,
   NearbyDriversResponse,
   PlaceDetails,
   QuoteResponse,
@@ -96,6 +100,10 @@ export function createApiClient(options: HttpClientOptions) {
     me: {
       get: () => http.request('GET', '/me', { schema: Me }),
       update: (body: UpdateMeRequest) => http.request('PATCH', '/me', { body, schema: Me }),
+      /** Descargar mis datos (15.2): JSON con todo lo que el servicio guarda del titular. */
+      export: () => http.request('GET', '/me/export', { schema: MeExport, timeoutMs: 30_000 }),
+      /** Eliminar la cuenta (8.3): anonimiza y cierra todas las sesiones. */
+      delete: (body: DeleteMeRequest) => http.request('DELETE', '/me', { body }),
       /** Token de Expo Push del teléfono (8.13). */
       registerPushToken: (body: RegisterPushTokenRequest) =>
         http.request('POST', '/me/push-tokens', { body }),
@@ -193,6 +201,9 @@ export function createApiClient(options: HttpClientOptions) {
           headers: { [CSRF_HEADER]: csrfToken },
         }),
       overview: () => http.request('GET', '/admin/overview', { schema: AdminOverview }),
+      /** Informes básicos (Fase 6): días de Colombia, ambos incluidos. */
+      reports: (query: AdminReportQuery) =>
+        http.request('GET', '/admin/reports', { query, schema: AdminReport }),
       drivers: {
         list: (query: Partial<AdminDriverListQuery> = {}) =>
           http.request('GET', '/admin/drivers', { query, schema: AdminDriverList }),

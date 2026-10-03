@@ -10,3 +10,4 @@ export * from './polyline.js';
 export * from './route-progress.js';
 export * from './admin.js';
 export * from './notifications.js';
+export * from './privacy.js';

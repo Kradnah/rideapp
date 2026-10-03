@@ -34,6 +34,9 @@ export class RedisService implements OnModuleDestroy {
       connectionName: `rideapp-api:${name}`,
       maxRetriesPerRequest: 2,
       lazyConnect: false,
+      // 14.1: ninguna petición espera indefinidamente si Redis se cuelga.
+      connectTimeout: 5_000,
+      commandTimeout: 5_000,
     });
     // Sin este listener, ioredis registra cada fallo de reconexión como "Unhandled error event".
     redis.on('error', (err: Error) => this.logger.warn(`Redis (${name}): ${err.message}`));

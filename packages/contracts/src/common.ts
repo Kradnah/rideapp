@@ -78,3 +78,21 @@ export const HealthResponse = z.object({
   checks: z.record(z.string(), z.enum(['up', 'down'])).optional(),
 });
 export type HealthResponse = z.infer<typeof HealthResponse>;
+
+/**
+ * Versión de la app móvil (14.5): la envían las apps en cada petición; si es menor que la mínima
+ * configurada en el servidor, el API responde `426 UPGRADE_REQUIRED`.
+ */
+export const APP_VERSION_HEADER = 'x-app-version';
+export const AppVersion = z.string().regex(/^\d{1,4}\.\d{1,4}\.\d{1,4}$/);
+
+/** Compara versiones `x.y.z`: negativo si a < b, 0 si son iguales, positivo si a > b. */
+export function compareVersions(a: string, b: string): number {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d !== 0) return d;
+  }
+  return 0;
+}

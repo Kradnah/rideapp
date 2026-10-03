@@ -13,6 +13,7 @@ import {
   AdminUsersController,
 } from './admin-management.controller.js';
 import { AdminTripsController } from './admin-trips.controller.js';
+import { AdminReportsService } from './admin-reports.service.js';
 import { AdminUsersService } from './admin-users.service.js';
 import { AdminController } from './admin.controller.js';
 
@@ -34,6 +35,6 @@ import { AdminController } from './admin.controller.js';
     AdminFaresController,
     AdminAuditController,
   ],
-  providers: [AdminUsersService],
+  providers: [AdminUsersService, AdminReportsService],
 })
 export class AdminModule {}

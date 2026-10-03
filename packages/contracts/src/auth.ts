@@ -161,6 +161,8 @@ export const Me = z.object({
   phone: z.string().nullable(),
   role: UserRole,
   status: UserStatus,
+  /** Si la cuenta tiene contraseña (la pide para eliminarla); las de solo Google no. */
+  hasPassword: z.boolean(),
   createdAt: z.iso.datetime(),
 });
 export type Me = z.infer<typeof Me>;
