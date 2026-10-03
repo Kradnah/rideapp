@@ -17,7 +17,8 @@
     "test": "vitest run",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "cli:create-admin": "tsx src/cli/create-admin.ts"
+    "cli:create-admin": "tsx src/cli/create-admin.ts",
+    "cli:load-fixtures": "tsx src/cli/load-fixtures.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
