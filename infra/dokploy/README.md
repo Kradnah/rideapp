@@ -75,3 +75,20 @@ Socket.IO usa el mismo dominio del API (`wss://rideapp-api.julian-lizcano.com/so
 **Recibos.** Con `MAIL_TRANSPORT=smtp`, al quedar cobrado un viaje se envía el recibo al pasajero (cola `notifications` de BullMQ, uno por viaje).
 
 **Backups.** Ver `infra/backups/README.md`: cron nocturno en el VPS con `pg_dump` + documentos, cifrados con `age` (la clave privada no vive en el VPS).
+
+## Endurecimiento y monitoreo (Fase 6)
+
+**Variables nuevas del API** (Dokploy → `rideapp-api` → Environment):
+
+- `MIN_APP_VERSION` (opcional, `x.y.z`): versión mínima de las apps. Las APK envían `X-App-Version`; si es menor, el API responde 426 y la app muestra "Actualiza la app". Ponerla **después** de repartir las APK nuevas (p. ej. `0.7.0`); sin ella no se comprueba nada.
+
+**Imágenes.** La del API ya no lleva `npm`/`npx`/`corepack` (no se usan en ejecución y traían avisos altos de Trivy); la del panel aplica `apk upgrade` sobre `nginx:1.29-alpine` y quita `curl`. Trivy (altas y críticas): **0** en ambas el 2026-10-02.
+
+**Monitoreo** (13.7, paso 6), una vez y desde el panel de Dokploy:
+
+1. _Monitoring_ de Dokploy: comprobar que `rideapp-api` queda por debajo de 768 MB (en la prueba de carga local usó ~225 MB con 500 conductores, `infra/load/README.md`).
+2. **Uptime Kuma** desde las plantillas de Dokploy, en su propio proyecto, con límite de 128 MB y un dominio propio protegido (o solo por túnel SSH). Monitores:
+   - HTTP `https://rideapp-api.julian-lizcano.com/api/health/ready` cada 60 s, esperando 200 y la palabra `"ok"`;
+   - HTTP `https://rideapp-admin.julian-lizcano.com/` cada 5 min;
+   - aviso por correo (SMTP de Hostinger) o Telegram al caer y al volver.
+3. **Certificados:** Uptime Kuma avisa cuando falta poco para que caduquen (Let's Encrypt los renueva solo; el aviso detecta si Traefik dejó de hacerlo).

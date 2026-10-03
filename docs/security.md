@@ -80,6 +80,49 @@ Clave JWT de producción: generada en el VPS con openssl y guardada solo en Dokp
 | Sesiones revocadas                         | Cada 60 s se desconectan los sockets de sesiones cerradas y el conductor sale de línea                                                                                                            |
 | Privacidad de la ubicación                 | Solo en Redis con TTL de 60 s; al pasar a "fuera de línea" se borra todo. El pasajero ve como máximo 10 conductores, **sin ID** y redondeados a ~100 m (redondeo, no ruido: el ruido se promedia) |
 
+## Endurecimiento (Fase 6)
+
+### Derechos del titular (8.3, 15.2)
+
+| Derecho               | Implementación                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Acceso y portabilidad | `GET /me/export`: JSON con perfil, autorizaciones, sesiones (IP y user agent), datos de conductor (sin el número de licencia ni los archivos), viajes, pagos, calificaciones (las recibidas sin decir quién las dio), dispositivos de push y actividad propia de la auditoría. La traza GPS solo va en los viajes del conductor (es su ubicación; al pasajero no se le entrega la de otra persona). `Cache-Control: no-store`, 3 por minuto, auditado (`user.data_exported`). En la app se guarda en la caché y se comparte con el selector del sistema.                                                                                                                                                                                                                            |
+| Rectificación         | `PATCH /me` (nombre y teléfono).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Supresión             | `DELETE /me` con `confirmation: "ELIMINAR"` y la contraseña si la cuenta tiene una (un access token robado no basta). No con un viaje en curso (409); los admins no (CLI). **Anonimiza**: email, contraseña, teléfono y nombre ("Usuario eliminado"); borra identidades de Google, códigos, push tokens, cotizaciones sin viaje, comentarios de sus calificaciones, IP/user agent de sus sesiones y la traza de sus viajes; los viajes se conservan (ley fiscal) con origen y destino redondeados a 2 decimales (~1 km), sin direcciones ni polilínea. Conductor: documentos borrados (filas y archivos), licencia vaciada, perfil suspendido y fuera de línea. Revoca todas las sesiones, avisa por socket (`ACCOUNT_DELETED`) y se audita (`user.deleted`, `user.delete_failed`). |
+
+### Retención automática (15.1, 15.2 punto 5)
+
+Job `data-retention` de BullMQ cada 6 h (idempotente; `modules/privacy/retention.service.ts`):
+
+| Dato                                 | Plazo                                           |
+| ------------------------------------ | ----------------------------------------------- |
+| Traza GPS (`trip_route_points`)      | 90 días; el viaje conserva distancia y duración |
+| IP en `audit_logs`                   | 180 días (el registro se conserva sin la IP)    |
+| Refresh tokens caducados o revocados | 7 días después de caducar                       |
+| Códigos de correo                    | 1 día después de caducar                        |
+| Push tokens sin uso                  | 180 días sin abrir la app                       |
+| Cotizaciones caducadas sin viaje     | cada hora (Fase 3)                              |
+
+### Otros controles (14.1, 14.5)
+
+- Límite de cuerpo JSON de **100 KB** (antes 1 MB); las subidas multipart tienen su propio tope (5 MB).
+- Tiempos de espera: Postgres (`connectionTimeoutMillis` 5 s, `statement_timeout` 10 s, `idle_in_transaction_session_timeout` 15 s) y Redis (conexión y comando 5 s).
+- **Versión mínima de las apps:** `MIN_APP_VERSION` en el API; si `X-App-Version` es menor, `426 UPGRADE_REQUIRED` y la app muestra "Actualiza la app" en lugar de fallar pantalla por pantalla. Sin la variable no se comprueba.
+- Informes del panel (`GET /admin/reports`): solo agregados, sin datos de personas; máximo 62 días.
+- `cli:load-fixtures` (usuarios sintéticos para k6) se niega a ejecutarse con `NODE_ENV=production`; su salida (`infra/load/fixtures.json`, con tokens) está en `.gitignore`.
+
+### Escaneos antes de la demo (16, 14.1)
+
+| Herramienta                            | Objetivo                       | Resultado (2026-10-02)                                                                                                                                                                                                                                                                                    |
+| -------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Trivy (`--severity HIGH,CRITICAL`)     | Imagen del API                 | 0. Las 8 altas iniciales estaban en el `npm` de `node:24-alpine`, que no se usa en ejecución: se quita de la imagen.                                                                                                                                                                                      |
+| Trivy                                  | Imagen del panel               | 0. Las 43 iniciales eran paquetes de Alpine de `nginx:1.29-alpine` con parche: `apk upgrade` al construir y fuera `curl`.                                                                                                                                                                                 |
+| OWASP ZAP baseline                     | Panel (imagen nginx, en local) | 0 FAIL, 62 PASS, 5 avisos bajos: `style-src 'unsafe-inline'` (excepción de Google Maps, arriba), falta `Cross-Origin-Embedder-Policy` (exigirlo rompería los recursos de Google Maps), comentarios en el JS minificado, contenido cacheable (los _assets_ con hash) y "aplicación moderna" (informativo). |
+| k6                                     | API (en local)                 | Ver `infra/load/README.md`.                                                                                                                                                                                                                                                                               |
+| `pnpm audit --prod --audit-level high` | Dependencias                   | En el `pre-push` (Fase 0).                                                                                                                                                                                                                                                                                |
+
+Pendiente: ZAP baseline contra el API y el panel **desplegados** (con TLS y Traefik delante) después del próximo despliegue.
+
 ## Pendiente o a vigilar
 
 - **Postgres en producción:** el API usa el rol `rideapp_app` (sin superusuario, dueño del esquema `public`). PostGIS no es una extensión _trusted_: si una migración futura necesita otra extensión, la crea antes el superusuario `rideapp`.
