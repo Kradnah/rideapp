@@ -14,8 +14,9 @@ RUN pnpm turbo run build --filter "@rideapp/api..."
 RUN pnpm --filter @rideapp/api deploy --prod /out
 
 FROM node:24-alpine
-# El motor de migraciones de Prisma necesita OpenSSL.
-RUN apk add --no-cache openssl
+# El motor de migraciones de Prisma necesita OpenSSL. npm, npx y corepack no se usan en ejecución
+# (las migraciones van con el binario local de Prisma) y traen avisos de Trivy: fuera (14.1, 14.9).
+RUN apk add --no-cache openssl   && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack     /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=3000
