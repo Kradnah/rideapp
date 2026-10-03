@@ -8,6 +8,7 @@ import { Drivers } from './pages/Drivers';
 import { Fares } from './pages/Fares';
 import { Login } from './pages/Login';
 import { NotFound } from './pages/NotFound';
+import { Reports } from './pages/Reports';
 import { TripDetail } from './pages/TripDetail';
 import { Trips } from './pages/Trips';
 import { UserDetail } from './pages/UserDetail';
@@ -20,6 +21,7 @@ const NAV = [
   { to: '/users', label: 'Usuarios' },
   { to: '/trips', label: 'Viajes' },
   { to: '/fares', label: 'Tarifas' },
+  { to: '/reports', label: 'Informes' },
   { to: '/audit', label: 'Auditoría' },
 ] as const;
 
@@ -63,6 +65,7 @@ export function App() {
         <Route path="users" element={<Users />} />
         <Route path="users/:id" element={<UserDetail />} />
         <Route path="fares" element={<Fares />} />
+        <Route path="reports" element={<Reports />} />
         <Route path="audit" element={<Audit />} />
         <Route path="*" element={<NotFound />} />
       </Route>

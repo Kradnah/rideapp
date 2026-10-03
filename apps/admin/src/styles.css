@@ -771,3 +771,71 @@ a.btn {
   align-items: center;
   text-decoration: none;
 }
+
+/* ---------- Gráficos de columnas (informes) ---------- */
+
+.chart {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  /* Validado con el script de dataviz en claro y oscuro (contraste ≥ 3:1 sobre la tarjeta). */
+  --chart-bar: #0d9488;
+}
+
+.chart svg {
+  display: block;
+}
+
+.chart__grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chart__tick {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart__bar {
+  fill: var(--chart-bar);
+}
+
+.chart__col {
+  cursor: default;
+  outline: none;
+}
+
+.chart__col--active .chart__bar {
+  fill: var(--accent);
+}
+
+.chart__col:focus-visible rect {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.chart__tooltip {
+  position: absolute;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 12%);
+  pointer-events: none;
+}
+
+.chart__tooltip span {
+  color: var(--text-muted);
+}
+
+details summary {
+  cursor: pointer;
+  font-weight: 600;
+}
