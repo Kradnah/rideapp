@@ -52,5 +52,9 @@ auditConfig:
     # Expo en el PC del desarrollador (code signing de updates, que no usamos); no llega al APK
     # ni al servidor. Sin versión corregida a 2026-10-02. Revisar al actualizar Expo.
     - GHSA-86w9-cpqp-85rv
+    # braces (vía metro > micromatch): DoS con patrones de llaves muy anidados. Solo en Metro, el
+    # empaquetador de React Native en el PC, con patrones de nuestra configuración; no llega al APK
+    # ni al servidor. Sin versión corregida a 2026-10-02. Revisar al actualizar React Native.
+    - GHSA-vfj7-8cjw-p6xm
 patchedDependencies:
   react-native-maps@1.27.2: patches/react-native-maps@1.27.2.patch

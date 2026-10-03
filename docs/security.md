@@ -147,8 +147,9 @@ Pendiente: ZAP baseline contra el API y el panel **desplegados** (con TLS y Trae
 
 ## Excepciones de auditoría de dependencias
 
-| Aviso                      | Paquete                      | Motivo                                                                                  | Revisar            |
-| -------------------------- | ---------------------------- | --------------------------------------------------------------------------------------- | ------------------ |
-| GHSA-86w9-cpqp-85rv (alta) | `node-forge` vía `@expo/cli` | Solo en la CLI de Expo en el PC; no llega al APK ni al servidor. Sin versión corregida. | Al actualizar Expo |
+| Aviso                      | Paquete                      | Motivo                                                                                                             | Revisar                    |
+| -------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------- |
+| GHSA-86w9-cpqp-85rv (alta) | `node-forge` vía `@expo/cli` | Solo en la CLI de Expo en el PC; no llega al APK ni al servidor. Sin versión corregida.                            | Al actualizar Expo         |
+| GHSA-vfj7-8cjw-p6xm (alta) | `braces` vía `metro`         | Solo en Metro (empaquetador en el PC) con patrones propios; no llega al APK ni al servidor. Sin versión corregida. | Al actualizar React Native |
 
 Configuradas en `auditConfig.ignoreGhsas` de `pnpm-workspace.yaml`.
