@@ -12,6 +12,9 @@ import * as TaskManager from 'expo-task-manager';
  * - Sin él: solo mientras la app está abierta (`watchPositionAsync`).
  * - Sin `distanceInterval`: si el conductor está parado también hay que enviar, o el servidor lo
  *   sacaría de línea a los 60 s por inactividad.
+ * - Sin conexión (10.2, paso 4) se guardan los últimos puntos, uno cada 10 s como mucho (lo mismo
+ *   que muestrea la traza del viaje), y al reconectar se envían en orden a 1 por segundo (el límite
+ *   del socket). El servidor acepta puntos de hasta 2 min: los más viejos se descartan.
  * - Al pasar a "fuera de línea" se detiene todo: nunca se rastrea a un conductor desconectado.
  */
 export const LOCATION_TASK = 'rideapp-driver-location';
@@ -24,7 +27,9 @@ export type ReporterEvent =
 
 let socket: RealtimeSocket | null = null;
 let watcher: Location.LocationSubscription | null = null;
-let pending: DriverLocationV1 | null = null;
+/** Cola de envío: normalmente 0 o 1 punto; crece solo sin conexión. */
+let queue: DriverLocationV1[] = [];
+let draining = false;
 const listeners = new Set<(e: ReporterEvent) => void>();
 
 function toPayload(loc: Location.LocationObject): DriverLocationV1 {
@@ -45,12 +50,47 @@ function emit(event: ReporterEvent) {
   for (const l of listeners) l(event);
 }
 
-async function send(payload: DriverLocationV1): Promise<void> {
-  if (!socket?.connected) {
-    // Solo el último punto: para la disponibilidad no sirve una posición vieja (10.2, paso 4).
-    pending = payload;
-    return;
+/** El servidor descarta los puntos de más de 120 s; se deja margen para el envío. */
+const MAX_AGE_MS = 110_000;
+/** Sin conexión, un punto cada 10 s como mucho (11 puntos cubren la ventana de 110 s). */
+const OFFLINE_SPACING_MS = 10_000;
+const MAX_QUEUE = 12;
+/** El servidor admite 1 mensaje de ubicación por segundo y socket. */
+const SEND_SPACING_MS = 1_100;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function enqueue(payload: DriverLocationV1): void {
+  const last = queue.at(-1);
+  const before = queue.at(-2);
+  // Sin red: si el último guardado está a menos de 10 s del anterior, se sustituye por el nuevo.
+  if (!socket?.connected && last && before && last.ts - before.ts < OFFLINE_SPACING_MS) {
+    queue[queue.length - 1] = payload;
+  } else {
+    queue.push(payload);
   }
+  if (queue.length > MAX_QUEUE) queue = queue.slice(-MAX_QUEUE);
+  void drain();
+}
+
+/** Envía la cola en orden (el servidor rechaza un punto anterior al último aceptado). */
+async function drain(): Promise<void> {
+  if (draining) return;
+  draining = true;
+  try {
+    while (queue.length > 0 && socket?.connected) {
+      const next = queue.shift()!;
+      if (Date.now() - next.ts > MAX_AGE_MS) continue;
+      await sendNow(next);
+      if (queue.length > 0) await sleep(SEND_SPACING_MS);
+    }
+  } finally {
+    draining = false;
+  }
+}
+
+async function sendNow(payload: DriverLocationV1): Promise<void> {
+  if (!socket) return;
   try {
     const ack = await socket.timeout(5_000).emitWithAck('driver.location.v1', payload);
     if (ack.ok) emit({ type: 'sent', at: Date.now() });
@@ -71,7 +111,7 @@ TaskManager.defineTask<{ locations: Location.LocationObject[] }>(
       await Location.stopLocationUpdatesAsync(LOCATION_TASK).catch(() => undefined);
       return;
     }
-    await send(toPayload(last));
+    enqueue(toPayload(last));
   },
 );
 
@@ -81,11 +121,9 @@ export const locationReporter = {
     return () => listeners.delete(listener);
   },
 
-  /** El socket se (re)conectó: envía el último punto pendiente, si no está caducado. */
+  /** El socket se (re)conectó: envía lo guardado sin conexión que aún no haya caducado. */
   flush(): void {
-    const last = pending;
-    pending = null;
-    if (last && Date.now() - last.ts < 60_000) void send(last);
+    void drain();
   },
 
   async start(realtime: RealtimeSocket, intervalSeconds: number): Promise<ReporterMode> {
@@ -114,7 +152,7 @@ export const locationReporter = {
         timeInterval: intervalSeconds * 1000,
         distanceInterval: 0,
       },
-      (loc) => void send(toPayload(loc)),
+      (loc) => enqueue(toPayload(loc)),
     );
     return 'foreground';
   },
@@ -122,7 +160,7 @@ export const locationReporter = {
   async stop(): Promise<void> {
     watcher?.remove();
     watcher = null;
-    pending = null;
+    queue = [];
     socket = null;
     if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK).catch(() => false)) {
       await Location.stopLocationUpdatesAsync(LOCATION_TASK).catch(() => undefined);

@@ -1,9 +1,11 @@
-import { SessionProvider, useSession } from '@rideapp/mobile-core';
+import NetInfo from '@react-native-community/netinfo';
+import { OfflineBanner, SessionProvider, useSession } from '@rideapp/mobile-core';
 import { usePalette } from '@rideapp/ui';
 import {
   QueryClient,
   QueryClientProvider,
   focusManager,
+  onlineManager,
   useQueryClient,
 } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
@@ -24,6 +26,11 @@ function useAppStateFocus() {
     return () => sub.remove();
   }, []);
 }
+
+// TanStack Query sabe si hay red: pausa las consultas sin conexión y las repite al volver.
+onlineManager.setEventListener((setOnline) =>
+  NetInfo.addEventListener((state) => setOnline(state.isConnected !== false)),
+);
 
 /** Sin sesión solo existen las rutas de (auth); con sesión, las de (main). */
 function RootNavigator() {
@@ -74,6 +81,7 @@ export default function RootLayout() {
         <SessionProvider apiUrl={config.apiUrl} appVersion={config.appVersion}>
           <StatusBar style="auto" />
           <RootNavigator />
+          <OfflineBanner />
         </SessionProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

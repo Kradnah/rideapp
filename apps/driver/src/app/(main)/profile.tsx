@@ -15,6 +15,7 @@ export default function ProfileRoute() {
         { label: 'Mis viajes', onPress: () => router.push('/history') },
       ]}
       onOpenPolicy={() => router.push('/privacy')}
+      onOpenAccountData={() => router.push('/account')}
       onVerifyEmail={() => router.push('/verify-email')}
     />
   );

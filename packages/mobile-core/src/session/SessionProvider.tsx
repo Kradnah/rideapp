@@ -1,6 +1,6 @@
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { ApiClientError, type ApiClient, createApiClient } from '@rideapp/api-client';
-import type { TokenPair } from '@rideapp/contracts';
+import type { DeleteMeRequest, TokenPair } from '@rideapp/contracts';
 import * as SecureStore from 'expo-secure-store';
 import {
   createContext,
@@ -11,6 +11,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { UpgradeRequiredScreen } from './UpgradeRequiredScreen';
 
 const REFRESH_KEY = 'rideapp.session.refreshToken';
 /** El mismo que usa usePushNotifications (no se importa para no cargar expo-notifications aquí). */
@@ -53,6 +54,8 @@ export interface SessionContextValue {
   signOut: () => Promise<void>;
   /** "Cerrar sesión en todos los dispositivos". */
   signOutAll: () => Promise<void>;
+  /** Elimina la cuenta (8.3) y borra la sesión del teléfono. */
+  deleteAccount: (body: DeleteMeRequest) => Promise<void>;
   /**
    * Access token vigente para el socket (8.10, paso 5): si falta o caduca en menos de 30 s,
    * lo renueva por el mismo camino único que el cliente HTTP. `force` lo renueva siempre.
@@ -78,6 +81,8 @@ export interface SessionProviderProps {
 export function SessionProvider({ apiUrl, appVersion, children }: SessionProviderProps) {
   const [status, setStatus] = useState<SessionStatus>('loading');
   const [tokens] = useState(() => new SessionTokens());
+  /** El API respondió 426 (14.5): la app es más antigua que la mínima. */
+  const [upgrade, setUpgrade] = useState<{ minVersion: string | null } | null>(null);
 
   const clear = useCallback(async () => {
     tokens.reset();
@@ -99,6 +104,7 @@ export function SessionProvider({ apiUrl, appVersion, children }: SessionProvide
     const client: ApiClient = createApiClient({
       baseUrl: apiUrl,
       appVersion,
+      onUpgradeRequired: (minVersion) => setUpgrade({ minVersion }),
       getAccessToken: () => tokens.access,
       refreshSession: async () => {
         const token = tokens.refresh;
@@ -164,6 +170,12 @@ export function SessionProvider({ apiUrl, appVersion, children }: SessionProvide
         await GoogleSignin.signOut().catch(() => undefined);
         await clear();
       },
+      deleteAccount: async (body) => {
+        // El servidor ya borra los push tokens y revoca todas las sesiones.
+        await api.me.delete(body);
+        await GoogleSignin.signOut().catch(() => undefined);
+        await clear();
+      },
       getAccessToken: async (force = false) => {
         if (!force && tokens.access && tokens.accessExpiresAt - Date.now() > 30_000) {
           return tokens.access;
@@ -174,6 +186,9 @@ export function SessionProvider({ apiUrl, appVersion, children }: SessionProvide
     [status, api, store, clear, tokens],
   );
 
+  if (upgrade) {
+    return <UpgradeRequiredScreen currentVersion={appVersion} minVersion={upgrade.minVersion} />;
+  }
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 

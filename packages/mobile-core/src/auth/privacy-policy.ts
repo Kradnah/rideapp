@@ -31,7 +31,7 @@ export const PRIVACY_POLICY = {
     },
     {
       title: 'Tus derechos',
-      body: 'Puedes conocer, actualizar, rectificar y suprimir tus datos, revocar esta autorización, pedir prueba de ella y presentar quejas ante la Superintendencia de Industria y Comercio. Desde la app puedes editar tu perfil y, próximamente, descargar tus datos o eliminar tu cuenta.',
+      body: 'Puedes conocer, actualizar, rectificar y suprimir tus datos, revocar esta autorización, pedir prueba de ella y presentar quejas ante la Superintendencia de Industria y Comercio. Desde la app (Perfil → Tus datos y tu cuenta) puedes editar tu perfil, descargar tus datos y eliminar tu cuenta.',
     },
     {
       title: 'Consultas y reclamos',

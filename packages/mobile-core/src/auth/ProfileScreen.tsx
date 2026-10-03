@@ -16,14 +16,17 @@ export interface ProfileScreenProps {
   /** Accesos de la app (Mis viajes, Ganancias…), arriba del formulario. */
   shortcuts?: ProfileShortcut[];
   onOpenPolicy: () => void;
+  /** "Tus datos y tu cuenta": descargar los datos y eliminar la cuenta (9.6). */
+  onOpenAccountData: () => void;
   onVerifyEmail: () => void;
 }
 
-/** Perfil (9.6): editar nombre y teléfono, política y cerrar sesión. */
+/** Perfil (9.6): editar nombre y teléfono, tus datos, política y cerrar sesión. */
 export function ProfileScreen({
   onBack,
   shortcuts = [],
   onOpenPolicy,
+  onOpenAccountData,
   onVerifyEmail,
 }: ProfileScreenProps) {
   const p = usePalette();
@@ -107,6 +110,7 @@ export function ProfileScreen({
       subtitle={me?.email ?? undefined}
       footer={
         <>
+          <Button label="Tus datos y tu cuenta" variant="ghost" onPress={onOpenAccountData} />
           <Button label="Política de tratamiento de datos" variant="ghost" onPress={onOpenPolicy} />
           <Button label="Cerrar sesión" variant="secondary" onPress={() => void signOut()} />
           <Button

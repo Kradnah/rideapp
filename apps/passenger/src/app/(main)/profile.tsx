@@ -12,6 +12,7 @@ export default function ProfileRoute() {
       onBack={() => router.back()}
       shortcuts={[{ label: 'Mis viajes', onPress: () => router.push('/history') }]}
       onOpenPolicy={() => router.push('/privacy')}
+      onOpenAccountData={() => router.push('/account')}
       onVerifyEmail={() => router.push('/verify-email')}
     />
   );
