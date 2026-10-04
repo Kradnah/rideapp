@@ -78,7 +78,11 @@ export default function PickScreen() {
   return (
     <View
       style={[styles.root, { backgroundColor: p.bg }]}
-      onLayout={(e) => setSize((s) => ({ ...s, height: e.nativeEvent.layout.height }))}
+      onLayout={(e) => {
+        // Se lee ya: el updater puede correr después, con el evento ya liberado (nativeEvent null).
+        const { height } = e.nativeEvent.layout;
+        setSize((s) => ({ ...s, height }));
+      }}
     >
       <BaseMap
         enabled={config.mapsEnabled}
@@ -105,7 +109,10 @@ export default function PickScreen() {
       </Pressable>
 
       <View
-        onLayout={(e) => setSize((s) => ({ ...s, panel: e.nativeEvent.layout.height }))}
+        onLayout={(e) => {
+          const { height } = e.nativeEvent.layout;
+          setSize((s) => ({ ...s, panel: height }));
+        }}
         style={[
           styles.panel,
           {
