@@ -1,4 +1,5 @@
 import { ApiClientError } from '@rideapp/api-client';
+import { WrongAppRoleError } from '../session/SessionProvider';
 
 const MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: 'Email o contraseña incorrectos.',
@@ -14,8 +15,15 @@ const MESSAGES: Record<string, string> = {
   SERVICE_UNAVAILABLE: 'El envío de correos todavía no está disponible. Inténtalo más adelante.',
 };
 
+const WRONG_APP: Record<WrongAppRoleError['role'], string> = {
+  PASSENGER: 'Esta cuenta es de pasajero. Entra desde la app rideapp.',
+  DRIVER: 'Esta cuenta es de conductor. Entra desde la app rideapp Conductor.',
+  ADMIN: 'Las cuentas de administración solo funcionan en el panel web.',
+};
+
 /** Mensaje para el usuario a partir de un error del API (nunca detalles técnicos). */
 export function friendlyError(err: unknown): string {
+  if (err instanceof WrongAppRoleError) return WRONG_APP[err.role];
   if (err instanceof ApiClientError)
     return MESSAGES[err.code] ?? 'Algo salió mal. Inténtalo de nuevo.';
   return 'Algo salió mal. Inténtalo de nuevo.';

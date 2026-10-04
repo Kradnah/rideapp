@@ -13,6 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { APP_IDENTITY } from '@/lib/app-identity';
 import { config } from '@/lib/config';
 // Registra la tarea de ubicación en segundo plano al arrancar (expo-task-manager lo exige).
 import '@/lib/location-reporter';
@@ -78,7 +79,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <SessionProvider apiUrl={config.apiUrl} appVersion={config.appVersion}>
+        <SessionProvider
+          apiUrl={config.apiUrl}
+          role={APP_IDENTITY.role}
+          appVersion={config.appVersion}
+        >
           <StatusBar style="auto" />
           <RootNavigator />
           <OfflineBanner />

@@ -30,6 +30,7 @@ export {
   type SessionContextValue,
   type SessionStatus,
   useSession,
+  WrongAppRoleError,
 } from './session/SessionProvider';
 // Compatibilidad: el tema vive en @rideapp/ui.
 export { colors, radius, spacing, type Palette } from '@rideapp/ui';

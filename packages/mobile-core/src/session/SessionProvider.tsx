@@ -1,6 +1,6 @@
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { ApiClientError, type ApiClient, createApiClient } from '@rideapp/api-client';
-import type { DeleteMeRequest, TokenPair } from '@rideapp/contracts';
+import type { DeleteMeRequest, SelfAssignableRole, TokenPair, UserRole } from '@rideapp/contracts';
 import * as SecureStore from 'expo-secure-store';
 import {
   createContext,
@@ -16,6 +16,30 @@ import { UpgradeRequiredScreen } from './UpgradeRequiredScreen';
 const REFRESH_KEY = 'rideapp.session.refreshToken';
 /** El mismo que usa usePushNotifications (no se importa para no cargar expo-notifications aquí). */
 const PUSH_TOKEN_KEY = 'rideapp.push.token';
+
+/** Global de Hermes (RN ≥ 0.74); el tsconfig de este paquete no incluye la lib DOM. */
+declare const atob: (data: string) => string;
+
+/** Rol del access token. Solo sirve para la interfaz: el API valida la firma y el rol. */
+function tokenRole(accessToken: string): UserRole | null {
+  try {
+    const payload = accessToken.split('.')[1] ?? '';
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const json = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='));
+    const role: unknown = (JSON.parse(json) as { role?: unknown }).role;
+    return role === 'PASSENGER' || role === 'DRIVER' || role === 'ADMIN' ? role : null;
+  } catch {
+    return null;
+  }
+}
+
+/** La cuenta es de otro rol que el de esta app (p. ej. un conductor en la app del pasajero). */
+export class WrongAppRoleError extends Error {
+  constructor(readonly role: UserRole) {
+    super(`Cuenta con rol ${role}`);
+    this.name = 'WrongAppRoleError';
+  }
+}
 
 /** Tokens de la sesión. No forman parte del render: solo los leen el cliente HTTP y los efectos. */
 class SessionTokens {
@@ -48,7 +72,10 @@ export interface SessionContextValue {
   status: SessionStatus;
   /** Cliente del API con el token de esta sesión y refresco automático. */
   api: ApiClient;
-  /** Guarda los tokens de un login o registro correcto. */
+  /**
+   * Guarda los tokens de un login o registro correcto. Si la cuenta es de otro rol, cierra esa
+   * sesión en el servidor y lanza WrongAppRoleError.
+   */
   signIn: (pair: TokenPair) => Promise<void>;
   /** Cierra la sesión en el servidor (si hay red) y borra los tokens del teléfono. */
   signOut: () => Promise<void>;
@@ -67,6 +94,8 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 
 export interface SessionProviderProps {
   apiUrl: string;
+  /** Rol de las cuentas que admite esta app. */
+  role: SelfAssignableRole;
   appVersion: string;
   children: ReactNode;
 }
@@ -78,7 +107,7 @@ export interface SessionProviderProps {
  * - El api-client refresca ante un 401 una sola vez aunque haya varias peticiones en curso.
  * - Si el refresco responde 401, se cierra la sesión; si falla por red, se mantiene.
  */
-export function SessionProvider({ apiUrl, appVersion, children }: SessionProviderProps) {
+export function SessionProvider({ apiUrl, role, appVersion, children }: SessionProviderProps) {
   const [status, setStatus] = useState<SessionStatus>('loading');
   const [tokens] = useState(() => new SessionTokens());
   /** El API respondió 426 (14.5): la app es más antigua que la mínima. */
@@ -122,6 +151,19 @@ export function SessionProvider({ apiUrl, appVersion, children }: SessionProvide
     return client;
   }, [apiUrl, appVersion, tokens, store, clear]);
 
+  /** Revoca en el servidor una sesión de otro rol sin guardarla en el teléfono. */
+  const rejectForeign = useCallback(
+    async (pair: TokenPair): Promise<UserRole | null> => {
+      const actual = tokenRole(pair.accessToken);
+      if (!actual || actual === role) return null;
+      tokens.set(pair);
+      await api.auth.logout().catch(() => undefined);
+      await clear();
+      return actual;
+    },
+    [role, tokens, api, clear],
+  );
+
   // Al abrir la app: ¿hay sesión guardada?
   useEffect(() => {
     let cancelled = false;
@@ -134,7 +176,10 @@ export function SessionProvider({ apiUrl, appVersion, children }: SessionProvide
       }
       tokens.restore(saved);
       try {
-        await store(await api.auth.refresh(saved));
+        const pair = await api.auth.refresh(saved);
+        // Sesiones guardadas antes de comprobar el rol al entrar.
+        if (await rejectForeign(pair)) return;
+        await store(pair);
         if (!cancelled) setStatus('signedIn');
       } catch (err) {
         if (cancelled) return;
@@ -146,13 +191,15 @@ export function SessionProvider({ apiUrl, appVersion, children }: SessionProvide
     return () => {
       cancelled = true;
     };
-  }, [api, tokens, store, clear]);
+  }, [api, tokens, store, clear, rejectForeign]);
 
   const value = useMemo<SessionContextValue>(
     () => ({
       status,
       api,
       signIn: async (pair) => {
+        const foreign = await rejectForeign(pair);
+        if (foreign) throw new WrongAppRoleError(foreign);
         await store(pair);
         setStatus('signedIn');
       },
@@ -183,7 +230,7 @@ export function SessionProvider({ apiUrl, appVersion, children }: SessionProvide
         return api.http.refreshOnce();
       },
     }),
-    [status, api, store, clear, tokens],
+    [status, api, store, clear, tokens, rejectForeign],
   );
 
   if (upgrade) {
