@@ -33,6 +33,9 @@ export function createAdapter(env: Env): FastifyAdapter {
     genReqId,
     // 14.1: JSON pequeño. Las subidas (multipart) tienen su propio límite más abajo.
     bodyLimit: 100 * 1024,
+    // Los place_id de Google de direcciones pasan de los 100 caracteres por defecto de Fastify,
+    // que respondería 414 en /geo/place/:placeId. El mismo tope que valida PlaceParam.
+    routerOptions: { maxParamLength: 300 },
   });
 }
 

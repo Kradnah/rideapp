@@ -153,6 +153,14 @@ describe('geo (proxy de mapas)', () => {
         })
       ).statusCode,
     ).toBe(404);
+    // Un place_id largo (como los de direcciones de Google) llega al controlador: 404, no 414.
+    expect(
+      (
+        await t.call('GET', `/geo/place/fake-${'x'.repeat(250)}?sessionToken=${sessionToken}`, {
+          token: passenger.token,
+        })
+      ).statusCode,
+    ).toBe(404);
     expect(
       (
         await t.call('GET', `/geo/place/..%2F..%2Fx?sessionToken=${sessionToken}`, {
